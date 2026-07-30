@@ -3516,8 +3516,41 @@ function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
 function pickOne(a){return a[Math.floor(Math.random()*a.length)];}
 function escAttr(s){return s.replace(/"/g,'&quot;');}
 function draftAgain(){
+  /* instant reset \u2014 no page reload, so no re-downloading the Firebase
+     SDK or re-parsing the whole page. Same format stays selected. */
   try{ localStorage.setItem('notout_last_format', FMTKEY); }catch(e){}
-  location.reload();
+
+  revealTimers.forEach(clearTimeout); revealTimers=[]; revealIdx=0;
+
+  xiSlots = new Array(11).fill(null);
+  picksMade = 0;
+  xi = [];
+  currentPair = null;
+  captainIdx = -1;
+  draftedNames = new Set();
+  drawing = false;
+  redoLeft = 1;
+
+  tourStops = [];
+  hundredTable = [];
+  hundredMatches = [];
+  hundredResult = null;
+  tourTotals = null;
+  runScore = 0;
+
+  document.getElementById('pickGrid').innerHTML = '';
+  document.getElementById('drawCard').hidden = true;
+  document.getElementById('redrawBtn').style.display = 'none';
+  document.getElementById('drawBtn').disabled = false;
+  document.getElementById('miniSheet').innerHTML = '';
+  document.getElementById('fixtures').innerHTML = '';
+  document.getElementById('squadStats').innerHTML = '';
+  document.getElementById('verdict').classList.remove('show');
+  document.getElementById('skipBtn').style.display = 'none';
+  document.getElementById('shareFallback').style.display = 'none';
+
+  switchScreen('scr-intro');
+  window.scrollTo({top:0});
 }
 let __startFmt = 'test';
 try{
