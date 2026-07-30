@@ -244,6 +244,9 @@ body{
 .lb-meta{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.06em;color:var(--cream-dim);margin-top:2px;text-transform:uppercase}
 .lb-fmt{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;padding:3px 8px;border-radius:999px;border:1px solid var(--brass);color:var(--brass);flex:0 0 auto}
 .lb-empty{text-align:center;color:var(--cream-dim);font-size:13px;padding:24px 10px}
+.lb-filter{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:2px 0 14px}
+.lb-pill{padding:7px 13px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--cream-dim);font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.05em;cursor:pointer}
+.lb-pill.selected{border-color:var(--brass);color:var(--brass);background:var(--panel-2)}
 </style>
 </head>
 <body>
@@ -363,16 +366,23 @@ body{
       <button class="btn secondary" style="margin-top:16px" onclick="openLeaderboard()">🏆 View Leaderboard</button>
       <button class="btn secondary" style="margin-top:10px" onclick="copyShare()" id="shareBtn">Copy result</button>
       <textarea id="shareFallback" readonly style="display:none;width:100%;height:150px;margin-top:10px;background:var(--panel-2);color:var(--cream);border:1px solid var(--line);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:10px;padding:10px;line-height:1.5"></textarea>
-      <button class="btn" style="margin-top:10px" onclick="location.reload()">Draft again</button>
+      <button class="btn" style="margin-top:10px" onclick="draftAgain()">Draft again</button>
     </div>
   </section>
 
   <!-- LEADERBOARD -->
   <section class="screen" id="scr-leaderboard">
     <div class="slot-callout">
-      <div class="eyebrow">Hall Of Fame</div>
-      <h2>Leaderboard</h2>
-      <p>Best performance scores — saved on this device</p>
+      <div class="eyebrow">Global Hall Of Fame</div>
+      <h2>Global Leaderboard</h2>
+      <p>Best performance scores from players everywhere</p>
+    </div>
+    <div class="lb-filter" id="lbFilterRow">
+      <button class="lb-pill selected" data-mode="all" onclick="setLbFilter('all')">All</button>
+      <button class="lb-pill" data-mode="test" onclick="setLbFilter('test')">Test</button>
+      <button class="lb-pill" data-mode="odi" onclick="setLbFilter('odi')">ODI</button>
+      <button class="lb-pill" data-mode="t20" onclick="setLbFilter('t20')">T20</button>
+      <button class="lb-pill" data-mode="hundred" onclick="setLbFilter('hundred')">Hundred</button>
     </div>
     <div id="lbBody"></div>
     <button class="btn secondary" style="margin-top:14px" onclick="closeLeaderboard()">← Back</button>
@@ -3308,7 +3318,7 @@ function getPlayerName(){
 async function lbLoad(){
   if(fbDB){
     try{
-      const snap = await fbDB.collection('leaderboard').orderBy('score','desc').limit(50).get();
+      const snap = await fbDB.collection('leaderboard').orderBy('score','desc').limit(200).get();
       return snap.docs.map(d=>d.data());
     }catch(e){ console.warn('Firestore read failed, showing device-only scores.', e); }
   }
@@ -3352,7 +3362,7 @@ async function recordScore(entry){
 async function showScoreAndSave(record){
   document.getElementById('scoreValue').textContent = runScore.toLocaleString();
   leaderboard = await lbLoad();
-  const entry = {name:getPlayerName(), score:runScore, label:FMT.label, record, date:new Date().toISOString()};
+  const entry = {name:getPlayerName(), score:runScore, label:FMT.label, format:FMTKEY, record, date:new Date().toISOString()};
   const idx = await recordScore(entry);
   const rankEl = document.getElementById('scoreRank');
   if(idx===0) rankEl.textContent = '\ud83c\udfc6 New all-time best!';
@@ -3360,23 +3370,45 @@ async function showScoreAndSave(record){
   else if(idx>=0) rankEl.textContent = `#${idx+1} all-time`;
   else rankEl.textContent = '';
 }
+let lbFilter = 'all';
+const LB_FILTER_LABEL = {test:'Test Match', odi:'ODI', t20:'T20', hundred:'The Hundred'};
+
+function lbFilteredEntries(){
+  if(lbFilter==='all') return leaderboard;
+  return leaderboard.filter(e => e.format ? e.format===lbFilter : e.label===LB_FILTER_LABEL[lbFilter]);
+}
+function renderLbBody(){
+  const body = document.getElementById('lbBody');
+  const rows = lbFilteredEntries().slice(0,15);
+  if(!rows.length){
+    body.innerHTML = '<div class="lb-empty">No scores yet for this mode \u2014 be the first.</div>';
+    return;
+  }
+  body.innerHTML = rows.map((e,i)=>{
+    const d = new Date(e.date);
+    const when = isNaN(d) ? '' : d.toLocaleDateString();
+    return `<div class="lb-row ${i===0?'top1':''}">
+      <span class="lb-rank">${i+1}</span>
+      <div class="lb-mid"><div class="lb-score">${e.score.toLocaleString()} pts <span style="font-weight:400;color:var(--cream-dim);font-size:12px">\u2014 ${e.name||'Anonymous'}</span></div><div class="lb-meta">${e.record} \u00b7 ${when}</div></div>
+      <span class="lb-fmt">${e.label}</span>
+    </div>`;
+  }).join('');
+}
+function setLbFilter(mode){
+  lbFilter = mode;
+  document.querySelectorAll('.lb-pill').forEach(b=>b.classList.remove('selected'));
+  const btn = document.querySelector(`.lb-pill[data-mode="${mode}"]`);
+  if(btn) btn.classList.add('selected');
+  renderLbBody();
+}
 async function openLeaderboard(){
   lbReturnScreen = document.getElementById('verdict').classList.contains('show') ? 'scr-season' : 'scr-intro';
   leaderboard = await lbLoad();
-  const body = document.getElementById('lbBody');
-  if(!leaderboard.length){
-    body.innerHTML = '<div class="lb-empty">No scores yet \u2014 finish a game to set the first one.</div>';
-  } else {
-    body.innerHTML = leaderboard.slice(0,15).map((e,i)=>{
-      const d = new Date(e.date);
-      const when = isNaN(d) ? '' : d.toLocaleDateString();
-      return `<div class="lb-row ${i===0?'top1':''}">
-        <span class="lb-rank">${i+1}</span>
-        <div class="lb-mid"><div class="lb-score">${e.score.toLocaleString()} pts <span style="font-weight:400;color:var(--cream-dim);font-size:12px">\u2014 ${e.name||'Anonymous'}</span></div><div class="lb-meta">${e.record} \u00b7 ${when}</div></div>
-        <span class="lb-fmt">${e.label}</span>
-      </div>`;
-    }).join('');
-  }
+  lbFilter = 'all';
+  document.querySelectorAll('.lb-pill').forEach(b=>b.classList.remove('selected'));
+  const allBtn = document.querySelector('.lb-pill[data-mode="all"]');
+  if(allBtn) allBtn.classList.add('selected');
+  renderLbBody();
   switchScreen('scr-leaderboard');
 }
 function closeLeaderboard(){ switchScreen(lbReturnScreen); }
@@ -3483,7 +3515,16 @@ function rand(a,b){return a+Math.floor(Math.random()*(b-a+1));}
 function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
 function pickOne(a){return a[Math.floor(Math.random()*a.length)];}
 function escAttr(s){return s.replace(/"/g,'&quot;');}
-selectFormat('test');
+function draftAgain(){
+  try{ localStorage.setItem('notout_last_format', FMTKEY); }catch(e){}
+  location.reload();
+}
+let __startFmt = 'test';
+try{
+  const saved = localStorage.getItem('notout_last_format');
+  if(saved && FORMATS[saved]) __startFmt = saved;
+}catch(e){}
+selectFormat(__startFmt);
 </script>
 </body>
 </html>
