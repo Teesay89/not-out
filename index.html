@@ -163,10 +163,16 @@ body{
 .mini-sheet .ms-title{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--brass);margin-bottom:8px;display:flex;justify-content:space-between}
 .ms-row{display:flex;align-items:baseline;gap:10px;padding:3.5px 0;font-size:12.5px;border-bottom:1px solid rgba(239,233,216,.05)}
 .ms-row:last-child{border-bottom:none}
-.ms-pos{width:86px;flex:0 0 auto;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--cream-dim)}
+.ms-pos{width:22px;flex:0 0 auto;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--brass);text-align:center}
 .ms-name{flex:1;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ms-name.empty{color:var(--cream-dim);font-weight:400;font-style:italic}
 .ms-rt{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--brass)}
+.ms-row{position:relative}
+.ms-row.dragging{opacity:.92;z-index:50;box-shadow:0 12px 26px rgba(0,0,0,.55);pointer-events:none}
+.ms-row.drag-over{border-radius:6px;background:var(--panel-2)}
+.ms-row.drag-illegal{opacity:.35}
+.ms-move{flex:0 0 auto;width:26px;height:26px;border-radius:7px;border:1px solid var(--line);background:var(--panel-2);color:var(--cream-dim);font-size:13px;line-height:1;cursor:pointer;touch-action:none}
+.ms-move:active{border-color:var(--brass);color:var(--brass)}
 .capbadge{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:var(--brass);color:#0D120C;font-size:9px;font-weight:700;margin-left:6px;font-family:'Archivo',sans-serif;vertical-align:middle}
 /* ---------- XI sheet ---------- */
 .sheet{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);margin-bottom:16px}
@@ -325,6 +331,8 @@ body.sim-active .masthead{
   <section class="screen" id="scr-draft">
     <div class="order-strip" id="orderStrip"></div>
 
+    <div class="mini-sheet" id="miniSheet"></div>
+
     <div class="slot-callout">
       <div class="eyebrow" id="slotEyebrow">Slot 1 of 11</div>
       <h2 id="slotTitle">Opener</h2>
@@ -356,7 +364,6 @@ body.sim-active .masthead{
 
     <div class="pick-grid" id="pickGrid" style="margin-top:14px"></div>
 
-    <div class="mini-sheet" id="miniSheet"></div>
     <a href="javascript:void(0)" class="restart-link" onclick="restartDraft()">Restart draft</a>
   </section>
 
@@ -480,16 +487,31 @@ let PLAYERS = [];
 
 
 /* ================= SLOTS ================= */
+/* All-rounders come in three explicit sub-types now (data column
+   'position': true / batter / bowling all rounder), each with its
+   own realistic range of legal batting slots. */
+function arSubtype(p){
+  if(!p.roles.includes('ar')) return null;
+  return p.arsub || 'true';
+}
+const AR_RANGE = { true:[3,9], batting:[3,7], bowling:[5,9] };
+function arFitsSlot(p, slotNo){
+  const sub = arSubtype(p);
+  if(!sub) return false;
+  const [lo,hi] = AR_RANGE[sub];
+  return slotNo>=lo && slotNo<=hi;
+}
+
 const SLOTS = [
  {no:1, title:'Opener',        short:'OP', desc:'Faces the new ball first.',                              fits:p=>p.roles.includes('bat')||p.roles.includes('wk')},
  {no:2, title:'Opener',        short:'OP', desc:'The other half of the opening stand.',                    fits:p=>p.roles.includes('bat')||p.roles.includes('wk')},
- {no:3, title:'No.3',          short:'3',  desc:'First drop. A batter — or an all-rounder who bats big.',  fits:p=>p.roles.includes('bat')||p.roles.includes('ar')||p.roles.includes('wk')},
- {no:4, title:'No.4',          short:'4',  desc:'The engine room. Batter or all-rounder.',                 fits:p=>p.roles.includes('bat')||p.roles.includes('ar')||p.roles.includes('wk')},
- {no:5, title:'No.5',          short:'5',  desc:'Builds or rebuilds. Batter or all-rounder.',              fits:p=>p.roles.includes('bat')||p.roles.includes('ar')||p.roles.includes('wk')},
+ {no:3, title:'No.3',          short:'3',  desc:'First drop. A batter — or a batting/true all-rounder who bats big.',  fits:p=>p.roles.includes('bat')||p.roles.includes('wk')||(p.roles.includes('ar')&&arFitsSlot(p,3))},
+ {no:4, title:'No.4',          short:'4',  desc:'The engine room. Batter or batting/true all-rounder.',    fits:p=>p.roles.includes('bat')||p.roles.includes('wk')||(p.roles.includes('ar')&&arFitsSlot(p,4))},
+ {no:5, title:'No.5',          short:'5',  desc:'Builds or rebuilds. Any all-rounder can fit here.',       fits:p=>p.roles.includes('bat')||p.roles.includes('wk')||(p.roles.includes('ar')&&arFitsSlot(p,5))},
  {no:6, title:'Wicketkeeper',  short:'WK', desc:'Gloves are mandatory. Runs are a bonus.',                 fits:p=>p.roles.includes('wk')},
- {no:7, title:'Flex Pick',     short:'7',  desc:'Your call: extra batter, extra bowler, or the all-rounder glue.', fits:p=>p.roles.includes('bat')||p.roles.includes('bowl')||p.roles.includes('ar')||p.roles.includes('wk')},
- {no:8, title:'Bowler',        short:'B',  desc:'Strike bowler or all-rounder — leads the attack.',        fits:p=>p.roles.includes('bowl')||p.roles.includes('ar')},
- {no:9, title:'Bowler',        short:'B',  desc:'Partner at the other end. Bowler or all-rounder.',        fits:p=>p.roles.includes('bowl')||p.roles.includes('ar')},
+ {no:7, title:'Flex Pick',     short:'7',  desc:'Your call: extra batter, extra bowler, or any all-rounder.', fits:p=>p.roles.includes('bat')||p.roles.includes('bowl')||p.roles.includes('wk')||(p.roles.includes('ar')&&arFitsSlot(p,7))},
+ {no:8, title:'Bowler',        short:'B',  desc:'Strike bowler, or a true/bowling all-rounder.',           fits:p=>p.roles.includes('bowl')||(p.roles.includes('ar')&&arFitsSlot(p,8))},
+ {no:9, title:'Bowler',        short:'B',  desc:'Partner at the other end. Bowler or true/bowling all-rounder.', fits:p=>p.roles.includes('bowl')||(p.roles.includes('ar')&&arFitsSlot(p,9))},
  {no:10,title:'Bowler',        short:'B',  desc:'First change, no easy overs.',                            fits:p=>p.roles.includes('bowl')},
  {no:11,title:'Bowler',        short:'B',  desc:'Last name on the card, first to the second new ball.',    fits:p=>p.roles.includes('bowl')},
 ];
@@ -652,7 +674,7 @@ function showPositions(name, decade){
     open.map(i=>{
       const pen = positionPenalty(p, SLOTS[i].no);
       return `<button class="pos-btn ${pen===0?'fit-good':''}" onclick="place(this.dataset.n, this.dataset.d, ${i})" data-n="${escAttr(p.n)}" data-d="${p.d}">
-        Position ${SLOTS[i].no}<small>${fitBadge(pen)}</small></button>`;
+        ${SLOTS[i].no}<small>${fitBadge(pen)}</small></button>`;
     }).join('') +
     `</div>`;
 }
@@ -705,19 +727,64 @@ function renderBoard(){
   const strip = document.getElementById('orderStrip');
   strip.innerHTML = SLOTS.map((sl,i)=>{
     const filled = !!xiSlots[i];
-    return `<div class="order-cell ${filled?'done':'open'}" title="${sl.title}">${sl.short}</div>`;
+    return `<div class="order-cell ${filled?'done':'open'}" title="${sl.title}">${sl.no}</div>`;
   }).join('');
   document.getElementById('slotEyebrow').textContent = `Pick ${picksMade+1} of 11`;
   document.getElementById('slotTitle').textContent = 'Build your XI';
   document.getElementById('slotDesc').textContent = 'Draw a nation and decade, choose any player from that squad, then give him a batting position.';
-  document.getElementById('miniSheet').innerHTML =
-    `<div class="ms-title"><span>Your XI so far</span><span>${picksMade}/11</span></div>` +
-    SLOTS.map((sl,i)=>{
-      const p = xiSlots[i];
-      return `<div class="ms-row"><span class="ms-pos">${sl.no}. ${sl.title}</span>` +
-        (p ? `<span class="ms-name">${p.n} <span class="decade">'${p.d}</span></span><span class="ms-rt">${p.r}</span>`
-           : `<span class="ms-name empty">— open —</span>`) + `</div>`;
-    }).join('');
+  renderMiniSheet();
+}
+
+/* Rearranging now happens here, on the draft screen, as slots fill
+   in — not on a separate post-draft screen. Only two FILLED slots
+   can swap with each other; an empty slot is never a swap target. */
+function legalSwapTargets(i){
+  const targets = [];
+  const src = xiSlots[i];
+  if(!src) return targets;
+  for(let j=0;j<11;j++){
+    if(j===i || !xiSlots[j]) continue;
+    if(swapFits(j, src) && swapFits(i, xiSlots[j])) targets.push(j);
+  }
+  return targets;
+}
+function renderMiniSheet(){
+  const list = document.getElementById('miniSheet');
+  if(moveFromIdx===null){
+    list.innerHTML = `<div class="ms-title"><span>Your XI so far</span><span>${picksMade}/11</span></div>` +
+      SLOTS.map((sl,i)=>{
+        const p = xiSlots[i];
+        if(!p) return `<div class="ms-row"><span class="ms-pos">${sl.no}</span><span class="ms-name empty">— open —</span></div>`;
+        const pen = positionPenalty(p, sl.no);
+        const badge = pen>0 ? `<span class="oop-badge">OUT OF POSITION</span>` : '';
+        return `<div class="ms-row" data-idx="${i}">
+          <span class="ms-pos">${sl.no}</span>
+          <span class="ms-name">${p.n} <span class="decade">'${p.d}</span>${badge}</span>
+          <span class="ms-rt">${p.r}</span>
+          <button class="ms-move" onclick="startMove(${i})" ontouchstart="dragTouchStart(event,${i})" ontouchmove="dragTouchMove(event)" ontouchend="dragTouchEnd(event)" title="Move or drag to swap">\u21c5</button>
+        </div>`;
+      }).join('');
+  } else {
+    const p = xiSlots[moveFromIdx];
+    const targets = legalSwapTargets(moveFromIdx);
+    list.innerHTML = `<button class="back-link" onclick="cancelMove()">\u2190 Cancel</button>
+      <div class="pos-prompt">Swap ${p.n} with...</div>
+      <div class="pos-grid">` +
+      (targets.length
+        ? targets.map(j=>{
+            const pen = positionPenalty(p, SLOTS[j].no);
+            return `<button class="pos-btn ${pen===0?'fit-good':''}" onclick="doSwap(${moveFromIdx},${j})">${xiSlots[j].n}<small>Position ${SLOTS[j].no} \u2014 ${fitBadge(pen)}</small></button>`;
+          }).join('')
+        : `<div class="lb-empty">No other filled position can legally swap with him yet.</div>`
+      ) + `</div>`;
+  }
+}
+function startMove(i){ moveFromIdx = i; renderMiniSheet(); }
+function cancelMove(){ moveFromIdx = null; renderMiniSheet(); }
+function doSwap(i, j){
+  const tmp = xiSlots[i]; xiSlots[i] = xiSlots[j]; xiSlots[j] = tmp;
+  moveFromIdx = null;
+  renderBoard();
 }
 
 let formatLoading = null;   // the format key currently being fetched, if any
@@ -857,10 +924,32 @@ let moveFromIdx = null;
 function showCaptainPick(){
   switchScreen('scr-captain');
   document.getElementById('captainSub').textContent = FMTKEY==='hundred'
-    ? 'Move players into position and pick your captain for The Hundred.'
-    : 'Move players into position and pick your captain for the tour.';
-  moveFromIdx = null;
-  renderLineup();
+    ? 'Who leads this side into The Hundred?'
+    : 'Who leads this side onto twelve hostile grounds?';
+  renderCaptainList();
+}
+
+/* Rearranging is over by the time this screen shows — it now
+   happens live on the draft screen as slots fill in. This screen
+   is purely for picking a captain from the finished XI. */
+function renderCaptainList(){
+  const nat = id=>NATIONS.find(n=>n.id===id);
+  const list = document.getElementById('captainList');
+  list.innerHTML = xi.map((p,i)=>{
+    const isCap = i===captainIdx;
+    return `<div class="lineup-row ${isCap?'is-cap':''}">
+      <span class="flag">${nat(p.c).flag}</span>
+      <span class="who">
+        <span class="nm">${p.n} <span class="decade">'${p.d}</span></span>
+        <span class="rl">${SLOTS[i].title} (${SLOTS[i].no}) · ${p.roles.map(r=>ROLE_LABEL[r]).join(' · ')}</span>
+      </span>
+      <button class="lu-cap ${isCap?'active':''}" onclick="chooseCaptain(${i})" title="Captain">C</button>
+    </div>`;
+  }).join('');
+}
+function chooseCaptain(i){
+  captainIdx = i;
+  renderCaptainList();
 }
 
 /* Once the XI is set, the keeper slot stops being wk-exclusive for
@@ -872,56 +961,14 @@ function swapFits(slotIdx, p){
   if(slotIdx===5) return p.roles.includes('bat')||p.roles.includes('ar')||p.roles.includes('wk');
   return SLOTS[slotIdx].fits(p);
 }
-function legalSwapTargets(i){
-  const targets = [];
-  for(let j=0;j<11;j++){
-    if(j===i) continue;
-    if(swapFits(j, xi[i]) && swapFits(i, xi[j])) targets.push(j);
-  }
-  return targets;
-}
 
-function renderLineup(){
-  const nat = id=>NATIONS.find(n=>n.id===id);
-  const list = document.getElementById('captainList');
-  if(moveFromIdx===null){
-    list.innerHTML = xi.map((p,i)=>{
-      const pen = positionPenalty(p, i+1);
-      const badge = pen>0 ? `<span class="oop-badge">OUT OF POSITION</span>` : '';
-      const isCap = i===captainIdx;
-      return `<div class="lineup-row ${isCap?'is-cap':''}" data-idx="${i}">
-        <button class="lu-move" onclick="startMove(${i})" ontouchstart="dragTouchStart(event,${i})" ontouchmove="dragTouchMove(event)" ontouchend="dragTouchEnd(event)" title="Move or drag to swap">⇅</button>
-        <span class="flag">${nat(p.c).flag}</span>
-        <span class="who">
-          <span class="nm">${p.n} <span class="decade">'${p.d}</span>${badge}</span>
-          <span class="rl">${SLOTS[i].title} (${SLOTS[i].no}) · ${p.roles.map(r=>ROLE_LABEL[r]).join(' · ')}</span>
-        </span>
-        <button class="lu-cap ${isCap?'active':''}" onclick="chooseCaptain(${i})" title="Captain">★</button>
-      </div>`;
-    }).join('');
-  } else {
-    const p = xi[moveFromIdx];
-    const targets = legalSwapTargets(moveFromIdx);
-    list.innerHTML = `<button class="back-link" onclick="cancelMove()">← Cancel</button>
-      <div class="pos-prompt">Swap ${p.n} with...</div>
-      <div class="pos-grid">` +
-      (targets.length
-        ? targets.map(j=>{
-            const pen = positionPenalty(p, SLOTS[j].no);
-            return `<button class="pos-btn ${pen===0?'fit-good':''}" onclick="doSwap(${moveFromIdx},${j})">${xi[j].n}<small>Position ${SLOTS[j].no} — ${fitBadge(pen)}</small></button>`;
-          }).join('')
-        : `<div class="lb-empty">No legal swap for this player — every other slot needs a different role.</div>`
-      ) + `</div>`;
-  }
-}
-
-/* touch drag: press-and-hold the ⇅ handle and drag onto another
-   row to swap. A quick tap (no real movement) still opens the
-   tap-to-pick menu via the normal onclick above. */
+/* touch drag: press-and-hold the ⇅ handle on a mini-sheet row and
+   drag onto another filled row to swap. A quick tap (no real
+   movement) still opens the tap-to-pick menu via the onclick above. */
 let dragState = null;
 function dragTouchStart(e, i){
   const t = e.touches[0];
-  const rowEl = e.currentTarget.closest('.lineup-row');
+  const rowEl = e.currentTarget.closest('.ms-row');
   dragState = { fromIdx:i, startX:t.clientX, startY:t.clientY, moved:false, legal: legalSwapTargets(i), rowEl, hoverIdx:null };
 }
 function dragTouchMove(e){
@@ -931,18 +978,18 @@ function dragTouchMove(e){
   if(!dragState.moved && Math.hypot(dx,dy) > 12){
     dragState.moved = true;
     dragState.rowEl.classList.add('dragging');
-    document.querySelectorAll('.lineup-row').forEach(r=>{
+    document.querySelectorAll('.ms-row').forEach(r=>{
       const idx = +r.dataset.idx;
-      if(idx!==dragState.fromIdx) r.classList.toggle('drag-illegal', !dragState.legal.includes(idx));
+      if(r.dataset.idx!==undefined && idx!==dragState.fromIdx) r.classList.toggle('drag-illegal', !dragState.legal.includes(idx));
     });
   }
   if(dragState.moved){
     e.preventDefault();
     dragState.rowEl.style.transform = `translateY(${dy}px)`;
     const el = document.elementFromPoint(t.clientX, t.clientY);
-    const overRow = el ? el.closest('.lineup-row') : null;
-    const overIdx = overRow ? +overRow.dataset.idx : null;
-    document.querySelectorAll('.lineup-row').forEach(r=>r.classList.remove('drag-over'));
+    const overRow = el ? el.closest('.ms-row') : null;
+    const overIdx = (overRow && overRow.dataset.idx!==undefined) ? +overRow.dataset.idx : null;
+    document.querySelectorAll('.ms-row').forEach(r=>r.classList.remove('drag-over'));
     if(overIdx!==null && overIdx!==dragState.fromIdx && dragState.legal.includes(overIdx)){
       overRow.classList.add('drag-over');
       dragState.hoverIdx = overIdx;
@@ -956,23 +1003,10 @@ function dragTouchEnd(e){
     const from = dragState.fromIdx, to = dragState.hoverIdx;
     dragState = null;
     if(to!==null && to!==undefined) doSwap(from, to);
-    else renderLineup();
+    else renderMiniSheet();
   } else {
     dragState = null;
   }
-}
-
-function startMove(i){ moveFromIdx = i; renderLineup(); }
-function cancelMove(){ moveFromIdx = null; renderLineup(); }
-function doSwap(i, j){
-  const tmp = xi[i]; xi[i] = xi[j]; xi[j] = tmp;
-  if(captainIdx===i) captainIdx=j; else if(captainIdx===j) captainIdx=i;
-  moveFromIdx = null;
-  renderLineup();
-}
-function chooseCaptain(i){
-  captainIdx = i;
-  renderLineup();
 }
 
 function showReview(){
