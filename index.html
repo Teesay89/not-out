@@ -331,8 +331,6 @@ body.sim-active .masthead{
   <section class="screen" id="scr-draft">
     <div class="order-strip" id="orderStrip"></div>
 
-    <div class="mini-sheet" id="miniSheet"></div>
-
     <div class="slot-callout">
       <div class="eyebrow" id="slotEyebrow">Slot 1 of 11</div>
       <h2 id="slotTitle">Opener</h2>
@@ -364,6 +362,7 @@ body.sim-active .masthead{
 
     <div class="pick-grid" id="pickGrid" style="margin-top:14px"></div>
 
+    <div class="mini-sheet" id="miniSheet"></div>
     <a href="javascript:void(0)" class="restart-link" onclick="restartDraft()">Restart draft</a>
   </section>
 
@@ -494,7 +493,7 @@ function arSubtype(p){
   if(!p.roles.includes('ar')) return null;
   return p.arsub || 'true';
 }
-const AR_RANGE = { true:[3,9], batting:[3,7], bowling:[5,9] };
+const AR_RANGE = { true:[3,9], batting:[3,7], bowling:[6,9] };
 function arFitsSlot(p, slotNo){
   const sub = arSubtype(p);
   if(!sub) return false;
@@ -507,8 +506,8 @@ const SLOTS = [
  {no:2, title:'Opener',        short:'OP', desc:'The other half of the opening stand.',                    fits:p=>p.roles.includes('bat')||p.roles.includes('wk')},
  {no:3, title:'No.3',          short:'3',  desc:'First drop. A batter — or a batting/true all-rounder who bats big.',  fits:p=>p.roles.includes('bat')||p.roles.includes('wk')||(p.roles.includes('ar')&&arFitsSlot(p,3))},
  {no:4, title:'No.4',          short:'4',  desc:'The engine room. Batter or batting/true all-rounder.',    fits:p=>p.roles.includes('bat')||p.roles.includes('wk')||(p.roles.includes('ar')&&arFitsSlot(p,4))},
- {no:5, title:'No.5',          short:'5',  desc:'Builds or rebuilds. Any all-rounder can fit here.',       fits:p=>p.roles.includes('bat')||p.roles.includes('wk')||(p.roles.includes('ar')&&arFitsSlot(p,5))},
- {no:6, title:'Wicketkeeper',  short:'WK', desc:'Gloves are mandatory. Runs are a bonus.',                 fits:p=>p.roles.includes('wk')},
+ {no:5, title:'No.5',          short:'5',  desc:'Builds or rebuilds. Batter, or a true/batting all-rounder.', fits:p=>p.roles.includes('bat')||p.roles.includes('wk')||(p.roles.includes('ar')&&arFitsSlot(p,5))},
+ {no:6, title:'No.6',          short:'6',  desc:'Any player can bat here — the side still needs a keeper somewhere, just not necessarily here.', fits:p=>true},
  {no:7, title:'Flex Pick',     short:'7',  desc:'Your call: extra batter, extra bowler, or any all-rounder.', fits:p=>p.roles.includes('bat')||p.roles.includes('bowl')||p.roles.includes('wk')||(p.roles.includes('ar')&&arFitsSlot(p,7))},
  {no:8, title:'Bowler',        short:'B',  desc:'Strike bowler, or a true/bowling all-rounder.',           fits:p=>p.roles.includes('bowl')||(p.roles.includes('ar')&&arFitsSlot(p,8))},
  {no:9, title:'Bowler',        short:'B',  desc:'Partner at the other end. Bowler or true/bowling all-rounder.', fits:p=>p.roles.includes('bowl')||(p.roles.includes('ar')&&arFitsSlot(p,9))},
@@ -565,9 +564,27 @@ const HUNDRED_SQUADS = {  // 2026 franchise rosters — verified current squads
   FIR: [{n:'Phil Salt',roles:['wk'],rt:92}, {n:'Marco Jansen',roles:['ar'],rt:91}, {n:'Rachin Ravindra',roles:['ar'],rt:88}, {n:'Chris Woakes',roles:['ar'],rt:86}, {n:'Joe Root',roles:['bat'],rt:94}, {n:'Jordan Cox',roles:['wk'],rt:84}, {n:'Tom Kohler-Cadmore',roles:['bat'],rt:82}, {n:'Ben Kellaway',roles:['bat'],rt:78}, {n:'Lockie Ferguson',roles:['bowl'],rt:87}, {n:'Asa Tribe',roles:['bat'],rt:78}, {n:'Tom Aspinwall',roles:['bat'],rt:78}, {n:'Matthew Short',roles:['ar'],rt:83}, {n:'Sam Cook',roles:['bowl'],rt:81}, {n:'Jafer Chohan',roles:['bowl'],rt:79}, {n:'Jordan Clark',roles:['ar'],rt:82}, {n:'Dillon Pennington',roles:['bowl'],rt:80}],
 };
 
+/* Slot 6 no longer requires a keeper — any player can bat there — so the
+   'every team has a keeper' guarantee can't come from one reserved
+   slot anymore. Instead: while no keeper has been drafted yet, this
+   keeps at least one keeper-capable slot open at all times, refusing
+   to let a non-keeper take the LAST such slot. Once any keeper is in
+   the XI, every slot opens up completely. */
+const WK_PROBE = {roles:['wk'], bp:'', bt:'', arsub:''};
 function openSlotsFor(p){
+  const isKeeper = p.roles.includes('wk');
+  const keeperDrafted = xiSlots.some(x => x && x.roles.includes('wk'));
+  let keeperEligibleOpen = null;
+  if(!isKeeper && !keeperDrafted){
+    keeperEligibleOpen = [];
+    for(let i=0;i<SLOTS.length;i++){ if(!xiSlots[i] && SLOTS[i].fits(WK_PROBE)) keeperEligibleOpen.push(i); }
+  }
   const out=[];
-  for(let i=0;i<SLOTS.length;i++){ if(!xiSlots[i] && SLOTS[i].fits(p)) out.push(i); }
+  for(let i=0;i<SLOTS.length;i++){
+    if(xiSlots[i] || !SLOTS[i].fits(p)) continue;
+    if(keeperEligibleOpen && keeperEligibleOpen.length===1 && keeperEligibleOpen[0]===i) continue;   // reserved for a keeper
+    out.push(i);
+  }
   return out;
 }
 /* Index PLAYERS by nation+decade once per format switch instead of
@@ -681,6 +698,11 @@ function showPositions(name, decade){
 
 function place(name, decade, idx){
   const p = PLAYERS.find(x=>x.n===name && x.d===decade);
+  /* Defence-in-depth: only ever commit a placement that openSlotsFor
+     would actually offer right now. The UI only ever renders buttons
+     for legal indices already, but this guarantees the keeper-
+     reservation rule can never be bypassed by any other code path. */
+  if(!openSlotsFor(p).includes(idx)) return;
   xiSlots[idx] = p;
   draftedNames.add(p.n);
   picksMade++;
@@ -958,7 +980,6 @@ function chooseCaptain(i){
    pure wk slot. This lets a keeper move anywhere batting-capable
    and lets any batter/all-rounder cover his old spot. */
 function swapFits(slotIdx, p){
-  if(slotIdx===5) return p.roles.includes('bat')||p.roles.includes('ar')||p.roles.includes('wk');
   return SLOTS[slotIdx].fits(p);
 }
 
