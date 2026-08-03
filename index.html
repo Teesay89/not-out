@@ -69,6 +69,14 @@ body{
 .data-status{text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.05em;padding:8px 10px;border-radius:8px;margin:0 0 14px}
 .data-status.loading{color:var(--brass);background:rgba(201,162,75,.08);border:1px solid rgba(201,162,75,.25)}
 .data-status.error{color:#E8563F;background:rgba(214,64,43,.1);border:1px solid rgba(214,64,43,.35)}
+.name-modal{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:rgba(10,14,10,.82);backdrop-filter:blur(2px);padding:20px}
+.name-modal-card{width:100%;max-width:340px;background:linear-gradient(180deg,var(--panel-2),var(--panel));border:1px solid var(--brass);border-radius:14px;padding:22px 20px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.6)}
+.name-modal-title{font-family:'Graduate',serif;font-size:19px;color:var(--cream)}
+.name-modal-sub{font-family:'Archivo',sans-serif;font-size:12.5px;color:var(--cream-dim);margin-top:4px}
+.name-modal-input{width:100%;margin-top:16px;padding:12px 14px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--cream);font-family:'Archivo',sans-serif;font-size:15px;text-align:center}
+.name-modal-input:focus{outline:none;border-color:var(--brass)}
+.confirm-btn-row{display:flex;gap:10px;margin-top:16px}
+.confirm-btn-row .btn{margin:0;flex:1}
 .fmt-btn{padding:10px 6px;border-radius:10px;border:1px solid var(--line);background:var(--panel-2);color:var(--cream-dim);cursor:pointer;font-family:'Graduate',serif;font-size:15px;letter-spacing:.05em;transition:border-color .15s,color .15s}
 .fmt-btn small{display:block;font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:.06em;margin-top:4px;text-transform:uppercase}
 .fmt-btn.selected{border-color:var(--brass);color:var(--brass);box-shadow:0 0 0 1px var(--brass) inset}
@@ -213,7 +221,8 @@ body.sim-active .masthead{
 }
 #skipBtn{top:calc(var(--masthead-h, 90px) + 8px + env(safe-area-inset-top)) !important;}
 #scr-season.sim-active{padding-top:calc(var(--masthead-h, 90px) + 66px)}
-.restart-link{display:block;text-align:center;margin-top:14px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--cream-dim);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.restart-link{display:flex;align-items:center;justify-content:center;gap:6px;margin:16px auto 0;padding:10px 18px;width:fit-content;border-radius:999px;border:1px solid var(--line);background:var(--panel);font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--cream-dim);text-decoration:none;cursor:pointer}
+.restart-link:active{border-color:var(--ball);color:var(--ball)}
 .restart-link:active{color:var(--brass)}
 /* ---------- fixtures / scoreboard ---------- */
 .tour-stop{display:flex;align-items:baseline;gap:10px;margin:16px 0 8px;padding-bottom:6px;border-bottom:1px dashed var(--line);opacity:0}
@@ -224,6 +233,7 @@ body.sim-active .masthead{
 .fixture .score{display:block;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--cream);margin-top:3px}
 .fixture .potm{display:block;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--brass);margin-top:3px}
 .fixture{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:8px;opacity:0;transform:translateY(8px)}
+.fixture.series-row{border-color:var(--brass);background:var(--panel-2);margin-bottom:16px}
 .fixture.shown{animation:fadeUp .4s ease both}
 .fixture .tno{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--cream-dim);width:44px;letter-spacing:.1em}
 .fixture .op{flex:1;font-weight:600;font-size:14px}
@@ -265,6 +275,10 @@ body.sim-active .masthead{
 .score-card .sc-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--cream-dim)}
 .score-card .sc-value{font-family:'Graduate',serif;font-size:38px;color:var(--brass);margin:4px 0}
 .score-card .sc-rank{font-family:'Archivo',sans-serif;font-size:12.5px;color:var(--cream-dim)}
+.review-badge{display:inline-block;margin-top:6px;padding:9px 14px;border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:700;letter-spacing:.02em;line-height:1.4}
+.review-badge.review-good{background:rgba(62,107,58,.22);border:1px solid var(--grass-b);color:#7FE08A}
+.review-badge.review-bad{background:rgba(214,64,43,.16);border:1px solid var(--ball);color:#F28B7A}
+.review-sub{margin-top:6px;font-family:'Archivo',sans-serif;font-size:12.5px;color:var(--cream-dim)}
 
 .lb-row{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--panel);border:1px solid var(--line);border-radius:10px;margin-bottom:8px}
 .lb-row.top1{border-color:var(--brass);box-shadow:0 0 0 1px var(--brass) inset}
@@ -290,12 +304,6 @@ body.sim-active .masthead{
 .lb-pill{padding:7px 13px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--cream-dim);font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.05em;cursor:pointer}
 .lb-pill.selected{border-color:var(--brass);color:var(--brass);background:var(--panel-2)}
 </style>
-<link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
-<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-<link rel="shortcut icon" href="/favicon.ico" />
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-<meta name="apple-mobile-web-app-title" content="Not Out" />
-<link rel="manifest" href="/site.webmanifest" />
 </head>
 <body>
 <div class="wrap">
@@ -369,7 +377,7 @@ body.sim-active .masthead{
     <div class="pick-grid" id="pickGrid" style="margin-top:14px"></div>
 
     <div class="mini-sheet" id="miniSheet"></div>
-    <a href="javascript:void(0)" class="restart-link" onclick="restartDraft()">Restart draft</a>
+    <a href="javascript:void(0)" class="restart-link" onclick="restartDraft()">↺ Restart draft</a>
   </section>
 
   <!-- CAPTAIN -->
@@ -450,19 +458,24 @@ body.sim-active .masthead{
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/12.15.0/firebase-firestore-compat.min.js"></script>
 <script>
 /* ================= NATIONS ================= */
+/* Real grounds for each nation — five matches per series now rotate
+   through these instead of all being played at one fixed venue.
+   Where a country genuinely doesn't have five current international
+   venues, the list repeats as needed ("if possible" — some nations
+   just don't have five to give). */
 const NATIONS = [
-  {id:'AUS', name:'Australia',    flag:'🇦🇺', opp:100, venue:'the MCG'},
-  {id:'SA',  name:'South Africa', flag:'🇿🇦', opp:98,  venue:'the Wanderers'},
-  {id:'NZ',  name:'New Zealand',  flag:'🇳🇿', opp:96,  venue:'the Basin Reserve'},
-  {id:'IND', name:'India',        flag:'🇮🇳', opp:95,  venue:'Eden Gardens'},
-  {id:'ENG', name:'England',      flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', opp:94,  venue:'Lord’s'},
-  {id:'PAK', name:'Pakistan',     flag:'🇵🇰', opp:92,  venue:'Gaddafi Stadium'},
-  {id:'SL',  name:'Sri Lanka',    flag:'🇱🇰', opp:90,  venue:'Galle'},
-  {id:'WI',  name:'West Indies',  flag:'🏝️', opp:88,  venue:'Kensington Oval'},
-  {id:'BAN', name:'Bangladesh',   flag:'🇧🇩', opp:86,  venue:'Mirpur'},
-  {id:'AFG', name:'Afghanistan',  flag:'🇦🇫', opp:85,  venue:'Sharjah'},
-  {id:'ZIM', name:'Zimbabwe',     flag:'🇿🇼', opp:84,  venue:'Harare Sports Club'},
-  {id:'IRE', name:'Ireland',      flag:'🇮🇪', opp:83,  venue:'Malahide'},
+  {id:'AUS', name:'Australia',    flag:'🇦🇺', opp:100, venues:['the MCG','the SCG','the Gabba','Adelaide Oval','Perth Stadium']},
+  {id:'SA',  name:'South Africa', flag:'🇿🇦', opp:98,  venues:['the Wanderers','Newlands','Kingsmead','SuperSport Park','St George\u2019s Park']},
+  {id:'NZ',  name:'New Zealand',  flag:'🇳🇿', opp:96,  venues:['the Basin Reserve','Eden Park','Hagley Oval','Seddon Park','University Oval']},
+  {id:'IND', name:'India',        flag:'🇮🇳', opp:95,  venues:['Eden Gardens','Wankhede Stadium','M. Chinnaswamy Stadium','Narendra Modi Stadium','Arun Jaitley Stadium']},
+  {id:'ENG', name:'England',      flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', opp:94,  venues:['Lord\u2019s','the Oval','Old Trafford','Edgbaston','Headingley']},
+  {id:'PAK', name:'Pakistan',     flag:'🇵🇰', opp:92,  venues:['Gaddafi Stadium','National Stadium Karachi','Rawalpindi Cricket Stadium','Multan Cricket Stadium']},
+  {id:'SL',  name:'Sri Lanka',    flag:'🇱🇰', opp:90,  venues:['Galle International Stadium','R. Premadasa Stadium','Pallekele International Stadium','Sinhalese Sports Club']},
+  {id:'WI',  name:'West Indies',  flag:'🏝️', opp:88,  venues:['Kensington Oval','Sabina Park','Queen\u2019s Park Oval','Sir Vivian Richards Stadium','Warner Park']},
+  {id:'BAN', name:'Bangladesh',   flag:'🇧🇩', opp:86,  venues:['Sher-e-Bangla National Stadium','Zahur Ahmed Chowdhury Stadium','Sylhet International Stadium']},
+  {id:'AFG', name:'Afghanistan',  flag:'🇦🇫', opp:85,  venues:['Sharjah Cricket Stadium','Zayed Cricket Stadium','Greater Noida Sports Complex']},
+  {id:'ZIM', name:'Zimbabwe',     flag:'🇿🇼', opp:84,  venues:['Harare Sports Club','Queens Sports Club']},
+  {id:'IRE', name:'Ireland',      flag:'🇮🇪', opp:83,  venues:['Malahide','the Village','Civil Service Cricket Club']},
 ];
 
 /* =================================================================
@@ -733,8 +746,22 @@ function useRedraw(){
 
 
 
-function restartDraft(){
-  if(!confirm('Restart the draft? This clears your picks so far.')) return;
+function showConfirm(title, body, actionLabel){
+  return new Promise((resolve)=>{
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmBody').textContent = body;
+    document.getElementById('confirmActionBtn').textContent = actionLabel || 'Confirm';
+    document.getElementById('confirmModal').style.display = 'flex';
+    window.__resolveConfirm = (val)=>{
+      document.getElementById('confirmModal').style.display = 'none';
+      resolve(val);
+    };
+  });
+}
+function resolveConfirm(val){ window.__resolveConfirm(val); }
+async function restartDraft(){
+  const ok = await showConfirm('Restart the draft?', 'This clears your picks so far.', 'Restart');
+  if(!ok) return;
   xiSlots = new Array(11).fill(null);
   picksMade = 0;
   xi = [];
@@ -1228,7 +1255,23 @@ function pickPOTM(code, nat){
   return `${p.n} (${nat.id}) \u2014 ${potmStat(p)}`;
 }
 
+/* The whole tour is run under a seeded RNG so it's reproducible.
+   The seed (not the score) is what gets sent for verification —
+   the server replays the exact same deterministic simulation from
+   the seed and computes its own score, never trusting the client's. */
+function mulberry32(seed){
+  return function(){
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+let runSeed = null;
+const __nativeRandom = Math.random.bind(Math);
 function beginTour(){
+  runSeed = Math.floor(__nativeRandom() * 2**31);
+  Math.random = mulberry32(runSeed);
   if(FMTKEY==='hundred') startHundredLeague(); else startSeason();
 }
 
@@ -1246,28 +1289,42 @@ function startSeason(){
   tourStops = []; revealRows = [];
   let w=0,d=0,l=0,scoreTotal=0;
   stops.forEach((nat,si)=>{
-    revealRows.push({kind:'stop', html:`<span class="st-flag">${nat.flag}</span><span class="st-name">${nat.name}</span><span class="st-venue">${nat.venue} \u00b7 today\u2019s ${FMT.label} side</span>`,
+    revealRows.push({kind:'stop', html:`<span class="st-flag">${nat.flag}</span><span class="st-name">${nat.name}</span><span class="st-venue">Five ${FMT.noun}${FMTKEY==='test'?'es':'s'} across the country \u00b7 today\u2019s ${FMT.label} side</span>`,
                      tally:null, stop:si+1});
     const matches=[];
     for(let m=0;m<5;m++){
+      const venue = nat.venues[m % nat.venues.length];
       const res = decideMatch(st.strength, nat.opp+4);
       const code = res.code;
       const gen = FMTKEY==='test' ? genTestMatch(code, nat) : genWhiteBallMatch(code, nat, res.superOver);
       const potm = pickPOTM(code, nat);
       if(code==='W')w++; else if(code==='D')d++; else l++;
       scoreTotal += gen.pts;
-      matches.push({code, ...gen, potm});
+      matches.push({code, ...gen, potm, venue});
       revealRows.push({kind:'match', code, num:si*5+m+1,
         html:`<span class="tno">M${String(si*5+m+1).padStart(2,'0')}</span>
-        <span class="op">vs ${nat.name}<span class="score">${gen.score}</span><span class="score" style="color:var(--cream-dim)">${gen.margin}</span><span class="potm">POTM: ${potm}</span></span>
+        <span class="op">vs ${nat.name} \u2014 ${venue}<span class="score">${gen.score}</span><span class="score" style="color:var(--cream-dim)">${gen.margin}</span><span class="potm">POTM: ${potm}</span></span>
         <span class="badge ${code}">${code==='W'?'WON':code==='D'?'DRAW':'LOST'}</span>`,
         tally:`${w}\u2013${d}\u2013${l}`, stop:si+1});
     }
     tourStops.push({nat, matches});
+
+    /* A series-score line after every five matches, on top of the
+       individual match reveal — not instead of it. */
+    const sw=matches.filter(x=>x.code==='W').length, sd=matches.filter(x=>x.code==='D').length, sl=matches.filter(x=>x.code==='L').length;
+    const seriesCode = sw>sl ? 'W' : sw<sl ? 'L' : 'D';
+    const seriesLabel = seriesCode==='W' ? 'SERIES WON' : seriesCode==='L' ? 'SERIES LOST' : 'SERIES DRAWN';
+    const record = FMTKEY==='test' ? `${sw}\u2013${sd}\u2013${sl}` : `${sw}\u2013${sl}`;
+    revealRows.push({kind:'series', code:seriesCode, num:si+1,
+      html:`<span class="tno">SERIES</span>
+      <span class="op">vs ${nat.name}<span class="score">Series score: ${record}</span></span>
+      <span class="badge ${seriesCode}">${seriesLabel}</span>`,
+      tally:`${w}\u2013${d}\u2013${l}`, stop:si+1});
   });
   if(w===60) scoreTotal += 400;
   tourTotals={w,d,l};
   runScore = Math.round(scoreTotal);
+  Math.random = __nativeRandom;   // tour fully computed; stop consuming the seeded sequence
 
   const box=document.getElementById('fixtures');
   box.innerHTML='';
@@ -1281,7 +1338,7 @@ function startSeason(){
 
 function appendRow(row){
   const el=document.createElement('div');
-  const cls = row.kind==='stop' ? 'tour-stop' : row.kind==='table' ? 'table-card' : row.kind==='announce' ? 'tour-announce' : 'fixture';
+  const cls = row.kind==='stop' ? 'tour-stop' : row.kind==='table' ? 'table-card' : row.kind==='announce' ? 'tour-announce' : row.kind==='series' ? 'fixture series-row' : 'fixture';
   el.className = cls+' shown';
   el.innerHTML=row.html;
   document.getElementById('fixtures').appendChild(el);
@@ -1468,6 +1525,7 @@ function finishHundred(outcome){
   else if(outcome.reachedFinal) scoreTotal += 100;
   else if(outcome.reachedEliminator) scoreTotal += 40;
   runScore = Math.round(scoreTotal);
+  Math.random = __nativeRandom;   // tournament fully computed; stop consuming the seeded sequence
 
   document.getElementById('seasonTally').textContent = `${w}\u2013${l}`;
   verdict();
@@ -1481,6 +1539,21 @@ function computeSquadStats(){
   const battingMult = 0.85 + 0.45*winRate;      /* good tours = bigger averages */
   const bowlingMult = 1.15 - 0.35*winRate;      /* good tours = cheaper wickets */
 
+  /* Individual innings scores, simulated one by one (exponential-shaped:
+     mostly small scores, occasional big ones, matching how batting really
+     distributes) so that High Score, 100s and 50s are read directly off
+     the same underlying innings — they can never contradict each other,
+     unlike deriving them from separate unrelated formulas. */
+  function genInningsScores(inns, mean, cap){
+    const scores = [];
+    for(let i=0;i<inns;i++){
+      let sc = Math.round(-mean * Math.log(1 - Math.random()*0.995));
+      if(sc<0) sc=0;
+      if(sc>cap) sc=cap;
+      scores.push(sc);
+    }
+    return scores;
+  }
   const batting = xi.map((p,i)=>{
     const pos=i+1;
     const pureBowler = p.roles.includes('bowl') && !p.roles.includes('ar');
@@ -1498,16 +1571,13 @@ function computeSquadStats(){
       if(isAR) base *= 0.88;                              /* genuine AR batting, reflective of the player */
       if(pos>=8) base *= 0.92;                            /* slightly fewer chances down at 8/9 */
     }
-    const ave = Math.max(6, base*battingMult*(0.92+Math.random()*0.16));
-    const runs = Math.round(ave*(inns-no));
+    const mean = Math.max(4, base*battingMult*(0.92+Math.random()*0.16));
     const cap = test?294:odi?189:121;
-    const hs = pureBowler ? rand(24,pos<=7?88:74) : Math.min(cap, Math.round(ave*(1.9+Math.random()*1.4)));
-    let h=0,f=0;
-    if(!pureBowler){
-      h = test ? Math.round(runs/rand(300,380)) : odi ? Math.round(runs/rand(420,520)) : (hs>=100?1:0);
-      f = Math.round(h*(1.3+Math.random()*0.8)) + rand(0,3);
-      if(t20) f = Math.round(runs/rand(150,190));
-    }
+    const scores = genInningsScores(Math.max(inns,1), mean, cap);
+    const runs = scores.reduce((a,b)=>a+b,0);
+    const hs = scores.length ? Math.max(...scores) : 0;
+    const h = scores.filter(sc=>sc>=100).length;
+    const f = scores.filter(sc=>sc>=50 && sc<100).length;
     const sr = t20 ? Math.round(105 + (p.r-80)*2.2 + Math.random()*12)
              : odi ? Math.round(72 + (p.r-80)*1.4 + Math.random()*8) : null;
     return {n:p.n, pos, inns, no, runs, hs, ave: runs/(Math.max(1,inns-no)), h, f, sr};
@@ -1628,13 +1698,24 @@ function escHtml(s){
 function getPlayerName(){
   let name = '';
   try{ name = localStorage.getItem(NAME_KEY) || ''; }catch(e){}
-  if(!name && fbDB){
-    try{
-      name = sanitizeName(prompt('Name for the leaderboard (max 20 characters):', '') || '');
-      if(name){ try{ localStorage.setItem(NAME_KEY, name); }catch(e){} }
-    }catch(e){}
-  }
-  return name || 'Anonymous';
+  if(name) return Promise.resolve(name);
+  if(!fbDB) return Promise.resolve('Anonymous');
+  return new Promise((resolve)=>{
+    const modal = document.getElementById('nameModal');
+    const input = document.getElementById('nameInput');
+    modal.style.display = 'flex';
+    input.value = '';
+    setTimeout(()=>input.focus(), 50);
+    window.__resolvePlayerName = (val)=>{
+      const clean = sanitizeName(val) || 'Anonymous';
+      try{ localStorage.setItem(NAME_KEY, clean); }catch(e){}
+      modal.style.display = 'none';
+      resolve(clean);
+    };
+  });
+}
+function confirmNameInput(){
+  window.__resolvePlayerName(document.getElementById('nameInput').value);
 }
 
 async function lbLoad(){
@@ -1666,14 +1747,17 @@ async function lbSaveLocal(arr){
   }catch(e){}
   try{ localStorage.setItem(LB_KEY, JSON.stringify(arr)); }catch(e){}
 }
+/* Direct client writes to the leaderboard are no longer trusted —
+   Firestore rules should reject them entirely. This posts only the
+   seed and the drafted XI to the verified Cloud Function, which
+   replays the exact deterministic tour server-side, computes its
+   own score from scratch, and is the only thing allowed to write
+   to the leaderboard. Paste your deployed function's URL below. */
+const FUNCTION_URL = 'https://us-central1-not-out-186a9.cloudfunctions.net/submitScore';
+
 async function recordScore(entry){
-  if(fbDB){
-    try{
-      await fbDB.collection('leaderboard').add(entry);
-      leaderboard = await lbLoad();
-      return leaderboard.findIndex(e=>e.date===entry.date && e.score===entry.score && e.name===entry.name);
-    }catch(e){ console.warn('Firestore write failed, saving to this device instead.', e); }
-  }
+  /* device-only fallback — used if the verified endpoint isn't
+     configured yet, or a submission to it fails for any reason */
   leaderboard.push(entry);
   leaderboard.sort((a,b)=>b.score-a.score);
   const idx = leaderboard.indexOf(entry);
@@ -1681,15 +1765,57 @@ async function recordScore(entry){
   await lbSaveLocal(leaderboard);
   return idx;
 }
+async function submitVerifiedScore(playerName){
+  const xiPayload = xi.map(p=>({n:p.n, d:p.d}));
+  const res = await fetch(FUNCTION_URL, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({format:FMTKEY, seed:runSeed, xi:xiPayload, captainIdx, name:playerName})
+  });
+  const data = await res.json();
+  if(!res.ok || !data.ok) throw new Error(data.error || ('HTTP '+res.status));
+  return data; // {ok, score, record}
+}
+const NOT_OUT_REVIEWS = [
+  'Reviewed by 3rd Umpire \u2014 DRS Tracking confirms \u2014 Not Out',
+  'Reviewed by 3rd Umpire \u2014 Snicko confirms \u2014 Not Out',
+  'Reviewed by 3rd Umpire \u2014 Catch Camera confirms \u2014 Not Out',
+  'Reviewed by 3rd Umpire \u2014 Run Out Camera confirms \u2014 Not Out',
+];
+const OUT_REVIEWS = [
+  'Reviewed by 3rd Umpire \u2014 DRS Tracking confirms \u2014 Out',
+  'Reviewed by 3rd Umpire \u2014 Snicko confirms \u2014 Out',
+  'Reviewed by 3rd Umpire \u2014 Catch Camera confirms \u2014 Out',
+  'Reviewed by 3rd Umpire \u2014 Run Out Camera confirms \u2014 Out',
+];
 async function showScoreAndSave(record){
   document.getElementById('scoreValue').textContent = runScore.toLocaleString();
   leaderboard = await lbLoad();
-  const entry = {name:getPlayerName(), score:runScore, label:FMT.label, format:FMTKEY, record, date:new Date().toISOString()};
-  const idx = await recordScore(entry);
   const rankEl = document.getElementById('scoreRank');
-  if(idx===0) rankEl.textContent = '\ud83c\udfc6 New all-time best!';
-  else if(idx>=0 && idx<10) rankEl.textContent = `#${idx+1} all-time \u2014 top 10!`;
-  else if(idx>=0) rankEl.textContent = `#${idx+1} all-time`;
+  const functionConfigured = FUNCTION_URL && !FUNCTION_URL.includes('YOUR_REGION');
+  const playerName = await getPlayerName();
+
+  if(fbDB && functionConfigured){
+    try{
+      const data = await submitVerifiedScore(playerName);
+      document.getElementById('scoreValue').textContent = data.score.toLocaleString();
+      leaderboard = await lbLoad();
+      const idx = leaderboard.findIndex(e=>e.score===data.score && e.record===data.record);
+      const extra = idx===0 ? 'New all-time best!' : (idx>=0 && idx<10) ? `#${idx+1} all-time!` : 'Saved to the global leaderboard.';
+      rankEl.innerHTML = `<div class="review-badge review-good">${pickOne(NOT_OUT_REVIEWS)}</div><div class="review-sub">${extra}</div>`;
+      return;
+    }catch(e){
+      console.warn('Server verification failed, saving to this device instead.', e);
+      rankEl.innerHTML = `<div class="review-badge review-bad">${pickOne(OUT_REVIEWS)}</div><div class="review-sub">Saved to this device instead.</div>`;
+      const entry = {name:playerName, score:runScore, label:FMT.label, format:FMTKEY, record, date:new Date().toISOString()};
+      await recordScore(entry);
+      return;
+    }
+  }
+  const entry = {name:playerName, score:runScore, label:FMT.label, format:FMTKEY, record, date:new Date().toISOString()};
+  const idx = await recordScore(entry);
+  if(idx===0) rankEl.textContent = '\ud83c\udfc6 New all-time best! (saved to this device)';
+  else if(idx>=0 && idx<10) rankEl.textContent = `#${idx+1} all-time (this device) \u2014 top 10!`;
+  else if(idx>=0) rankEl.textContent = `#${idx+1} all-time (this device)`;
   else rankEl.textContent = '';
 }
 let lbFilter = 'all';
@@ -1783,20 +1909,23 @@ function verdict(){
   });
 }
 
+const SITE_URL = 'https://www.not-out.co.uk';
+const SHARE_CTA = `Think you can beat this? Draft your own XI \u2192 ${SITE_URL}`;
 function buildShareText(){
   if(FMTKEY==='hundred'){
     const r=hundredResult;
     const dots=hundredMatches.map(m=>m.code==='W'?'\ud83d\udfe2':'\ud83d\udd34').join('');
     const stage = r.champion?'CHAMPIONS \ud83c\udfc6' : r.reachedFinal?'Runners-up' : r.reachedEliminator?'Eliminator exit' : `P${r.rank} \u2014 missed the cut`;
-    return `NOT OUT* \u2014 The Hundred Legends\n${dots}  ${r.w}W ${r.l}L \u00b7 ${stage}\nFinished P${r.rank} of 9 in the group stage\nScore: ${runScore.toLocaleString()} pts`;
+    return `NOT OUT* \u2014 The Hundred Legends\n${dots}  ${r.w}W ${r.l}L \u00b7 ${stage}\nFinished P${r.rank} of 9 in the group stage\nScore: ${runScore.toLocaleString()} pts\n\n${SHARE_CTA}`;
   }
   const {w,d,l}=tourTotals;
   const lines=tourStops.map(st=>{
     const dots=st.matches.map(m=>m.code==='W'?'\ud83d\udfe2':m.code==='D'?'\ud83d\udfe1':'\ud83d\udd34').join('');
-    const sw=st.matches.filter(m=>m.code==='W').length, slo=st.matches.filter(m=>m.code==='L').length;
-    return `${st.nat.id} (${st.nat.venue}) ${dots} ${sw}\u2013${slo}${sw===5?' \ud83e\uddf9':''}`;
+    const sw=st.matches.filter(m=>m.code==='W').length, sd=st.matches.filter(m=>m.code==='D').length, sl=st.matches.filter(m=>m.code==='L').length;
+    const record = FMTKEY==='test' ? `${sw}\u2013${sd}\u2013${sl}` : `${sw}\u2013${sl}`;
+    return `${st.nat.id} ${dots} Series: ${record}${sw===5?' \ud83e\uddf9':''}`;
   }).join('\n');
-  return `NOT OUT* \u2014 Cricket World Domination \u00b7 ${FMT.label}\n60 matches, all away \u00b7 ${w}W ${d}${FMTKEY==='test'?'D':'T'} ${l}L\nScore: ${runScore.toLocaleString()} pts\n\n${lines}`;
+  return `NOT OUT* \u2014 Cricket World Domination \u00b7 ${FMT.label}\n60 matches, all away \u00b7 ${w}W ${d}${FMTKEY==='test'?'D':'T'} ${l}L\nScore: ${runScore.toLocaleString()} pts\n\n${lines}\n\n${SHARE_CTA}`;
 }
 
 
@@ -1881,5 +2010,26 @@ try{
 }catch(e){}
 selectFormat(__startFmt);   // async; fires the background fetch, intro screen doesn't need to wait
 </script>
+  <!-- NAME ENTRY MODAL -->
+  <div class="name-modal" id="nameModal" style="display:none">
+    <div class="name-modal-card">
+      <div class="name-modal-title">Name for the Leaderboard</div>
+      <p class="name-modal-sub">This is how you'll appear to everyone else</p>
+      <input type="text" id="nameInput" class="name-modal-input" maxlength="20" placeholder="Your name" autocomplete="off">
+      <button class="btn" style="margin-top:14px" onclick="confirmNameInput()">Save &amp; Continue</button>
+    </div>
+  </div>
+
+  <!-- GENERIC CONFIRM MODAL -->
+  <div class="name-modal" id="confirmModal" style="display:none">
+    <div class="name-modal-card">
+      <div class="name-modal-title" id="confirmTitle">Are you sure?</div>
+      <p class="name-modal-sub" id="confirmBody"></p>
+      <div class="confirm-btn-row">
+        <button class="btn secondary" onclick="resolveConfirm(false)">Cancel</button>
+        <button class="btn" id="confirmActionBtn" onclick="resolveConfirm(true)">Confirm</button>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
