@@ -346,7 +346,7 @@ body.sim-active .masthead{
         <li><span class="dotball"></span><span><b>Pick from the whole squad.</b> Every available player from that nation's decade comes up. Choose one, then choose <b>where he goes</b> in your batting order.</span></li>
         <li><span class="dotball"></span><span><b>Every player is rated for his own decade</b> — how he ranked among his contemporaries. A 97 from the ’80s is every bit as good as a 97 from today.</span></li>
         <li><span class="dotball"></span><span><b>Fill the card your way.</b> Openers up top, bowlers at the death — but there's no fixed slot for the keeper any more, he just needs to be <b>somewhere</b> in your side. All-rounders slot in based on how they actually played: some open, some finish. Players with no legal spot left simply won't appear. And you still get <b>one do-over per game</b> for a hopeless draw.</span></li>
-        <li><span class="dotball"></span><span><b>Set your lineup, then pick a captain.</b> Before the tour starts, fine-tune your order — tap or drag to swap anyone into a different spot — then name your captain. Players batting in their correct position boost the team, and so does a captain with a genuine, real-world winning record for that side.</span></li>
+        <li><span class="dotball"></span><span><b>Set your lineup, then pick a captain.</b> Before the tour starts, fine-tune your order — tap or drag to swap anyone into a different spot — then name your captain. Players batting in their correct position give the team a small boost, and so does a captain with a genuine, real-world winning record for that side.</span></li>
         <li><span class="dotball"></span><span id="challengeBullet"><b>Beat them all, at their place.</b> Your XI tours the world: a five-match series against each of today’s twelve international sides, played across <b>real grounds in their country</b> — sixty matches in total, all away. Win matches, win series, sweep one 5-0 — that's what separates a good tour from a legendary one.</span></li>
       </ul>
       <p class="foot-note" style="margin-top:16px">Fair warning: the draw doesn't care about your plans. Sometimes you need a spinner and it deals you the 1984 West Indies pace battery.<br><span style="opacity:.75">Inspired by the brilliant <a href="https://38-0.app" target="_blank" rel="noopener" style="color:var(--brass)">38-0</a> website.</span></p>
@@ -960,17 +960,21 @@ function teamStrengths(){
   /* Batting: every batting-capable player counts, wherever he bats.
      An all-rounder at 8 or 9 adds nearly full batting value; a pure
      bowler forced up into the top seven bats at a heavy discount.
-     Anyone out of his natural batting position takes a small hit.
-     The best seven contributions make the batting number. */
+     Anyone out of his natural batting position takes a small hit;
+     anyone IN position gets a small +0.1 lift on his own rating
+     instead (applied per player, not as a flat team-wide number —
+     so it only actually helps if that player's contribution is good
+     enough to make the top 7 batting / top 5 bowling cut). */
   const contrib = [];
   let misplaced = 0;
   xi.forEach((p,i)=>{
     const slotNo = i+1;
     const canBat = p.roles.includes('bat')||p.roles.includes('wk')||p.roles.includes('ar');
     const pen = positionPenalty(p, slotNo);
+    const posLift = pen===0 ? 0.1 : 0;
     if(pen>0) misplaced++;
-    if(canBat) contrib.push((p.r-pen) * (i>=7 ? 0.97 : 1));
-    else if(i<7) contrib.push((p.r-pen) * 0.65);
+    if(canBat) contrib.push((p.r+posLift-pen) * (i>=7 ? 0.97 : 1));
+    else if(i<7) contrib.push((p.r+posLift-pen) * 0.65);
   });
   contrib.sort((a,b)=>b-a);
   const batTop = contrib.slice(0,7);
@@ -980,9 +984,14 @@ function teamStrengths(){
   const bat = batTop.reduce((a,b)=>a+b,0)/batTop.length + Math.min(4, depth);
 
   /* Bowling: anyone who can bowl, wherever he bats in the order.
-     Best five spells form the attack. */
+     Same +0.1 in-position lift applies here too, on his own rating. */
   const {unit:bowlUnit, partTimer} = getBowlingUnit(xi);
-  const top5 = bowlUnit.map(p=>partTimer && p.n===partTimer.n ? p.r*0.82 : p.r).sort((a,b)=>b-a).slice(0,5);
+  const top5 = bowlUnit.map(p=>{
+    const idx = xi.indexOf(p);
+    const posLift = idx>=0 && positionPenalty(p, idx+1)===0 ? 0.1 : 0;
+    const base = p.r + posLift;
+    return partTimer && p.n===partTimer.n ? base*0.82 : base;
+  }).sort((a,b)=>b-a).slice(0,5);
   const bowl = top5.reduce((a,b)=>a+b,0)/Math.max(top5.length,1);
 
   const decadesUsed = new Set(xi.map(p=>p.d)).size;
@@ -1000,15 +1009,13 @@ function teamStrengths(){
   /* A captain with a genuine, real-world great captaincy record for
      this exact country/format/decade gives a small, flat leadership
      boost — not scaled by how good the record was, just a reward for
-     picking a real historically great leader. */
+     picking a real historically great leader. Both this and the
+     position lift are back, now layered on top of a tighter win-
+     probability curve so wins still can't stack up too easily. */
   const capMatch = FMTKEY!=='hundred' ? isEliteCaptain(xi[captainIdx], FMTKEY) : null;
-  if(capMatch){ bonus += 1; notes.push(`🎖️ ${capMatch.n} led with a real ${DECADE_LABEL[capMatch.d]} ${FMT.label} captaincy record — +1 team boost.`); }
-  /* Every player batting in his correct, natural position adds a flat
-     +1 to the team — a real, separate reward for a well-placed XI,
-     on top of the small per-player penalty already taken for anyone
-     out of position. */
+  if(capMatch){ bonus += 0.25; notes.push(`🎖️ ${capMatch.n} led with a real ${DECADE_LABEL[capMatch.d]} ${FMT.label} captaincy record — +0.25 team boost.`); }
   const inPositionCount = xi.filter((p,i)=>positionPenalty(p, i+1)===0).length;
-  if(inPositionCount>0){ bonus += inPositionCount; notes.push(`${inPositionCount} player${inPositionCount===1?'':'s'} in their correct position — +${inPositionCount} team boost.`); }
+  if(inPositionCount>0) notes.push(`${inPositionCount} player${inPositionCount===1?'':'s'} in their correct position — each gets a small individual rating boost.`);
   const strength = bat*0.5 + bowl*0.5 + bonus;
   return {bat:Math.round(bat), bowl:Math.round(bowl), strength, notes};
 }
@@ -1234,7 +1241,12 @@ function hideSkipBtn(){
 }
 function decideMatch(strength, oppRating){
   const diff = strength - oppRating;
-  const pW = clamp(0.50 + diff*0.04, 0.06, 0.95);
+  /* Tightened from the original 0.04/0.95 — even independent of the
+     captain and position bonuses, the decades/nations bonuses alone
+     were enough to push a well-built side past the win-probability
+     cap against most of the field. This keeps wins genuinely harder
+     to stack up regardless of which bonuses apply. */
+  const pW = clamp(0.50 + diff*0.02, 0.06, 0.85);
   if(FMTKEY==='test'){
     const pD = clamp(0.13 - diff*0.004, 0.04, 0.18);
     const roll = Math.random();
@@ -1245,7 +1257,7 @@ function decideMatch(strength, oppRating){
     const pWsuper = clamp(0.5 + diff*0.05, 0.18, 0.82);
     return { code: Math.random()<pWsuper ? 'W' : 'L', superOver:true };
   }
-  const rescaled = clamp(pW/(1-pTie), 0.06, 0.95);
+  const rescaled = clamp(pW/(1-pTie), 0.06, 0.85);
   return { code: Math.random()<rescaled ? 'W' : 'L', superOver:false };
 }
 function decideNeutral(oppA, oppB){
@@ -2237,9 +2249,9 @@ selectFormat(__startFmt);   // async; fires the background fetch, intro screen d
       <div class="name-modal-title">How It Works</div>
       <div class="info-modal-body">
         <h4>Position</h4>
-        <p>Every player has a natural home in the batting order. Put him there and he's <b>IN POSITION</b> — anywhere else and he's <b>OUT OF POSITION</b>, which costs a little off his contribution. A well-placed XI also earns the team a flat boost, on top of that.</p>
+        <p>Every player has a natural home in the batting order. Put him there and he's <b>IN POSITION</b> — anywhere else and he's <b>OUT OF POSITION</b>, which costs a little off his contribution. Correctly-placed players who make your best 7 batters or best 5 bowlers also add a small individual lift to your team.</p>
         <h4>Captaincy</h4>
-        <p>Some players in this game were genuinely outstanding captains — real winning records, for that exact country, format and decade. Naming one of them your captain (look for the 🎖️ <b>ELITE CAPTAIN</b> tag) gives your team a boost too.</p>
+        <p>Some players in this game were genuinely outstanding captains — real winning records, for that exact country, format and decade. Naming one of them your captain (look for the 🎖️ <b>ELITE CAPTAIN</b> tag) gives your team a small boost too.</p>
         <h4>Rearranging</h4>
         <p>You can fine-tune your order any time before the tour starts — tap the ⇅ handle to pick a swap, or press and drag a row straight onto another.</p>
         <h4>Scoring</h4>
