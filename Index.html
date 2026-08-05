@@ -1239,7 +1239,13 @@ function hideSkipBtn(){
 }
 function decideMatch(strength, oppRating){
   const diff = strength - oppRating;
-  const pW = clamp(0.50 + diff*0.04, 0.06, 0.95);
+  /* Sensitivity and ceiling both pulled back from the original 0.04 /
+     0.95 — the growing set of team-strength bonuses (decades, nations,
+     captaincy, position) was pushing well-built sides past the win-
+     probability cap against most of the field, making 50+ wins out of
+     60 too easy. This restores a harder ceiling without touching any
+     of those bonuses themselves. */
+  const pW = clamp(0.50 + diff*0.02, 0.06, 0.85);
   if(FMTKEY==='test'){
     const pD = clamp(0.13 - diff*0.004, 0.04, 0.18);
     const roll = Math.random();
@@ -1250,7 +1256,7 @@ function decideMatch(strength, oppRating){
     const pWsuper = clamp(0.5 + diff*0.05, 0.18, 0.82);
     return { code: Math.random()<pWsuper ? 'W' : 'L', superOver:true };
   }
-  const rescaled = clamp(pW/(1-pTie), 0.06, 0.95);
+  const rescaled = clamp(pW/(1-pTie), 0.06, 0.85);
   return { code: Math.random()<rescaled ? 'W' : 'L', superOver:false };
 }
 function decideNeutral(oppA, oppB){
