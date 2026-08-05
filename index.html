@@ -77,6 +77,14 @@ body{
 .name-modal-input:focus{outline:none;border-color:var(--brass)}
 .confirm-btn-row{display:flex;gap:10px;margin-top:16px}
 .confirm-btn-row .btn,.confirm-btn-row .btn+.btn{margin-top:0;flex:1}
+.cookie-banner{position:fixed;left:0;right:0;bottom:0;z-index:190;max-width:520px;margin:0 auto;background:linear-gradient(180deg,var(--panel-2),var(--panel));border-top:1px solid var(--brass);padding:14px 16px calc(14px + env(safe-area-inset-bottom));box-shadow:0 -10px 30px rgba(0,0,0,.5)}
+.cookie-banner p{font-size:12.5px;line-height:1.5;color:var(--cream-dim);margin-bottom:10px}
+.cookie-banner .btn{padding:10px 18px;font-size:14px}
+.info-link{display:block;text-align:center;margin:10px 0 14px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.06em;color:var(--brass);text-decoration:none;cursor:pointer}
+.info-modal-body{text-align:left;font-size:13px;line-height:1.6;color:var(--cream-dim);max-height:50vh;overflow-y:auto;margin-top:12px}
+.info-modal-body h4{color:var(--brass);font-family:'Graduate',serif;font-size:14px;margin:14px 0 4px;letter-spacing:.02em}
+.info-modal-body h4:first-child{margin-top:0}
+.info-modal-body p{margin-bottom:6px}
 .confirm-btn-row .btn{margin:0;flex:1}
 .fmt-btn{padding:10px 6px;border-radius:10px;border:1px solid var(--line);background:var(--panel-2);color:var(--cream-dim);cursor:pointer;font-family:'Graduate',serif;font-size:15px;letter-spacing:.05em;transition:border-color .15s,color .15s}
 .fmt-btn small{display:block;font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:.06em;margin-top:4px;text-transform:uppercase}
@@ -330,16 +338,17 @@ body.sim-active .masthead{
         <button class="fmt-btn" id="fmt-odi" onclick="selectFormat('odi')">ODI<small>700 players · 4 decades</small></button>
         <button class="fmt-btn" id="fmt-t20" onclick="selectFormat('t20')">T20<small>564 players · 3 decades</small></button>
       </div>
-      <h2>How it works</h2>
+      <button class="btn" onclick="startDraft()">Start the draft</button>
+      <button class="btn secondary" style="margin-top:10px" onclick="openLeaderboard()">🏆 View Leaderboard</button>
+      <h2 style="margin-top:20px">How it works</h2>
       <ul class="rule-list">
         <li><span class="dotball"></span><span><b>Press the ball.</b> Every press deals you a random nation <b>and</b> a random decade — 1970s West Indies, 1990s Pakistan, 2020s India…</span></li>
         <li><span class="dotball"></span><span><b>Pick from the whole squad.</b> Every available player from that nation's decade comes up. Choose one, then choose <b>where he goes</b> in your batting order.</span></li>
         <li><span class="dotball"></span><span><b>Every player is rated for his own decade</b> — how he ranked among his contemporaries. A 97 from the ’80s is every bit as good as a 97 from today.</span></li>
-        <li><span class="dotball"></span><span><b>Fill the card your way.</b> Openers up top, keeper at 6, flex at 7, bowlers at the death — but you choose the order you fill them. Players with no position left for them (say, a keeper when yours is picked) simply won't appear. And you still get <b>one do-over per game</b> for a hopeless draw.</span></li>
-        <li><span class="dotball"></span><span id="challengeBullet"><b>Beat them all, at their place.</b> Your XI tours the world: five matches against each of today’s twelve international sides, <b>all sixty played in their stadiums</b>. The dream: win the lot. Every match is played to a finish — no rain, no escapes.</span></li>
+        <li><span class="dotball"></span><span><b>Fill the card your way.</b> Openers up top, bowlers at the death — but there's no fixed slot for the keeper any more, he just needs to be <b>somewhere</b> in your side. All-rounders slot in based on how they actually played: some open, some finish. Players with no legal spot left simply won't appear. And you still get <b>one do-over per game</b> for a hopeless draw.</span></li>
+        <li><span class="dotball"></span><span><b>Set your lineup, then pick a captain.</b> Before the tour starts, fine-tune your order — tap or drag to swap anyone into a different spot — then name your captain. Players batting in their correct position boost the team, and so does a captain with a genuine, real-world winning record for that side.</span></li>
+        <li><span class="dotball"></span><span id="challengeBullet"><b>Beat them all, at their place.</b> Your XI tours the world: a five-match series against each of today’s twelve international sides, played across <b>real grounds in their country</b> — sixty matches in total, all away. Win matches, win series, sweep one 5-0 — that's what separates a good tour from a legendary one.</span></li>
       </ul>
-      <button class="btn" onclick="startDraft()">Start the draft</button>
-      <button class="btn secondary" style="margin-top:10px" onclick="openLeaderboard()">🏆 View Leaderboard</button>
       <p class="foot-note" style="margin-top:16px">Fair warning: the draw doesn't care about your plans. Sometimes you need a spinner and it deals you the 1984 West Indies pace battery.<br><span style="opacity:.75">Inspired by the brilliant <a href="https://38-0.app" target="_blank" rel="noopener" style="color:var(--brass)">38-0</a> website.</span></p>
     </div>
   </section>
@@ -390,6 +399,7 @@ body.sim-active .masthead{
       <h2>Set Your Lineup</h2>
       <p id="captainSub">Move players into position and pick your captain.</p>
     </div>
+    <a href="javascript:void(0)" class="info-link" onclick="openInfoModal()">ⓘ How position &amp; captaincy affect your team</a>
     <div class="pick-grid" id="captainList"></div>
     <button class="btn" style="margin-top:14px" onclick="showReview()">Continue to team review</button>
   </section>
@@ -405,7 +415,8 @@ body.sim-active .masthead{
       <div class="sbox"><div class="lb">Bowling</div><div class="vl" id="bowlVal">–</div><div class="bar"><i id="bowlBar"></i></div></div>
     </div>
     <p id="balanceNote" style="font-size:12.5px;color:var(--cream-dim);line-height:1.55;margin-bottom:16px;text-align:center"></p>
-    <button class="btn" onclick="beginTour()" id="tourBtn">Start the world tour · 60 away matches</button>
+    <a href="javascript:void(0)" class="info-link" onclick="openInfoModal()">ⓘ How your score is worked out</a>
+    <button class="btn" style="margin-top:14px" onclick="beginTour()" id="tourBtn">Start the world tour · 60 away matches</button>
   </section>
 
   <!-- SEASON -->
@@ -586,6 +597,17 @@ const HUNDRED_SQUADS = {  // 2026 franchise rosters — verified current squads
   FIR: [{n:'Phil Salt',roles:['wk'],rt:92}, {n:'Marco Jansen',roles:['ar'],rt:91}, {n:'Rachin Ravindra',roles:['ar'],rt:88}, {n:'Chris Woakes',roles:['ar'],rt:86}, {n:'Joe Root',roles:['bat'],rt:94}, {n:'Jordan Cox',roles:['wk'],rt:84}, {n:'Tom Kohler-Cadmore',roles:['bat'],rt:82}, {n:'Ben Kellaway',roles:['bat'],rt:78}, {n:'Lockie Ferguson',roles:['bowl'],rt:87}, {n:'Asa Tribe',roles:['bat'],rt:78}, {n:'Tom Aspinwall',roles:['bat'],rt:78}, {n:'Matthew Short',roles:['ar'],rt:83}, {n:'Sam Cook',roles:['bowl'],rt:81}, {n:'Jafer Chohan',roles:['bowl'],rt:79}, {n:'Jordan Clark',roles:['ar'],rt:82}, {n:'Dillon Pennington',roles:['bowl'],rt:80}],
 };
 
+/* 200 of history's best captaincy records (real match data:
+   wins/losses/win% by country, format, and decade). If the
+   selected captain matches one of these, the side gets a small
+   but real leadership boost. */
+const CAPTAINS_DB = [{"n":"Steve Waugh","c":"AUS","fmt":"test","d":"90s","rt":92},{"n":"Mitchell Santner","c":"NZ","fmt":"odi","d":"20s","rt":91},{"n":"Asghar Afghan","c":"AFG","fmt":"t20","d":"20s","rt":91},{"n":"Asghar Afghan","c":"AFG","fmt":"t20","d":"10s","rt":94},{"n":"Dhananjaya de Silva","c":"SL","fmt":"test","d":"20s","rt":90},{"n":"Rohit Sharma","c":"IND","fmt":"t20","d":"20s","rt":93},{"n":"Pat Cummins","c":"AUS","fmt":"odi","d":"20s","rt":91},{"n":"Rohit Sharma","c":"IND","fmt":"t20","d":"10s","rt":91},{"n":"Mike Brearley","c":"ENG","fmt":"odi","d":"70s","rt":91},{"n":"Sarfaraz Ahmed","c":"PAK","fmt":"t20","d":"10s","rt":93},{"n":"Ricky Ponting","c":"AUS","fmt":"odi","d":"00s","rt":93},{"n":"Clive Lloyd","c":"WI","fmt":"odi","d":"80s","rt":93},{"n":"Clive Lloyd","c":"WI","fmt":"odi","d":"70s","rt":90},{"n":"Kane Williamson","c":"NZ","fmt":"test","d":"20s","rt":89},{"n":"Mitchell Marsh","c":"AUS","fmt":"odi","d":"20s","rt":89},{"n":"MS Dhoni","c":"IND","fmt":"test","d":"00s","rt":89},{"n":"Ian Chappell","c":"AUS","fmt":"odi","d":"70s","rt":89},{"n":"Tim Southee","c":"NZ","fmt":"t20","d":"20s","rt":89},{"n":"Faf du Plessis","c":"SA","fmt":"odi","d":"10s","rt":91},{"n":"Hansie Cronje","c":"SA","fmt":"odi","d":"90s","rt":92},{"n":"Keshav Maharaj","c":"SA","fmt":"odi","d":"20s","rt":88},{"n":"Steve Waugh","c":"AUS","fmt":"odi","d":"90s","rt":92},{"n":"Rohit Sharma","c":"IND","fmt":"odi","d":"20s","rt":92},{"n":"Shoaib Malik","c":"PAK","fmt":"t20","d":"00s","rt":89},{"n":"Mitchell Marsh","c":"AUS","fmt":"t20","d":"20s","rt":89},{"n":"Mike Gatting","c":"ENG","fmt":"odi","d":"80s","rt":91},{"n":"Virat Kohli","c":"IND","fmt":"odi","d":"10s","rt":92},{"n":"Kumar Sangakkara","c":"SL","fmt":"t20","d":"00s","rt":88},{"n":"Paul Collingwood","c":"ENG","fmt":"t20","d":"10s","rt":88},{"n":"Suryakumar Yadav","c":"IND","fmt":"t20","d":"20s","rt":88},{"n":"Ricky Ponting","c":"AUS","fmt":"test","d":"00s","rt":91},{"n":"Steve Waugh","c":"AUS","fmt":"test","d":"00s","rt":91},{"n":"Allan Border","c":"AUS","fmt":"odi","d":"90s","rt":91},{"n":"Michael Clarke","c":"AUS","fmt":"odi","d":"10s","rt":91},{"n":"Shoaib Malik","c":"PAK","fmt":"odi","d":"00s","rt":90},{"n":"Graeme Smith","c":"SA","fmt":"t20","d":"00s","rt":89},{"n":"Rovman Powell","c":"WI","fmt":"t20","d":"20s","rt":88},{"n":"KL Rahul","c":"IND","fmt":"odi","d":"20s","rt":88},{"n":"Mahela Jayawardene","c":"SL","fmt":"t20","d":"00s","rt":87},{"n":"Charith Asalanka","c":"SL","fmt":"odi","d":"20s","rt":87},{"n":"Eoin Morgan","c":"ENG","fmt":"t20","d":"20s","rt":89},{"n":"Viv Richards","c":"WI","fmt":"odi","d":"80s","rt":90},{"n":"Kane Williamson","c":"NZ","fmt":"odi","d":"20s","rt":87},{"n":"Shaun Pollock","c":"SA","fmt":"odi","d":"00s","rt":90},{"n":"Rashid Khan","c":"AFG","fmt":"t20","d":"20s","rt":88},{"n":"Waqar Younis","c":"PAK","fmt":"test","d":"90s","rt":87},{"n":"AB de Villiers","c":"SA","fmt":"odi","d":"10s","rt":90},{"n":"Ben Stokes","c":"ENG","fmt":"test","d":"20s","rt":88},{"n":"Graeme Smith","c":"SA","fmt":"odi","d":"00s","rt":90},{"n":"Rohit Sharma","c":"IND","fmt":"test","d":"20s","rt":87},{"n":"Hardik Pandya","c":"IND","fmt":"t20","d":"20s","rt":87},{"n":"Temba Bavuma","c":"SA","fmt":"test","d":"20s","rt":86},{"n":"Younis Khan","c":"PAK","fmt":"t20","d":"00s","rt":86},{"n":"Virat Kohli","c":"IND","fmt":"test","d":"10s","rt":90},{"n":"Faf du Plessis","c":"SA","fmt":"t20","d":"10s","rt":89},{"n":"Mohammad Hafeez","c":"PAK","fmt":"t20","d":"10s","rt":88},{"n":"Eoin Morgan","c":"ENG","fmt":"odi","d":"10s","rt":90},{"n":"Mitchell Santner","c":"NZ","fmt":"t20","d":"20s","rt":87},{"n":"Mike Brearley","c":"ENG","fmt":"test","d":"70s","rt":87},{"n":"Virat Kohli","c":"IND","fmt":"t20","d":"20s","rt":87},{"n":"Pat Cummins","c":"AUS","fmt":"test","d":"20s","rt":87},{"n":"Wasim Akram","c":"PAK","fmt":"odi","d":"90s","rt":89},{"n":"Tom Latham","c":"NZ","fmt":"odi","d":"20s","rt":88},{"n":"Babar Azam","c":"PAK","fmt":"odi","d":"20s","rt":89},{"n":"MS Dhoni","c":"IND","fmt":"odi","d":"00s","rt":89},{"n":"Jeremy Coney","c":"NZ","fmt":"odi","d":"80s","rt":87},{"n":"Temba Bavuma","c":"SA","fmt":"t20","d":"20s","rt":87},{"n":"MS Dhoni","c":"IND","fmt":"t20","d":"00s","rt":87},{"n":"Greg Chappell","c":"AUS","fmt":"odi","d":"70s","rt":86},{"n":"Virat Kohli","c":"IND","fmt":"odi","d":"20s","rt":86},{"n":"Dimuth Karunaratne","c":"SL","fmt":"test","d":"10s","rt":86},{"n":"Michael Clarke","c":"AUS","fmt":"t20","d":"00s","rt":86},{"n":"Wanindu Hasaranga","c":"SL","fmt":"t20","d":"20s","rt":86},{"n":"Litton Das","c":"BAN","fmt":"odi","d":"20s","rt":85},{"n":"Waqar Younis","c":"PAK","fmt":"odi","d":"00s","rt":89},{"n":"Mahela Jayawardene","c":"SL","fmt":"odi","d":"00s","rt":89},{"n":"Virat Kohli","c":"IND","fmt":"t20","d":"10s","rt":87},{"n":"Waqar Younis","c":"PAK","fmt":"test","d":"00s","rt":86},{"n":"Inzamam-ul-Haq","c":"PAK","fmt":"odi","d":"00s","rt":89},{"n":"Shikhar Dhawan","c":"IND","fmt":"odi","d":"20s","rt":86},{"n":"Brendon McCullum","c":"NZ","fmt":"odi","d":"10s","rt":89},{"n":"Aaron Finch","c":"AUS","fmt":"odi","d":"20s","rt":87},{"n":"Mashrafe Mortaza","c":"BAN","fmt":"odi","d":"10s","rt":88},{"n":"Darren Sammy","c":"WI","fmt":"t20","d":"10s","rt":88},{"n":"Temba Bavuma","c":"SA","fmt":"odi","d":"20s","rt":87},{"n":"Tamim Iqbal","c":"BAN","fmt":"odi","d":"20s","rt":87},{"n":"Babar Azam","c":"PAK","fmt":"t20","d":"20s","rt":88},{"n":"Imran Khan","c":"PAK","fmt":"odi","d":"80s","rt":88},{"n":"Dasun Shanaka","c":"SL","fmt":"odi","d":"20s","rt":87},{"n":"Sarfaraz Ahmed","c":"PAK","fmt":"odi","d":"10s","rt":88},{"n":"Sanath Jayasuriya","c":"SL","fmt":"odi","d":"00s","rt":88},{"n":"MS Dhoni","c":"IND","fmt":"t20","d":"10s","rt":88},{"n":"Marvan Atapattu","c":"SL","fmt":"odi","d":"00s","rt":88},{"n":"Viv Richards","c":"WI","fmt":"test","d":"80s","rt":87},{"n":"Kane Williamson","c":"NZ","fmt":"t20","d":"20s","rt":87},{"n":"Andrew Strauss","c":"ENG","fmt":"test","d":"00s","rt":85},{"n":"Kusal Mendis","c":"SL","fmt":"odi","d":"20s","rt":85},{"n":"Asghar Afghan","c":"AFG","fmt":"odi","d":"10s","rt":88},{"n":"Allan Border","c":"AUS","fmt":"odi","d":"80s","rt":88},{"n":"Steve Waugh","c":"AUS","fmt":"odi","d":"00s","rt":88},{"n":"JP Duminy","c":"SA","fmt":"t20","d":"10s","rt":85},{"n":"Brian Lara","c":"WI","fmt":"odi","d":"90s","rt":87},{"n":"Graeme Smith","c":"SA","fmt":"odi","d":"10s","rt":85},{"n":"Kieron Pollard","c":"WI","fmt":"odi","d":"20s","rt":85},{"n":"Daniel Vettori","c":"NZ","fmt":"t20","d":"00s","rt":85},{"n":"Shaun Pollock","c":"SA","fmt":"test","d":"00s","rt":86},{"n":"Mark Taylor","c":"AUS","fmt":"odi","d":"90s","rt":87},{"n":"Jos Buttler","c":"ENG","fmt":"t20","d":"20s","rt":87},{"n":"Mahela Jayawardene","c":"SL","fmt":"test","d":"00s","rt":86},{"n":"Eoin Morgan","c":"ENG","fmt":"t20","d":"10s","rt":87},{"n":"Aaron Finch","c":"AUS","fmt":"t20","d":"20s","rt":87},{"n":"Rahul Dravid","c":"IND","fmt":"odi","d":"00s","rt":87},{"n":"Kane Williamson","c":"NZ","fmt":"odi","d":"10s","rt":87},{"n":"Ricky Ponting","c":"AUS","fmt":"odi","d":"10s","rt":87},{"n":"Faf du Plessis","c":"SA","fmt":"test","d":"10s","rt":86},{"n":"Richie Richardson","c":"WI","fmt":"odi","d":"90s","rt":87},{"n":"Steve Smith","c":"AUS","fmt":"test","d":"10s","rt":86},{"n":"Dean Elgar","c":"SA","fmt":"test","d":"20s","rt":85},{"n":"Kapil Dev","c":"IND","fmt":"odi","d":"80s","rt":87},{"n":"MS Dhoni","c":"IND","fmt":"odi","d":"10s","rt":87},{"n":"Greg Chappell","c":"AUS","fmt":"test","d":"70s","rt":85},{"n":"Tim Paine","c":"AUS","fmt":"test","d":"10s","rt":85},{"n":"Najmul Hossain Shanto","c":"BAN","fmt":"t20","d":"20s","rt":85},{"n":"Alastair Cook","c":"ENG","fmt":"odi","d":"10s","rt":87},{"n":"Aiden Markram","c":"SA","fmt":"t20","d":"20s","rt":85},{"n":"Sourav Ganguly","c":"IND","fmt":"odi","d":"00s","rt":87},{"n":"Mark Taylor","c":"AUS","fmt":"test","d":"90s","rt":87},{"n":"Mohammad Azharuddin","c":"IND","fmt":"odi","d":"90s","rt":87},{"n":"Misbah-ul-Haq","c":"PAK","fmt":"odi","d":"10s","rt":87},{"n":"Geoff Howarth","c":"NZ","fmt":"odi","d":"80s","rt":87},{"n":"Aaron Finch","c":"AUS","fmt":"t20","d":"10s","rt":85},{"n":"Clive Lloyd","c":"WI","fmt":"test","d":"70s","rt":86},{"n":"Courtney Walsh","c":"WI","fmt":"odi","d":"90s","rt":86},{"n":"Michael Clarke","c":"AUS","fmt":"test","d":"10s","rt":87},{"n":"Daniel Vettori","c":"NZ","fmt":"odi","d":"00s","rt":87},{"n":"Michael Vaughan","c":"ENG","fmt":"test","d":"00s","rt":87},{"n":"Hansie Cronje","c":"SA","fmt":"test","d":"90s","rt":87},{"n":"Nasser Hussain","c":"ENG","fmt":"odi","d":"00s","rt":86},{"n":"Shahid Afridi","c":"PAK","fmt":"odi","d":"10s","rt":86},{"n":"Kane Williamson","c":"NZ","fmt":"test","d":"10s","rt":85},{"n":"Hashmatullah Shahidi","c":"AFG","fmt":"odi","d":"20s","rt":85},{"n":"Ian Chappell","c":"AUS","fmt":"test","d":"70s","rt":85},{"n":"George Bailey","c":"AUS","fmt":"t20","d":"10s","rt":85},{"n":"Dinesh Chandimal","c":"SL","fmt":"t20","d":"10s","rt":85},{"n":"Shai Hope","c":"WI","fmt":"odi","d":"20s","rt":84},{"n":"Babar Azam","c":"PAK","fmt":"test","d":"20s","rt":84},{"n":"Paul Collingwood","c":"ENG","fmt":"t20","d":"00s","rt":84},{"n":"Eoin Morgan","c":"ENG","fmt":"odi","d":"20s","rt":84},{"n":"Shakib Al Hasan","c":"BAN","fmt":"t20","d":"20s","rt":84},{"n":"Mohammad Nabi","c":"AFG","fmt":"t20","d":"10s","rt":83},{"n":"Mahmudullah","c":"BAN","fmt":"t20","d":"10s","rt":83},{"n":"Steve Smith","c":"AUS","fmt":"t20","d":"10s","rt":83},{"n":"Najmul Hossain Shanto","c":"BAN","fmt":"test","d":"20s","rt":83},{"n":"Steve Smith","c":"AUS","fmt":"odi","d":"10s","rt":86},{"n":"Imran Khan","c":"PAK","fmt":"odi","d":"90s","rt":85},{"n":"Graeme Smith","c":"SA","fmt":"test","d":"10s","rt":85},{"n":"Kane Williamson","c":"NZ","fmt":"t20","d":"10s","rt":85},{"n":"Graeme Smith","c":"SA","fmt":"test","d":"00s","rt":86},{"n":"Daniel Vettori","c":"NZ","fmt":"odi","d":"10s","rt":85},{"n":"Andrew Strauss","c":"ENG","fmt":"odi","d":"00s","rt":85},{"n":"Graham Gooch","c":"ENG","fmt":"odi","d":"90s","rt":86},{"n":"Wasim Akram","c":"PAK","fmt":"test","d":"90s","rt":84},{"n":"Martin Crowe","c":"NZ","fmt":"odi","d":"90s","rt":85},{"n":"Sanath Jayasuriya","c":"SL","fmt":"test","d":"00s","rt":85},{"n":"Jos Buttler","c":"ENG","fmt":"odi","d":"20s","rt":85},{"n":"Dinesh Chandimal","c":"SL","fmt":"test","d":"10s","rt":83},{"n":"Sikandar Raza","c":"ZIM","fmt":"t20","d":"20s","rt":83},{"n":"Stephen Fleming","c":"NZ","fmt":"odi","d":"00s","rt":86},{"n":"Carl Hooper","c":"WI","fmt":"odi","d":"00s","rt":86},{"n":"Arjuna Ranatunga","c":"SL","fmt":"odi","d":"90s","rt":86},{"n":"Virat Kohli","c":"IND","fmt":"test","d":"20s","rt":83},{"n":"Michael Atherton","c":"ENG","fmt":"odi","d":"90s","rt":85},{"n":"Misbah-ul-Haq","c":"PAK","fmt":"test","d":"10s","rt":86},{"n":"Shakib Al Hasan","c":"BAN","fmt":"odi","d":"10s","rt":85},{"n":"Angelo Mathews","c":"SL","fmt":"odi","d":"10s","rt":86},{"n":"Clive Lloyd","c":"WI","fmt":"test","d":"80s","rt":85},{"n":"Gary Wilson","c":"IRE","fmt":"t20","d":"10s","rt":84},{"n":"Craig Ervine","c":"ZIM","fmt":"t20","d":"20s","rt":84},{"n":"Steve Smith","c":"AUS","fmt":"odi","d":"20s","rt":83},{"n":"Ross Taylor","c":"NZ","fmt":"t20","d":"10s","rt":83},{"n":"Dasun Shanaka","c":"SL","fmt":"t20","d":"20s","rt":85},{"n":"Richie Richardson","c":"WI","fmt":"test","d":"90s","rt":83},{"n":"Brendon McCullum","c":"NZ","fmt":"t20","d":"10s","rt":83},{"n":"Ricky Ponting","c":"AUS","fmt":"test","d":"10s","rt":83},{"n":"Dilip Vengsarkar","c":"IND","fmt":"odi","d":"80s","rt":83},{"n":"AB de Villiers","c":"SA","fmt":"t20","d":"10s","rt":83},{"n":"Younis Khan","c":"PAK","fmt":"test","d":"00s","rt":82},{"n":"Tom Latham","c":"NZ","fmt":"test","d":"20s","rt":82},{"n":"William Porterfield","c":"IRE","fmt":"odi","d":"10s","rt":85},{"n":"Paul Collingwood","c":"ENG","fmt":"odi","d":"00s","rt":83},{"n":"Andrew Strauss","c":"ENG","fmt":"test","d":"10s","rt":84},{"n":"Joe Root","c":"ENG","fmt":"test","d":"10s","rt":84},{"n":"Kumar Sangakkara","c":"SL","fmt":"odi","d":"10s","rt":85},{"n":"Mohammad Nabi","c":"AFG","fmt":"t20","d":"20s","rt":83},{"n":"Michael Vaughan","c":"ENG","fmt":"odi","d":"00s","rt":85},{"n":"Brian Lara","c":"WI","fmt":"odi","d":"00s","rt":85},{"n":"Sourav Ganguly","c":"IND","fmt":"test","d":"00s","rt":85},{"n":"Javed Miandad","c":"PAK","fmt":"odi","d":"80s","rt":84},{"n":"Tim Southee","c":"NZ","fmt":"test","d":"20s","rt":82},{"n":"Shahid Afridi","c":"PAK","fmt":"t20","d":"10s","rt":84}];
+function isEliteCaptain(p, fmtKey){
+  if(!p) return null;
+  return CAPTAINS_DB.find(c=>c.n===p.n && c.c===p.c && c.fmt===fmtKey && c.d===p.d) || null;
+}
+
+
 /* Slot 6 no longer requires a keeper — any player can bat there — so the
    'every team has a keeper' guarantee can't come from one reserved
    slot anymore. Instead: while no keeper has been drafted yet, this
@@ -762,6 +784,8 @@ function showConfirm(title, body, actionLabel){
   });
 }
 function resolveConfirm(val){ window.__resolveConfirm(val); }
+function openInfoModal(){ document.getElementById('infoModal').style.display = 'flex'; }
+function closeInfoModal(){ document.getElementById('infoModal').style.display = 'none'; }
 async function restartDraft(){
   const ok = await showConfirm('Restart the draft?', 'This clears your picks so far.', 'Restart');
   if(!ok) return;
@@ -857,8 +881,8 @@ async function selectFormat(k){
     : `Cricket World Domination · All-era ${FMT.label} XI`;
   document.getElementById('eraStrip').innerHTML=FMT.decades.map(d=>`<span class="era-chip">'${d}</span>`).join('');
   document.getElementById('challengeBullet').innerHTML = k==='hundred'
-    ? '<b>Go unbeaten in The Hundred.</b> Your Legends enter as the ninth team: eight league games of 100 balls each. Finish top three — Eliminator at the Kia Oval, Final at Lord’s. The dream: lift it without losing a single game.'
-    : '<b>Beat them all, at their place.</b> Your XI tours the world: five matches against each of today’s twelve international sides, <b>all sixty played in their stadiums</b>. The dream: win the lot. Every match is played to a finish — no rain, no escapes.';
+    ? '<b>Go unbeaten in The Hundred.</b> Your Legends enter as the ninth team: eight league games of 100 balls each. Finish top three — Eliminator at the Kia Oval, Final at Lord’s. Win it all, and win it without losing a single game, for the biggest bonus of all.'
+    : '<b>Beat them all, at their place.</b> Your XI tours the world: a five-match series against each of today’s twelve international sides, played across <b>real grounds in their country</b> — sixty matches in total, all away. Win matches, win series, sweep one 5-0 — that’s what separates a good tour from a legendary one.';
   document.getElementById('tourBtn').textContent = k==='hundred'
     ? 'Enter The Hundred · 8 games + finals' : 'Start the world tour · 60 away matches';
   await ensureFormatLoaded(k);
@@ -973,6 +997,18 @@ function teamStrengths(){
   if(misplaced>0) notes.push(`${misplaced} player${misplaced===1?' is':'s are'} batting out of position — a small hit to the batting number.`);
   if(decadesUsed>=4){bonus+=3; notes.push(`Time-travelling XI: ${decadesUsed} decades represented.`);}
   if(nationsUsed>=6){bonus+=3; notes.push(`World XI: ${nationsUsed} nations in one dressing room.`);}
+  /* A captain with a genuine, real-world great captaincy record for
+     this exact country/format/decade gives a small, flat leadership
+     boost — not scaled by how good the record was, just a reward for
+     picking a real historically great leader. */
+  const capMatch = FMTKEY!=='hundred' ? isEliteCaptain(xi[captainIdx], FMTKEY) : null;
+  if(capMatch){ bonus += 1; notes.push(`🎖️ ${capMatch.n} led with a real ${DECADE_LABEL[capMatch.d]} ${FMT.label} captaincy record — +1 team boost.`); }
+  /* Every player batting in his correct, natural position adds a flat
+     +1 to the team — a real, separate reward for a well-placed XI,
+     on top of the small per-player penalty already taken for anyone
+     out of position. */
+  const inPositionCount = xi.filter((p,i)=>positionPenalty(p, i+1)===0).length;
+  if(inPositionCount>0){ bonus += inPositionCount; notes.push(`${inPositionCount} player${inPositionCount===1?'':'s'} in their correct position — +${inPositionCount} team boost.`); }
   const strength = bat*0.5 + bowl*0.5 + bonus;
   return {bat:Math.round(bat), bowl:Math.round(bowl), strength, notes};
 }
@@ -984,28 +1020,111 @@ function showCaptainPick(){
   document.getElementById('captainSub').textContent = FMTKEY==='hundred'
     ? 'Who leads this side into The Hundred?'
     : 'Who leads this side onto twelve hostile grounds?';
+  moveFromIdxCap = null;
   renderCaptainList();
 }
 
-/* Rearranging is over by the time this screen shows — it now
-   happens live on the draft screen as slots fill in. This screen
-   is purely for picking a captain from the finished XI. */
+/* Rearranging is possible both live during the draft (mini-sheet, on
+   xiSlots) AND here on the finished XI (this screen, on xi) — a last
+   chance to fine-tune positions before picking a captain. */
+let moveFromIdxCap = null;
+function legalCaptainSwapTargets(i){
+  const targets = [];
+  for(let j=0;j<11;j++){
+    if(j===i) continue;
+    if(swapFits(j, xi[i]) && swapFits(i, xi[j])) targets.push(j);
+  }
+  return targets;
+}
 function renderCaptainList(){
   const nat = id=>NATIONS.find(n=>n.id===id);
   const list = document.getElementById('captainList');
-  list.innerHTML = xi.map((p,i)=>{
-    const isCap = i===captainIdx;
-    return `<div class="lineup-row ${isCap?'is-cap':''}">
-      <span class="flag">${nat(p.c).flag}</span>
-      <div class="who">
-        <div class="nm-row">
-          <span class="nm">${p.n} <span class="decade">'${p.d}</span></span>
-          <button class="lu-cap ${isCap?'active':''}" onclick="chooseCaptain(${i})" title="Captain">C</button>
+  if(moveFromIdxCap===null){
+    list.innerHTML = xi.map((p,i)=>{
+      const isCap = i===captainIdx;
+      const pen = positionPenalty(p, i+1);
+      const posBadge = pen===0
+        ? `<span class="oop-badge" style="color:#5FC97A;border-color:#4A9D5F">IN POSITION</span>`
+        : `<span class="oop-badge">OUT OF POSITION</span>`;
+      const capMatch = FMTKEY!=='hundred' ? isEliteCaptain(p, FMTKEY) : null;
+      const capBadge = capMatch ? `<span class="oop-badge" style="color:var(--brass);border-color:var(--brass)">🎖️ ELITE CAPTAIN</span>` : '';
+      return `<div class="lineup-row ${isCap?'is-cap':''}" data-idx="${i}">
+        <button class="lu-move" onclick="startMoveCap(${i})" ontouchstart="captainDragTouchStart(event,${i})" ontouchmove="captainDragTouchMove(event)" ontouchend="captainDragTouchEnd(event)" title="Move or drag to swap">⇅</button>
+        <span class="flag">${nat(p.c).flag}</span>
+        <div class="who">
+          <div class="nm-row">
+            <span class="nm">${p.n} <span class="decade">'${p.d}</span></span>
+            <button class="lu-cap ${isCap?'active':''}" onclick="chooseCaptain(${i})" title="Captain">C</button>
+          </div>
+          <span class="rl">${SLOTS[i].title} (${SLOTS[i].no}) · ${p.roles.map(r=>ROLE_LABEL[r]).join(' · ')} ${posBadge}${capBadge}</span>
         </div>
-        <span class="rl">${SLOTS[i].title} (${SLOTS[i].no}) · ${p.roles.map(r=>ROLE_LABEL[r]).join(' · ')}</span>
-      </div>
-    </div>`;
-  }).join('');
+      </div>`;
+    }).join('');
+  } else {
+    const p = xi[moveFromIdxCap];
+    const targets = legalCaptainSwapTargets(moveFromIdxCap);
+    list.innerHTML = `<button class="back-link" onclick="cancelMoveCap()">← Cancel</button>
+      <div class="pos-prompt">Swap ${p.n} with...</div>
+      <div class="pos-grid">` +
+      (targets.length
+        ? targets.map(j=>{
+            const pen = positionPenalty(p, SLOTS[j].no);
+            return `<button class="pos-btn ${pen===0?'fit-good':''}" onclick="doCaptainSwap(${moveFromIdxCap},${j})">${xi[j].n}<small>Position ${SLOTS[j].no} — ${fitBadge(pen)}</small></button>`;
+          }).join('')
+        : `<div class="lb-empty">No other position can legally swap with him.</div>`
+      ) + `</div>`;
+  }
+}
+function startMoveCap(i){ moveFromIdxCap = i; renderCaptainList(); }
+function cancelMoveCap(){ moveFromIdxCap = null; renderCaptainList(); }
+function doCaptainSwap(i, j){
+  const tmp = xi[i]; xi[i] = xi[j]; xi[j] = tmp;
+  if(captainIdx===i) captainIdx=j; else if(captainIdx===j) captainIdx=i;
+  moveFromIdxCap = null;
+  renderCaptainList();
+}
+let capDragState = null;
+function captainDragTouchStart(e, i){
+  const t = e.touches[0];
+  const rowEl = e.currentTarget.closest('.lineup-row');
+  capDragState = { fromIdx:i, startX:t.clientX, startY:t.clientY, moved:false, legal: legalCaptainSwapTargets(i), rowEl, hoverIdx:null };
+}
+function captainDragTouchMove(e){
+  if(!capDragState) return;
+  const t = e.touches[0];
+  const dx = t.clientX-capDragState.startX, dy = t.clientY-capDragState.startY;
+  if(!capDragState.moved && Math.hypot(dx,dy) > 12){
+    capDragState.moved = true;
+    capDragState.rowEl.classList.add('dragging');
+    document.querySelectorAll('.lineup-row').forEach(r=>{
+      const idx = +r.dataset.idx;
+      if(idx!==capDragState.fromIdx) r.classList.toggle('drag-illegal', !capDragState.legal.includes(idx));
+    });
+  }
+  if(capDragState.moved){
+    e.preventDefault();
+    capDragState.rowEl.style.transform = `translateY(${dy}px)`;
+    const el = document.elementFromPoint(t.clientX, t.clientY);
+    const overRow = el ? el.closest('.lineup-row') : null;
+    const overIdx = overRow ? +overRow.dataset.idx : null;
+    document.querySelectorAll('.lineup-row').forEach(r=>r.classList.remove('drag-over'));
+    if(overIdx!==null && overIdx!==capDragState.fromIdx && capDragState.legal.includes(overIdx)){
+      overRow.classList.add('drag-over');
+      capDragState.hoverIdx = overIdx;
+    } else capDragState.hoverIdx = null;
+  }
+}
+function captainDragTouchEnd(e){
+  if(!capDragState) return;
+  if(capDragState.moved){
+    e.preventDefault();
+    const from = capDragState.fromIdx, to = capDragState.hoverIdx;
+    capDragState = null;
+    if(to!==null && to!==undefined) doCaptainSwap(from, to);
+    else renderCaptainList();
+  } else {
+    capDragState = null;
+  }
 }
 function chooseCaptain(i){
   captainIdx = i;
@@ -2058,6 +2177,25 @@ function draftAgain(){
   switchScreen('scr-intro');
   window.scrollTo({top:0});
 }
+const COOKIE_NOTICE_KEY = 'notout_cookie_notice_ack';
+function acceptCookieNotice(){
+  try{ localStorage.setItem(COOKIE_NOTICE_KEY, '1'); }catch(e){}
+  document.getElementById('cookieBanner').style.display = 'none';
+}
+function showCookieNoticeIfNeeded(){
+  try{
+    if(!localStorage.getItem(COOKIE_NOTICE_KEY)){
+      const el = document.getElementById('cookieBanner');
+      if(el) el.style.display = 'block';
+    }
+  }catch(e){}
+}
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', showCookieNoticeIfNeeded);
+}else{
+  showCookieNoticeIfNeeded(); // DOM already parsed by the time this script ran
+}
+
 let __startFmt = 'test';
 try{
   const saved = localStorage.getItem('notout_last_format');
@@ -2084,6 +2222,30 @@ selectFormat(__startFmt);   // async; fires the background fetch, intro screen d
         <button class="btn secondary" onclick="resolveConfirm(false)">Cancel</button>
         <button class="btn" id="confirmActionBtn" onclick="resolveConfirm(true)">Confirm</button>
       </div>
+    </div>
+  </div>
+
+  <!-- COOKIE / STORAGE NOTICE -->
+  <div class="cookie-banner" id="cookieBanner" style="display:none">
+    <p>This site uses local storage on your device to remember your name and last-played format, and sends scores to a leaderboard service to keep the global rankings. No advertising or tracking cookies are used.</p>
+    <button class="btn" onclick="acceptCookieNotice()">Got it</button>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <div class="name-modal" id="infoModal" style="display:none">
+    <div class="name-modal-card" style="max-width:400px">
+      <div class="name-modal-title">How It Works</div>
+      <div class="info-modal-body">
+        <h4>Position</h4>
+        <p>Every player has a natural home in the batting order. Put him there and he's <b>IN POSITION</b> — anywhere else and he's <b>OUT OF POSITION</b>, which costs a little off his contribution. A well-placed XI also earns the team a flat boost, on top of that.</p>
+        <h4>Captaincy</h4>
+        <p>Some players in this game were genuinely outstanding captains — real winning records, for that exact country, format and decade. Naming one of them your captain (look for the 🎖️ <b>ELITE CAPTAIN</b> tag) gives your team a boost too.</p>
+        <h4>Rearranging</h4>
+        <p>You can fine-tune your order any time before the tour starts — tap the ⇅ handle to pick a swap, or press and drag a row straight onto another.</p>
+        <h4>Scoring</h4>
+        <p>Once the tour is under way, your team's overall strength is measured against each opponent to decide who wins. Your final score rewards <b>winning matches</b>, <b>winning series</b>, <b>whitewashing a series 5-0</b>, and <b>winning convincingly</b> rather than just scraping through — so a genuinely dominant, well-built XI scores far better than one that just gets over the line.</p>
+      </div>
+      <button class="btn" style="margin-top:16px" onclick="closeInfoModal()">Got it</button>
     </div>
   </div>
 </body>
