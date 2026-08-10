@@ -1869,25 +1869,38 @@ function confirmNameInput(){
   window.__resolvePlayerName(document.getElementById('nameInput').value);
 }
 
-async function lbLoad(){
+/* filterFmt, when given (and not 'all'), queries Firestore directly
+   for that format's own top scores instead of relying on a single
+   global top-200 across every format. That global list is what
+   originally broke the Hundred tab: Hundred kept its own, much
+   smaller scoring scale, so its entries never got anywhere near the
+   top 200 once Test/ODI/T20 moved to a 0–10,000 formula — the
+   Hundred filter wasn't missing data, it just never received any. */
+async function lbLoad(filterFmt){
   if(fbDB){
     try{
-      const snap = await fbDB.collection('leaderboard').orderBy('score','desc').limit(200).get();
+      let query = fbDB.collection('leaderboard');
+      query = (filterFmt && filterFmt!=='all')
+        ? query.where('format','==',filterFmt).orderBy('score','desc').limit(50)
+        : query.orderBy('score','desc').limit(200);
+      const snap = await query.get();
       return snap.docs.map(d=>d.data());
     }catch(e){ console.warn('Firestore read failed, showing device-only scores.', e); }
   }
+  let arr = [];
   try{
     if(typeof window!=='undefined' && window.storage && window.storage.get){
       const res = await window.storage.get(LB_KEY, false);
-      if(res && res.value) return JSON.parse(res.value);
-      return [];
+      arr = (res && res.value) ? JSON.parse(res.value) : [];
+    } else {
+      const raw = localStorage.getItem(LB_KEY);
+      arr = raw ? JSON.parse(raw) : [];
     }
   }catch(e){}
-  try{
-    const raw = localStorage.getItem(LB_KEY);
-    if(raw) return JSON.parse(raw);
-  }catch(e){}
-  return [];
+  if(filterFmt && filterFmt!=='all'){
+    arr = arr.filter(e => e.format ? e.format===filterFmt : e.label===LB_FILTER_LABEL[filterFmt]);
+  }
+  return arr;
 }
 async function lbSaveLocal(arr){
   try{
@@ -1941,10 +1954,15 @@ const OUT_REVIEWS = [
 /* Mode-specific rank, plus a top-15-overall callout when it applies —
    purely a display computation over the leaderboard that was already
    fetched via lbLoad(); it never affects what gets written. */
-function formatRankMessage(entries, score, record, modeName){
-  const modeEntries = entries.filter(e => (e.format ? e.format===FMTKEY : e.label===LB_FILTER_LABEL[FMTKEY]));
+/* modeEntries must already be scoped to this format specifically
+   (via lbLoad(FMTKEY)) — filtering a global top-200 client-side broke
+   this exact same way the leaderboard tabs did, for the same reason:
+   a low-scoring format's own best entry may never appear in a global
+   top-200 dominated by a higher-scoring format. overallEntries stays
+   the genuine global list, for the separate top-15-overall callout. */
+function formatRankMessage(modeEntries, overallEntries, score, record, modeName){
   const modeIdx = modeEntries.findIndex(e => e.score===score && e.record===record);
-  const overallIdx = entries.findIndex(e => e.score===score && e.record===record);
+  const overallIdx = overallEntries.findIndex(e => e.score===score && e.record===record);
   let msg = '';
   if(modeIdx===0) msg = `New ${modeName} all-time best!`;
   else if(modeIdx>=0) msg = `#${modeIdx+1} in ${modeName}!`;
@@ -1954,7 +1972,7 @@ function formatRankMessage(entries, score, record, modeName){
 }
 async function showScoreAndSave(record){
   document.getElementById('scoreValue').textContent = runScore.toLocaleString();
-  leaderboard = await lbLoad();
+  leaderboard = await lbLoad('all');
   const rankEl = document.getElementById('scoreRank');
   const functionConfigured = FUNCTION_URL && !FUNCTION_URL.includes('YOUR_REGION');
   const playerName = await getPlayerName();
@@ -1963,24 +1981,24 @@ async function showScoreAndSave(record){
     try{
       const data = await submitVerifiedScore(playerName);
       document.getElementById('scoreValue').textContent = data.score.toLocaleString();
-      leaderboard = await lbLoad();
-      const extra = formatRankMessage(leaderboard, data.score, data.record, FMT.label);
+      const [modeEntries, overallEntries] = await Promise.all([lbLoad(FMTKEY), lbLoad('all')]);
+      const extra = formatRankMessage(modeEntries, overallEntries, data.score, data.record, FMT.label);
       rankEl.innerHTML = `<div class="review-badge review-good">${pickOne(NOT_OUT_REVIEWS)}</div><div class="review-sub">${extra}</div>`;
       return;
     }catch(e){
       console.warn('Server verification failed, saving to this device instead.', e);
       const entry = {name:playerName, score:runScore, label:FMT.label, format:FMTKEY, record, date:new Date().toISOString()};
       await recordScore(entry);
-      leaderboard = await lbLoad();
-      const extra = formatRankMessage(leaderboard, entry.score, entry.record, FMT.label);
+      const [modeEntries, overallEntries] = await Promise.all([lbLoad(FMTKEY), lbLoad('all')]);
+      const extra = formatRankMessage(modeEntries, overallEntries, entry.score, entry.record, FMT.label);
       rankEl.innerHTML = `<div class="review-badge review-bad">${pickOne(OUT_REVIEWS)}</div><div class="review-sub">${extra} (saved to device)</div>`;
       return;
     }
   }
   const entry = {name:playerName, score:runScore, label:FMT.label, format:FMTKEY, record, date:new Date().toISOString()};
   await recordScore(entry);
-  leaderboard = await lbLoad();
-  const extra = formatRankMessage(leaderboard, entry.score, entry.record, FMT.label);
+  const [modeEntries, overallEntries] = await Promise.all([lbLoad(FMTKEY), lbLoad('all')]);
+  const extra = formatRankMessage(modeEntries, overallEntries, entry.score, entry.record, FMT.label);
   rankEl.innerHTML = `<div class="review-sub">${extra} (saved to device)</div>`;
 }
 let lbFilter = 'all';
@@ -2007,20 +2025,23 @@ function renderLbBody(){
     </div>`;
   }).join('');
 }
-function setLbFilter(mode){
+async function setLbFilter(mode){
   lbFilter = mode;
   document.querySelectorAll('.lb-pill').forEach(b=>b.classList.remove('selected'));
   const btn = document.querySelector(`.lb-pill[data-mode="${mode}"]`);
   if(btn) btn.classList.add('selected');
+  const body = document.getElementById('lbBody');
+  body.innerHTML = '<div class="lb-empty">Loading\u2026</div>';
+  leaderboard = await lbLoad(mode);
   renderLbBody();
 }
 async function openLeaderboard(){
   lbReturnScreen = document.getElementById('verdict').classList.contains('show') ? 'scr-season' : 'scr-intro';
-  leaderboard = await lbLoad();
   lbFilter = 'all';
   document.querySelectorAll('.lb-pill').forEach(b=>b.classList.remove('selected'));
   const allBtn = document.querySelector('.lb-pill[data-mode="all"]');
   if(allBtn) allBtn.classList.add('selected');
+  leaderboard = await lbLoad('all');
   renderLbBody();
   switchScreen('scr-leaderboard');
 }
