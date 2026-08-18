@@ -71,6 +71,7 @@ body{
 .represent-country-btn.selected{border-color:var(--brass);background:var(--panel-2);box-shadow:0 0 0 1px var(--brass) inset}
 .represent-country-btn.disabled{opacity:.35;cursor:not-allowed}
 .represent-country-btn small{font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:.04em;color:var(--cream-dim);text-transform:uppercase}
+img.emoji{height:1em;width:1em;vertical-align:-0.1em;margin:0 .02em}
 .fmt-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:2px 0 18px}
 .data-status{text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.05em;padding:8px 10px;border-radius:8px;margin:0 0 14px}
 .data-status.loading{color:var(--brass);background:rgba(201,162,75,.08);border:1px solid rgba(201,162,75,.25)}
@@ -500,6 +501,11 @@ body.sim-active .masthead{
      the game falls back to a device-only leaderboard automatically. -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/12.15.0/firebase-app-compat.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/12.15.0/firebase-firestore-compat.min.js"></script>
+<!-- Windows desktop browsers (Segoe UI Emoji) don't render most flag
+     glyphs, even though mobile does — twemoji swaps emoji text for CDN
+     flag images app-wide via the MutationObserver set up near the end
+     of the main script below. -->
+<script src="https://cdn.jsdelivr.net/npm/twemoji@14.0.2/dist/twemoji.min.js"></script>
 <script>
 /* ================= NATIONS ================= */
 /* Real grounds for each nation — five matches per series now rotate
@@ -1802,7 +1808,8 @@ async function showRepresentScoreAndSave(){
   const yourNat = NATIONS.find(n=>n.id===represCountry);
   const yourRow = representTable.find(r=>r.isYou);
   const localRank = representTable.findIndex(r=>r.isYou)+1;
-  const localRecord = `${yourRow.w}-${yourRow.d}-${yourRow.t}-${yourRow.l}`;
+  const localPoints = yourRow.pts + representFinalBonus;
+  const localRecord = `${yourRow.w}-${yourRow.d}-${yourRow.t}-${yourRow.l}${representFinalSuffix}`;
   const functionConfigured = REPRESENT_FUNCTION_URL && !REPRESENT_FUNCTION_URL.includes('PASTE_YOUR');
   const playerName = await getPlayerName();
   const rankEl = document.getElementById('scoreRank');
@@ -1814,15 +1821,15 @@ async function showRepresentScoreAndSave(){
       return;
     }catch(e){
       console.warn('Server verification failed for Represent Your Nation, saving to this device instead.', e);
-      const entry = {name:playerName, score:yourRow.pts, record:localRecord, label:FMT.label, mode:'represent', country:represCountry, countryName:yourNat.name, rank:localRank, points:yourRow.pts, date:new Date().toISOString()};
+      const entry = {name:playerName, score:localPoints, record:localRecord, label:FMT.label, mode:'represent', country:represCountry, countryName:yourNat.name, rank:localRank, points:localPoints, date:new Date().toISOString()};
       await recordScore(entry);
-      rankEl.innerHTML = `<div class="review-badge review-bad">${pickOne(OUT_REVIEWS)}</div><div class="review-sub">Saved to this device instead \u2014 finished P${localRank} with ${yourRow.pts} points.</div>`;
+      rankEl.innerHTML = `<div class="review-badge review-bad">${pickOne(OUT_REVIEWS)}</div><div class="review-sub">Saved to this device instead \u2014 finished P${localRank} with ${localPoints} points.</div>`;
       return;
     }
   }
-  const entry = {name:playerName, score:yourRow.pts, record:localRecord, label:FMT.label, mode:'represent', country:represCountry, countryName:yourNat.name, rank:localRank, points:yourRow.pts, date:new Date().toISOString()};
+  const entry = {name:playerName, score:localPoints, record:localRecord, label:FMT.label, mode:'represent', country:represCountry, countryName:yourNat.name, rank:localRank, points:localPoints, date:new Date().toISOString()};
   await recordScore(entry);
-  rankEl.innerHTML = `<div class="review-sub">Saved to this device \u2014 finished P${localRank} with ${yourRow.pts} points.</div>`;
+  rankEl.innerHTML = `<div class="review-sub">Saved to this device \u2014 finished P${localRank} with ${localPoints} points.</div>`;
 }
 
 async function lbLoadRawLocal(){
@@ -2005,6 +2012,9 @@ let represCountry = null;
 let represFmt = 'test';
 let representMatches = [];
 let representTable = [];
+let representFinal = null;
+let representFinalBonus = 0;
+let representFinalSuffix = '';
 const REPRESENT_MIN_PLAYERS = 11;
 
 async function showRepresentSetup(){
@@ -2075,12 +2085,19 @@ async function startRepresentDraft(){
   renderBoard();
 }
 
+// Small ratings bump for whichever side is hosting a leg of the home-and-away
+// league, and the score/leaderboard-points bonus for reaching/winning the
+// Lord's final (\u00a7 decideRepresentFinal below) \u2014 never written into the
+// table's own pts, which must stay pure league points.
+const HOME_BONUS = 3;
+const REPRESENT_FINAL_BONUS = {win:60, draw:45, loss:25};
+
 /* Same underlying probability curve as decideMatch, but exposes the
    draw/tie outcome directly instead of resolving white-ball ties via
    Super Over \u2014 a league table needs a real third/fourth outcome to
    award points against, not a forced winner. */
-function decideRepresentMatch(strength, oppRating){
-  const diff = strength - oppRating;
+function decideRepresentMatch(strength, oppRating, homeBonus=0){
+  const diff = strength - oppRating + homeBonus;
   const pW = clamp(0.50 + diff*0.02, 0.06, 0.85);
   if(FMTKEY==='test'){
     const pD = clamp(0.13 - diff*0.004, 0.04, 0.18);
@@ -2093,8 +2110,8 @@ function decideRepresentMatch(strength, oppRating){
   const rescaled = clamp(pW/(1-pTie), 0.06, 0.85);
   return Math.random()<rescaled ? 'W' : 'L';
 }
-function decideRepresentNeutral(oppA, oppB){
-  const diff = oppA - oppB;
+function decideRepresentNeutral(oppA, oppB, homeBonus=0){
+  const diff = oppA - oppB + homeBonus;
   const pW = clamp(0.50 + diff*0.02, 0.06, 0.85);
   if(FMTKEY==='test'){
     const pD = clamp(0.13 - diff*0.004, 0.04, 0.18);
@@ -2107,6 +2124,12 @@ function decideRepresentNeutral(oppA, oppB){
   const rescaled = clamp(pW/(1-pTie), 0.06, 0.85);
   return Math.random()<rescaled ? 'A' : 'B';
 }
+// Reuses decideMatch's existing win-probability shape (draw possible in Test,
+// white-ball ties auto-resolved via one extra Super-Over-style roll) so the
+// Lord's final always produces a decisive result except for a genuine Test
+// draw \u2014 no new RNG-consuming logic needed to keep client/server in
+// lockstep. Lord's is neutral: no home bonus applies here.
+function decideRepresentFinal(strength, oppRating){ return decideMatch(strength, oppRating); }
 function genTieMatch(nat){
   const t20 = FMTKEY==='t20';
   const lo = t20?130:220, hi = t20?225:380, ov = t20?'20 ov':'50 ov';
@@ -2128,14 +2151,18 @@ function buildRepresentTable(yourNat, opponents, yourMatches){
     else { recs[yourNat.id].l++; recs[oppId].w++; recs[oppId].pts+=12; }
   });
 
+  function applyResult(A, B, result){
+    if(result==='A'){ recs[A.id].w++; recs[A.id].pts+=12; recs[B.id].l++; }
+    else if(result==='B'){ recs[B.id].w++; recs[B.id].pts+=12; recs[A.id].l++; }
+    else if(result==='D'){ recs[A.id].d++; recs[A.id].pts+=4; recs[B.id].d++; recs[B.id].pts+=4; }
+    else if(result==='T'){ recs[A.id].t++; recs[A.id].pts+=6; recs[B.id].t++; recs[B.id].pts+=6; }
+  }
+
   for(let i=0;i<opponents.length;i++){
     for(let j=i+1;j<opponents.length;j++){
       const A=opponents[i], B=opponents[j];
-      const result = decideRepresentNeutral(A.opp, B.opp);
-      if(result==='A'){ recs[A.id].w++; recs[A.id].pts+=12; recs[B.id].l++; }
-      else if(result==='B'){ recs[B.id].w++; recs[B.id].pts+=12; recs[A.id].l++; }
-      else if(result==='D'){ recs[A.id].d++; recs[A.id].pts+=4; recs[B.id].d++; recs[B.id].pts+=4; }
-      else if(result==='T'){ recs[A.id].t++; recs[A.id].pts+=6; recs[B.id].t++; recs[B.id].pts+=6; }
+      applyResult(A, B, decideRepresentNeutral(A.opp, B.opp, HOME_BONUS));   // leg 1: A hosts
+      applyResult(A, B, decideRepresentNeutral(A.opp, B.opp, -HOME_BONUS));  // leg 2: B hosts
     }
   }
 
@@ -2151,50 +2178,96 @@ function buildRepresentTable(yourNat, opponents, yourMatches){
 function startRepresentLeague(){
   switchScreen('scr-season');
   const yourNat = NATIONS.find(n=>n.id===represCountry);
-  document.getElementById('seasonEyebrow').textContent = `Represent ${yourNat.name} \u00b7 League \u00b7 11 Matches`;
-  revealTotalStops = 11; revealStopWord = 'Match'; revealOnFinish = (delay)=>finishRepresentLeague(delay);
+  document.getElementById('seasonEyebrow').textContent = `Represent ${yourNat.name} \u00b7 League \u00b7 22 Matches`;
+  revealTotalStops = 22; revealStopWord = 'Match'; revealOnFinish = (delay)=>finishRepresentLeague(delay);
 
   const st = teamStrengths();
   const opponents = shuffle(NATIONS.filter(n=>n.id!==represCountry));
 
   representMatches = []; revealRows = [];
   let w=0,d=0,t=0,l=0;
-  opponents.forEach((opp,i)=>{
-    revealRows.push({kind:'stop', html:`<span class="st-flag">${opp.flag}</span><span class="st-name">${opp.name}</span><span class="st-venue">Match ${i+1} of 11</span>`,
-                     tally:null, stop:i+1});
-    const code = decideRepresentMatch(st.strength, opp.opp);
-    let gen;
-    if(code==='T') gen = genTieMatch(opp);
-    else if(FMTKEY==='test') gen = genTestMatch(code, opp);
-    else gen = genWhiteBallMatch(code, opp, false);
-    const potm = pickPOTM(code, opp);
-    if(code==='W'){w++;} else if(code==='D'){d++;} else if(code==='T'){t++;} else {l++;}
-    representMatches.push({opp, code, ...gen, potm});
-    const resultLabel = code==='W'?'WON':code==='D'?'DRAWN':code==='T'?'TIED':'LOST';
-    revealRows.push({kind:'match', code,
-      html:`<span class="tno">M${i+1}</span>
-      <span class="op">vs ${opp.name}<span class="score">${gen.score}</span><span class="score" style="color:var(--cream-dim)">${gen.margin}</span><span class="potm">POTM: ${potm}</span></span>
-      <span class="badge ${code==='T'?'D':code}">${resultLabel}</span>`,
-      tally:`${w}\u2013${d}\u2013${t}\u2013${l}`, stop:i+1});
+  opponents.forEach((opp,oi)=>{
+    for(let leg=0; leg<2; leg++){
+      const matchNum = oi*2+leg+1;
+      const isHome = leg===0;
+      const homeBonus = isHome ? HOME_BONUS : -HOME_BONUS;
+      const venue = isHome ? (yourNat.venues ? yourNat.venues[0] : yourNat.name) : (opp.venues ? opp.venues[0] : opp.name);
+      revealRows.push({kind:'stop', html:`<span class="st-flag">${opp.flag}</span><span class="st-name">${opp.name} \u00b7 ${isHome?'Home':'Away'}</span><span class="st-venue">Match ${matchNum} of 22 \u00b7 ${venue}</span>`,
+                       tally:null, stop:matchNum});
+      const code = decideRepresentMatch(st.strength, opp.opp, homeBonus);
+      let gen;
+      if(code==='T') gen = genTieMatch(opp);
+      else if(FMTKEY==='test') gen = genTestMatch(code, opp);
+      else gen = genWhiteBallMatch(code, opp, false);
+      const potm = pickPOTM(code, opp);
+      if(code==='W'){w++;} else if(code==='D'){d++;} else if(code==='T'){t++;} else {l++;}
+      representMatches.push({opp, code, isHome, ...gen, potm});
+      const resultLabel = code==='W'?'WON':code==='D'?'DRAWN':code==='T'?'TIED':'LOST';
+      revealRows.push({kind:'match', code,
+        html:`<span class="tno">M${matchNum}</span>
+        <span class="op">vs ${opp.name} (${isHome?'H':'A'})<span class="score">${gen.score}</span><span class="score" style="color:var(--cream-dim)">${gen.margin}</span><span class="potm">POTM: ${potm}</span></span>
+        <span class="badge ${code==='T'?'D':code}">${resultLabel}</span>`,
+        tally:`${w}\u2013${d}\u2013${t}\u2013${l}`, stop:matchNum});
+    }
   });
 
   representTable = buildRepresentTable(yourNat, opponents, representMatches);
   tourTotals = {w, d:d+t, l};
 
+  // Lord's Championship Final \u2014 the top 2 in the table play a decisive
+  // match at a neutral venue, in whatever format the league was played in.
+  // Must run immediately after buildRepresentTable with nothing else
+  // consuming Math.random in between, to stay in lockstep with the server.
+  const finalistA = representTable[0], finalistB = representTable[1];
+  const aNat = NATIONS.find(n=>n.id===finalistA.id), bNat = NATIONS.find(n=>n.id===finalistB.id);
+  const youAreFinalist = finalistA.isYou || finalistB.isYou;
+  let finalGen=null, finalPotm=null, finalOppNat=null, finalCode;
+  if(youAreFinalist){
+    finalOppNat = finalistA.isYou ? bNat : aNat;
+    const res = decideRepresentFinal(st.strength, finalOppNat.opp);
+    finalCode = res.code;
+    finalGen = FMTKEY==='test' ? genTestMatch(finalCode, finalOppNat) : genWhiteBallMatch(finalCode, finalOppNat, res.superOver);
+    finalPotm = pickPOTM(finalCode, finalOppNat);
+  } else {
+    finalCode = decideRepresentFinal(aNat.opp, bNat.opp).code; // relative to A; no gen/potm \u2014 you're not involved
+  }
+  representFinal = {youAreFinalist, finalistA, finalistB, aNat, bNat, code:finalCode, oppNat:finalOppNat, gen:finalGen, potm:finalPotm};
+  representFinalBonus = 0; representFinalSuffix = '';
+  if(youAreFinalist){
+    if(finalCode==='D'){ representFinalBonus=REPRESENT_FINAL_BONUS.draw; representFinalSuffix=', Final D'; }
+    else if(finalCode==='W'){ representFinalBonus=REPRESENT_FINAL_BONUS.win; representFinalSuffix=', Final W'; }
+    else { representFinalBonus=REPRESENT_FINAL_BONUS.loss; representFinalSuffix=', Final L'; }
+  }
+
   const box=document.getElementById('fixtures');
   box.innerHTML='';
   document.getElementById('verdict').classList.remove('show');
   document.getElementById('seasonTally').textContent='0\u20130\u20130\u20130';
-  document.getElementById('testTally').textContent='Match 0 of 11';
+  document.getElementById('testTally').textContent='Match 0 of 22';
   showSkipBtn();
   revealIdx=0;
   revealTimers=revealRows.map((_,i)=>setTimeout(()=>revealOne(i), 340*(i+1)));
 }
 
 function representTableHTML(){
-  const rows = representTable.map((r,i)=>`<tr${r.isYou?' style="color:var(--brass);font-weight:700"':''}><td>${i+1}</td><td>${r.flag} ${r.name}${r.isYou?' (YOU)':''}</td><td>11</td><td>${r.w}</td><td>${r.d}</td><td>${r.t}</td><td>${r.l}</td><td>${r.pts}</td></tr>`).join('');
+  const rows = representTable.map((r,i)=>`<tr${r.isYou?' style="color:var(--brass);font-weight:700"':''}><td>${i+1}</td><td>${r.flag} ${r.name}${r.isYou?' (YOU)':''}</td><td>22</td><td>${r.w}</td><td>${r.d}</td><td>${r.t}</td><td>${r.l}</td><td>${r.pts}</td></tr>`).join('');
   return `<h3 style="margin-top:2px">Final League Table</h3>
     <table class="stat-table"><tr><th>Pos</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>T</th><th>L</th><th>Pts</th></tr>${rows}</table>`;
+}
+function representFinalResultRow(){
+  const F = representFinal;
+  if(F.youAreFinalist){
+    const badge = F.code==='W' ? 'W' : F.code==='D' ? 'G' : 'L';
+    const label = F.code==='W' ? 'CHAMPIONS' : F.code==='D' ? 'JOINT CHAMPIONS' : 'RUNNERS-UP';
+    return {kind:'match', code:F.code, html:`<span class="tno">FINAL</span>
+      <span class="op">vs ${F.oppNat.name} \u2014 Lord's<span class="score">${F.gen.score}</span><span class="score" style="color:var(--cream-dim)">${F.gen.margin}</span><span class="potm">POTM: ${F.potm}</span></span>
+      <span class="badge ${badge}">${label}</span>`};
+  }
+  const aName = `${F.aNat.flag} ${F.aNat.name}`, bName = `${F.bNat.flag} ${F.bNat.name}`;
+  const summary = F.code==='D' ? `\ud83c\udfc6 THE FINAL \u2014 Lord's: ${aName} and ${bName} shared the title`
+                : F.code==='W' ? `\ud83c\udfc6 THE FINAL \u2014 Lord's: ${aName} beat ${bName}`
+                : `\ud83c\udfc6 THE FINAL \u2014 Lord's: ${bName} beat ${aName}`;
+  return {kind:'announce', html:`<b>${summary}</b>`};
 }
 function finishRepresentLeague(delay){
   hideSkipBtn();
@@ -2202,7 +2275,15 @@ function finishRepresentLeague(delay){
     const box = document.getElementById('fixtures');
     appendRow({kind:'table', html: representTableHTML()});
     box.lastChild.scrollIntoView({behavior:'smooth', block:'nearest'});
-    setTimeout(()=>representVerdict(), 700);
+    setTimeout(()=>{
+      appendRow({kind:'stop', html:`<span class="st-flag">\ud83c\udfc6</span><span class="st-name">THE FINAL</span><span class="st-venue">Lord's \u00b7 neutral venue</span>`});
+      box.lastChild.scrollIntoView({behavior:'smooth', block:'nearest'});
+      setTimeout(()=>{
+        appendRow(representFinalResultRow());
+        box.lastChild.scrollIntoView({behavior:'smooth', block:'nearest'});
+        setTimeout(()=>representVerdict(), 700);
+      }, 500);
+    }, 500);
   }, delay);
 }
 function representVerdict(){
@@ -2210,12 +2291,18 @@ function representVerdict(){
   const yourRow = representTable.find(r=>r.isYou);
   const rank = representTable.findIndex(r=>r.isYou)+1;
   const yourNat = NATIONS.find(n=>n.id===represCountry);
-  const rec = `${yourRow.w} WON \u00b7 ${yourRow.d} DRAWN \u00b7 ${yourRow.t} TIED \u00b7 ${yourRow.l} LOST \u2014 ${yourRow.pts} PTS`;
+  const totalPts = yourRow.pts + representFinalBonus;
+  const rec = `${yourRow.w} WON \u00b7 ${yourRow.d} DRAWN \u00b7 ${yourRow.t} TIED \u00b7 ${yourRow.l} LOST \u2014 ${totalPts} PTS${representFinalSuffix}`;
   let title, body;
-  if(rank===1){ title='CHAMPIONS OF THE WORLD'; body=`${yourNat.name} finished top of the table with ${yourRow.pts} points from 11 matches \u2014 every other side in the world, and you came out on top.`; }
-  else if(rank<=3){ title=`FINISHED P${rank}`; body=`A genuine podium finish for ${yourNat.name} \u2014 ${yourRow.pts} points from 11 matches, right up with the very best sides in the world.`; }
+  if(representFinal.youAreFinalist){
+    const oppName = representFinal.oppNat.name;
+    if(representFinal.code==='W'){ title=`\ud83c\udfc6 WORLD ${FMT.label.toUpperCase()} CHAMPIONS`; body=`${yourNat.name} beat ${oppName} in the Lord's final \u2014 top of the table, and now the best side in the world.`; }
+    else if(representFinal.code==='D'){ title='JOINT CHAMPIONS OF THE WORLD'; body=`${yourNat.name} drew with ${oppName} at Lord's \u2014 a genuine Test draw, so the title is shared, WTC-style.`; }
+    else { title='RUNNERS-UP'; body=`${yourNat.name} reached the Lord's final but came up short against ${oppName} \u2014 a fine season all the same.`; }
+  }
+  else if(rank<=3){ title=`FINISHED P${rank}`; body=`A genuine podium finish for ${yourNat.name} \u2014 ${yourRow.pts} points from 22 matches, right up with the very best sides in the world.`; }
   else if(rank<=6){ title=`FINISHED P${rank}`; body=`A solid mid-table campaign for ${yourNat.name} with ${yourRow.pts} points \u2014 competitive, but the top sides in the world edged it this time.`; }
-  else { title=`FINISHED P${rank}`; body=`A tough league campaign for ${yourNat.name} \u2014 ${yourRow.pts} points from 11 matches. The rest of the cricketing world proved too strong on this occasion.`; }
+  else { title=`FINISHED P${rank}`; body=`A tough league campaign for ${yourNat.name} \u2014 ${yourRow.pts} points from 22 matches. The rest of the cricketing world proved too strong on this occasion.`; }
   document.getElementById('verdictRec').textContent = rec;
   document.getElementById('verdictTitle').textContent = title;
   document.getElementById('verdictBody').textContent = body;
@@ -2275,6 +2362,9 @@ function verdict(){
 const SITE_URL = 'https://www.not-out.co.uk';
 const SHARE_CTA = `Think you can beat this? Draft your own XI \u2192 ${SITE_URL}`;
 function buildShareText(){
+  return represMode ? buildShareTextRepresent() : buildShareTextWorldTour();
+}
+function buildShareTextWorldTour(){
   const {w,d,l}=tourTotals;
   const lines=tourStops.map(st=>{
     const dots=st.matches.map(m=>m.code==='W'?'\ud83d\udfe2':m.code==='D'?'\ud83d\udfe1':'\ud83d\udd34').join('');
@@ -2283,6 +2373,21 @@ function buildShareText(){
     return `${st.nat.id} ${dots} Series: ${record}${sw===5?' \ud83e\uddf9':''}`;
   }).join('\n');
   return `NOT OUT* \u2014 Cricket World Domination \u00b7 ${FMT.label}\n60 matches, all away \u00b7 ${w}W ${d}${FMTKEY==='test'?'D':'T'} ${l}L\nScore: ${runScore.toLocaleString()} pts\n\n${lines}\n\n${SHARE_CTA}`;
+}
+function buildShareTextRepresent(){
+  const yourNat = NATIONS.find(n=>n.id===represCountry);
+  const yourRow = representTable.find(r=>r.isYou);
+  const rank = representTable.findIndex(r=>r.isYou)+1;
+  const dots = representMatches.map(m=>m.code==='W'?'\ud83d\udfe2':(m.code==='D'||m.code==='T')?'\ud83d\udfe1':'\ud83d\udd34').join('');
+  const rec = `${yourRow.w}W ${yourRow.d}D ${yourRow.t}T ${yourRow.l}L`;
+  const points = yourRow.pts + representFinalBonus;
+  let finalLine = '';
+  if(representFinal && representFinal.youAreFinalist){
+    finalLine = representFinal.code==='W' ? `\n\ud83c\udfc6 WORLD ${FMT.label.toUpperCase()} CHAMPIONS \u2014 beat ${representFinal.oppNat.name} at Lord's`
+              : representFinal.code==='D' ? `\n\ud83c\udfc6 JOINT CHAMPIONS \u2014 drew with ${representFinal.oppNat.name} at Lord's`
+              : `\n\ud83e\udd48 RUNNERS-UP \u2014 lost the Lord's final to ${representFinal.oppNat.name}`;
+  }
+  return `NOT OUT* \u2014 Represent Your Nation \u00b7 ${yourNat.flag} ${yourNat.name} \u00b7 ${FMT.label}\n22-match home & away league \u00b7 Finished P${rank} of 12 \u00b7 ${rec} \u2014 ${points} pts${finalLine}\n\n${dots}\n\n${SHARE_CTA}`;
 }
 
 
@@ -2342,6 +2447,9 @@ function draftAgain(){
   tourStops = [];
   representMatches = [];
   representTable = [];
+  representFinal = null;
+  representFinalBonus = 0;
+  representFinalSuffix = '';
   tourTotals = null;
   runScore = 0;
 
@@ -2390,6 +2498,18 @@ try{
   if(saved && FORMATS[saved]) __startFmt = saved;
 }catch(e){}
 selectFormat(__startFmt);   // async; fires the background fetch, intro screen doesn't need to wait
+
+/* Desktop Windows browsers (Segoe UI Emoji) lack most flag glyphs; twemoji
+   swaps emoji text for <img> tags pointing at CDN flag images. A single
+   MutationObserver on <body> catches every current and future emoji-bearing
+   node app-wide — no per-render-site twemoji.parse() calls needed anywhere. */
+if(typeof twemoji !== 'undefined'){
+  const twemojiObserver = new MutationObserver(muts=>{
+    muts.forEach(m=>m.addedNodes.forEach(node=>{ try{ twemoji.parse(node); }catch(e){} }));
+  });
+  twemojiObserver.observe(document.body, {childList:true, subtree:true});
+  twemoji.parse(document.body);
+}
 </script>
   <!-- NAME ENTRY MODAL -->
   <div class="name-modal" id="nameModal" style="display:none">

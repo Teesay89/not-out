@@ -386,8 +386,15 @@ function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
    -> the 55 background matches [decideRepresentNeutral] -> 12 jitter rolls (one per
    table row, used for stable tie-break sorting). Any deviation from this exact order
    desyncs the seeded sequence and produces a different table than the client saw. */
-function decideRepresentMatch(strength, oppRating){
-  const diff = strength - oppRating;
+// Small ratings bump for whichever side is hosting a leg of the home-and-away
+// league, and the score/leaderboard-points bonus for reaching/winning the
+// Lord's final (§ decideRepresentFinal below) — never written into the table's
+// own pts, which must stay pure league points.
+const HOME_BONUS = 3;
+const REPRESENT_FINAL_BONUS = {win:60, draw:45, loss:25};
+
+function decideRepresentMatch(strength, oppRating, homeBonus=0){
+  const diff = strength - oppRating + homeBonus;
   const pW = clamp(0.50 + diff*0.02, 0.06, 0.85);
   if(FMTKEY==='test'){
     const pD = clamp(0.13 - diff*0.004, 0.04, 0.18);
@@ -400,8 +407,8 @@ function decideRepresentMatch(strength, oppRating){
   const rescaled = clamp(pW/(1-pTie), 0.06, 0.85);
   return Math.random()<rescaled ? 'W' : 'L';
 }
-function decideRepresentNeutral(oppA, oppB){
-  const diff = oppA - oppB;
+function decideRepresentNeutral(oppA, oppB, homeBonus=0){
+  const diff = oppA - oppB + homeBonus;
   const pW = clamp(0.50 + diff*0.02, 0.06, 0.85);
   if(FMTKEY==='test'){
     const pD = clamp(0.13 - diff*0.004, 0.04, 0.18);
@@ -414,6 +421,12 @@ function decideRepresentNeutral(oppA, oppB){
   const rescaled = clamp(pW/(1-pTie), 0.06, 0.85);
   return Math.random()<rescaled ? 'A' : 'B';
 }
+// Reuses decideMatch's existing win-probability shape (draw possible in Test,
+// white-ball ties auto-resolved via one extra Super-Over-style roll) so the
+// Lord's final always produces a decisive result except for a genuine Test
+// draw — no new RNG-consuming logic needed to keep client/server in lockstep.
+// Lord's is neutral: no home bonus applies here.
+function decideRepresentFinal(strength, oppRating){ return decideMatch(strength, oppRating); }
 function genTieMatch(){
   // Output text is never used server-side, but rand() must be called
   // the identical number of times (3: score, w1, w2) as the client's
@@ -435,14 +448,18 @@ function buildRepresentTable(yourNat, opponents, yourMatches){
     else { recs[yourNat.id].l++; recs[oppId].w++; recs[oppId].pts+=12; }
   });
 
+  function applyResult(A, B, result){
+    if(result==='A'){ recs[A.id].w++; recs[A.id].pts+=12; recs[B.id].l++; }
+    else if(result==='B'){ recs[B.id].w++; recs[B.id].pts+=12; recs[A.id].l++; }
+    else if(result==='D'){ recs[A.id].d++; recs[A.id].pts+=4; recs[B.id].d++; recs[B.id].pts+=4; }
+    else if(result==='T'){ recs[A.id].t++; recs[A.id].pts+=6; recs[B.id].t++; recs[B.id].pts+=6; }
+  }
+
   for(let i=0;i<opponents.length;i++){
     for(let j=i+1;j<opponents.length;j++){
       const A=opponents[i], B=opponents[j];
-      const result = decideRepresentNeutral(A.opp, B.opp);
-      if(result==='A'){ recs[A.id].w++; recs[A.id].pts+=12; recs[B.id].l++; }
-      else if(result==='B'){ recs[B.id].w++; recs[B.id].pts+=12; recs[A.id].l++; }
-      else if(result==='D'){ recs[A.id].d++; recs[A.id].pts+=4; recs[B.id].d++; recs[B.id].pts+=4; }
-      else if(result==='T'){ recs[A.id].t++; recs[A.id].pts+=6; recs[B.id].t++; recs[B.id].pts+=6; }
+      applyResult(A, B, decideRepresentNeutral(A.opp, B.opp, HOME_BONUS));   // leg 1: A hosts
+      applyResult(A, B, decideRepresentNeutral(A.opp, B.opp, -HOME_BONUS));  // leg 2: B hosts
     }
   }
 
@@ -495,23 +512,53 @@ function calculateRepresentResult({ format, country, seed, xi: clientXi, captain
     const opponents = shuffle(NATIONS.filter((n) => n.id !== country));
 
     const yourMatches = [];
-    let w = 0, d = 0, t = 0, l = 0;
     opponents.forEach((opp) => {
-      const code = decideRepresentMatch(st.strength, opp.opp);
-      if (code === 'T') genTieMatch();
-      else if (format === 'test') genTestMatch(code, opp);
-      else genWhiteBallMatch(code, opp, false);
-      pickPOTM(code, opp); // consumes RNG in lockstep with client; output unused server-side
-      if (code === 'W') w++; else if (code === 'D') d++; else if (code === 'T') t++; else l++;
-      yourMatches.push({ opp, code });
+      for (let leg = 0; leg < 2; leg++) {
+        const homeBonus = leg === 0 ? HOME_BONUS : -HOME_BONUS;
+        const code = decideRepresentMatch(st.strength, opp.opp, homeBonus);
+        if (code === 'T') genTieMatch();
+        else if (format === 'test') genTestMatch(code, opp);
+        else genWhiteBallMatch(code, opp, false);
+        pickPOTM(code, opp); // consumes RNG in lockstep with client; output unused server-side
+        yourMatches.push({ opp, code });
+      }
     });
 
     const table = buildRepresentTable(yourNat, opponents, yourMatches);
     const rank = table.findIndex((r) => r.isYou) + 1;
     const yourRow = table[rank - 1];
-    const record = `${yourRow.w}-${yourRow.d}-${yourRow.t}-${yourRow.l}`;
 
-    return { rank, points: yourRow.pts, record, country };
+    // Lord's Championship Final — the top 2 in the table play a decisive
+    // match at a neutral venue, in whatever format the league was played in.
+    // Must run immediately after buildRepresentTable with nothing else
+    // consuming Math.random in between, to stay in lockstep with the client.
+    const finalistA = table[0], finalistB = table[1];
+    const aNat = NATIONS.find((n) => n.id === finalistA.id);
+    const bNat = NATIONS.find((n) => n.id === finalistB.id);
+    const youAreFinalist = finalistA.isYou || finalistB.isYou;
+    let finalCode;
+    if (youAreFinalist) {
+      const finalOppNat = finalistA.isYou ? bNat : aNat;
+      const res = decideRepresentFinal(st.strength, finalOppNat.opp);
+      finalCode = res.code;
+      if (format === 'test') genTestMatch(finalCode, finalOppNat);
+      else genWhiteBallMatch(finalCode, finalOppNat, res.superOver);
+      pickPOTM(finalCode, finalOppNat); // consumes RNG in lockstep with client; output unused server-side
+    } else {
+      finalCode = decideRepresentFinal(aNat.opp, bNat.opp).code; // relative to A; no gen/potm — you're not involved
+    }
+
+    let finalBonus = 0, finalSuffix = '';
+    if (youAreFinalist) {
+      if (finalCode === 'D') { finalBonus = REPRESENT_FINAL_BONUS.draw; finalSuffix = ', Final D'; }
+      else if (finalCode === 'W') { finalBonus = REPRESENT_FINAL_BONUS.win; finalSuffix = ', Final W'; }
+      else { finalBonus = REPRESENT_FINAL_BONUS.loss; finalSuffix = ', Final L'; }
+    }
+
+    const points = yourRow.pts + finalBonus;
+    const record = `${yourRow.w}-${yourRow.d}-${yourRow.t}-${yourRow.l}${finalSuffix}`;
+
+    return { rank, points, record, country };
   } finally {
     Math.random = nativeRandom;
   }
