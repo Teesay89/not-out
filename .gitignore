@@ -67,3 +67,6 @@ node_modules/
 
 # dataconnect generated files
 .dataconnect
+
+# Cloud Functions dependencies
+functions/node_modules/
