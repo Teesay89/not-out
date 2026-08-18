@@ -1,0 +1,17 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /leaderboard/{entryId} {
+      // Anyone can read the leaderboard.
+      allow read: if true;
+
+      // Nobody can write from the client SDK anymore — not create,
+      // update, or delete. The only way a score reaches this collection
+      // now is the submitScore Cloud Function, which uses the Admin SDK
+      // and therefore bypasses these rules entirely. This is what
+      // actually closes the loop: even a perfectly-crafted fake write
+      // from a browser console has no path in.
+      allow write: if false;
+    }
+  }
+}

@@ -1,0 +1,2440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Not Out | Cricket World Domination</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Graduate&family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --pitch:#0D120C;
+  --panel:#151C13;
+  --panel-2:#1B2417;
+  --cream:#EFE9D8;
+  --cream-dim:#B9B4A2;
+  --ball:#D6402B;
+  --ball-deep:#A72E1D;
+  --brass:#C9A24B;
+  --grass-a:#2E4A2B;
+  --grass-b:#3E6B3A;
+  --line:rgba(239,233,216,.14);
+  --shadow:0 18px 40px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:
+    radial-gradient(1200px 600px at 50% -10%, rgba(62,107,58,.22), transparent 60%),
+    var(--pitch);
+  color:var(--cream);
+  font-family:'Archivo',sans-serif;
+  -webkit-font-smoothing:antialiased;
+  min-height:100dvh;
+}
+.wrap{max-width:520px;margin:0 auto;padding:18px 16px 90px;position:relative}
+.screen{display:none;animation:fadeUp .35s ease both}
+.screen.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+
+/* ---------- header ---------- */
+.masthead{text-align:center;padding:6px 0 14px;border-bottom:1px solid var(--line);margin-bottom:16px}
+.masthead h1{font-family:'Graduate',serif;font-size:38px;letter-spacing:.04em;line-height:1;color:var(--cream)}
+.masthead h1 .red{color:var(--ball)}
+.masthead .sub{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--cream-dim);margin-top:8px}
+
+/* ---------- intro ---------- */
+.intro-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;box-shadow:var(--shadow)}
+.intro-card h2{font-family:'Graduate',serif;font-size:20px;letter-spacing:.03em;margin-bottom:12px}
+.rule-list{list-style:none;display:grid;gap:12px;margin:14px 0 20px}
+.rule-list li{display:flex;gap:12px;align-items:flex-start;font-size:14.5px;line-height:1.5;color:var(--cream-dim)}
+.rule-list li b{color:var(--cream);font-weight:600}
+.dotball{flex:0 0 26px;height:26px;border-radius:50%;background:radial-gradient(circle at 32% 30%, #E8563F, var(--ball-deep) 70%);border:1px solid rgba(0,0,0,.4);position:relative;margin-top:1px}
+.dotball::after{content:"";position:absolute;inset:4px;border-radius:50%;border:1px dashed rgba(239,233,216,.65);transform:rotate(24deg)}
+.foot-note{font-size:11.5px;color:var(--cream-dim);line-height:1.55;border-top:1px dashed var(--line);padding-top:12px}
+
+.fmt-hero{position:relative;width:100%;margin:2px 0 12px;padding:15px 12px 13px;border-radius:12px;cursor:pointer;text-align:center;
+  border:1px solid #7B5FE0;background:linear-gradient(135deg,#241a45,#1a1230);color:#E4DBFF;
+  font-family:'Graduate',serif;font-size:16px;letter-spacing:.06em;box-shadow:0 8px 22px rgba(123,95,224,.25)}
+.fmt-hero small{display:block;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.16em;color:#BBA9FF;text-transform:uppercase;margin-top:5px}
+.fmt-hero .newtag{position:absolute;top:-9px;right:12px;background:var(--ball);color:var(--cream);font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.2em;padding:3px 9px;border-radius:999px;animation:newpulse 1.5s ease infinite}
+@keyframes newpulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.08);opacity:.85}}
+.fmt-hero.selected{border-color:var(--brass);box-shadow:0 0 0 1px var(--brass) inset, 0 0 18px rgba(123,95,224,.35)}
+.fmt-hero.represent-hero{border-color:var(--grass-b);background:linear-gradient(135deg,#1c3319,#122210);color:#DCEFDA;box-shadow:0 8px 22px rgba(62,107,58,.3)}
+.fmt-hero.represent-hero small{color:#9FCB9A}
+.represent-country-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}
+.represent-country-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--cream);cursor:pointer;font-family:'Archivo',sans-serif;font-weight:600;font-size:13px;text-align:center}
+.represent-country-btn .flag{font-size:24px}
+.represent-country-btn.selected{border-color:var(--brass);background:var(--panel-2);box-shadow:0 0 0 1px var(--brass) inset}
+.represent-country-btn.disabled{opacity:.35;cursor:not-allowed}
+.represent-country-btn small{font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:.04em;color:var(--cream-dim);text-transform:uppercase}
+.fmt-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:2px 0 18px}
+.data-status{text-align:center;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.05em;padding:8px 10px;border-radius:8px;margin:0 0 14px}
+.data-status.loading{color:var(--brass);background:rgba(201,162,75,.08);border:1px solid rgba(201,162,75,.25)}
+.data-status.error{color:#E8563F;background:rgba(214,64,43,.1);border:1px solid rgba(214,64,43,.35)}
+.name-modal{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;background:rgba(10,14,10,.82);backdrop-filter:blur(2px);padding:20px}
+.name-modal-card{width:100%;max-width:340px;background:linear-gradient(180deg,var(--panel-2),var(--panel));border:1px solid var(--brass);border-radius:14px;padding:22px 20px;text-align:center;box-shadow:0 20px 50px rgba(0,0,0,.6)}
+.name-modal-title{font-family:'Graduate',serif;font-size:19px;color:var(--cream)}
+.name-modal-sub{font-family:'Archivo',sans-serif;font-size:12.5px;color:var(--cream-dim);margin-top:4px}
+.name-modal-input{width:100%;margin-top:16px;padding:12px 14px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--cream);font-family:'Archivo',sans-serif;font-size:15px;text-align:center}
+.name-modal-input:focus{outline:none;border-color:var(--brass)}
+.confirm-btn-row{display:flex;gap:10px;margin-top:16px}
+.confirm-btn-row .btn,.confirm-btn-row .btn+.btn{margin-top:0;flex:1}
+.cookie-banner{position:fixed;left:0;right:0;bottom:0;z-index:190;max-width:520px;margin:0 auto;background:linear-gradient(180deg,var(--panel-2),var(--panel));border-top:1px solid var(--brass);padding:14px 16px calc(14px + env(safe-area-inset-bottom));box-shadow:0 -10px 30px rgba(0,0,0,.5)}
+.cookie-banner p{font-size:12.5px;line-height:1.5;color:var(--cream-dim);margin-bottom:10px}
+.cookie-banner .btn{padding:10px 18px;font-size:14px}
+.info-link{display:block;text-align:center;margin:10px 0 14px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.06em;color:var(--brass);text-decoration:none;cursor:pointer}
+.info-modal-body{text-align:left;font-size:13px;line-height:1.6;color:var(--cream-dim);max-height:50vh;overflow-y:auto;margin-top:12px}
+.info-modal-body h4{color:var(--brass);font-family:'Graduate',serif;font-size:14px;margin:14px 0 4px;letter-spacing:.02em}
+.info-modal-body h4:first-child{margin-top:0}
+.info-modal-body p{margin-bottom:6px}
+.confirm-btn-row .btn{margin:0;flex:1}
+.fmt-btn{padding:10px 6px;border-radius:10px;border:1px solid var(--line);background:var(--panel-2);color:var(--cream-dim);cursor:pointer;font-family:'Graduate',serif;font-size:15px;letter-spacing:.05em;transition:border-color .15s,color .15s}
+.fmt-btn small{display:block;font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:.06em;margin-top:4px;text-transform:uppercase}
+.fmt-btn.selected{border-color:var(--brass);color:var(--brass);box-shadow:0 0 0 1px var(--brass) inset}
+.era-filter-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 14px}
+.era-filter-row:empty{display:none;margin:0}
+.era-btn{padding:10px 6px;border-radius:10px;border:1px solid var(--line);background:var(--panel-2);color:var(--cream-dim);cursor:pointer;font-family:'Archivo',sans-serif;font-weight:600;font-size:12.5px;letter-spacing:.01em;transition:border-color .15s,color .15s}
+.era-btn small{display:block;font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:.05em;margin-top:3px;text-transform:uppercase;color:var(--cream-dim)}
+.era-btn.selected{border-color:var(--brass);color:var(--brass);box-shadow:0 0 0 1px var(--brass) inset}
+/* ---------- buttons ---------- */
+.btn{
+  display:block;width:100%;padding:15px 18px;border:none;border-radius:10px;cursor:pointer;
+  font-family:'Graduate',serif;font-size:17px;letter-spacing:.06em;color:var(--cream);
+  background:linear-gradient(180deg,#E14C33,var(--ball-deep));
+  box-shadow:0 6px 0 #6E1E12, var(--shadow);
+  transition:transform .08s ease, box-shadow .08s ease;
+}
+.btn:active{transform:translateY(4px);box-shadow:0 2px 0 #6E1E12}
+.btn.secondary{background:linear-gradient(180deg,#25321F,#18220F);box-shadow:0 6px 0 #0A0F07,var(--shadow);color:var(--cream-dim)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn:focus-visible,.pcard:focus-visible{outline:2px solid var(--brass);outline-offset:3px}
+.btn+.btn{margin-top:10px}
+
+/* ---------- slot tracker ---------- */
+.order-strip{display:flex;gap:5px;justify-content:center;margin:0 0 16px;flex-wrap:nowrap}
+.order-cell{flex:1;min-width:0;height:34px;border-radius:6px;background:var(--panel);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--cream-dim);overflow:hidden}
+.order-cell.done{background:var(--grass-a);border-color:var(--grass-b);color:var(--cream)}
+.order-cell.now{border-color:var(--ball);color:var(--ball);box-shadow:0 0 0 1px var(--ball) inset;animation:pulse 1.4s ease infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 1px var(--ball) inset}50%{box-shadow:0 0 8px 1px rgba(214,64,43,.5) inset}}
+
+.slot-callout{text-align:center;margin-bottom:14px}
+.slot-callout .eyebrow{font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.28em;text-transform:uppercase;color:var(--brass)}
+.slot-callout h2{font-family:'Graduate',serif;font-size:26px;letter-spacing:.03em;margin-top:4px}
+.slot-callout p{font-size:13px;color:var(--cream-dim);margin-top:4px}
+
+/* ---------- the draw: animation stage ---------- */
+.draw-stage{display:flex;flex-direction:column;gap:12px;margin:6px auto 16px}
+.anim-stage{position:relative;height:120px;border-radius:12px;overflow:hidden;background:linear-gradient(180deg,#16200F 0%,#1E2C15 62%,#2E4A2B 62%,#26401F 100%);border:1px solid var(--line);box-shadow:var(--shadow)}
+.anim-stage .crease{position:absolute;left:0;right:0;top:62%;height:2px;background:rgba(239,233,216,.25)}
+.scene{position:absolute;inset:0;display:none}
+.scene.on{display:block}
+.aball{position:absolute;width:20px;height:20px;border-radius:50%;background:radial-gradient(circle at 32% 28%, #E8563F, var(--ball-deep) 72%);box-shadow:inset 0 -3px 5px rgba(0,0,0,.35)}
+.aball::after{content:"";position:absolute;inset:3px;border-radius:50%;border:1px dashed rgba(239,233,216,.55);transform:rotate(24deg)}
+/* bat scene */
+.abat{position:absolute;left:46%;top:26%;width:15px;height:62px;border-radius:7px 7px 9px 9px;background:linear-gradient(180deg,#8A5A2B,#C89A5B 30%,#B07E3F);border:1px solid #5E3C18;transform-origin:50% 8%;transform:rotate(38deg)}
+.abat::before{content:"";position:absolute;top:-14px;left:4px;width:7px;height:16px;border-radius:4px;background:#3E2A12}
+.scene-bat .aball{left:-8%;top:52%}
+.scene-bat.play .aball{animation:batball-in .42s linear forwards, batball-out .55s .42s cubic-bezier(.2,.6,.4,1) forwards}
+.scene-bat.play .abat{animation:swing .3s .28s cubic-bezier(.3,0,.4,1) forwards}
+@keyframes batball-in{from{left:-8%;top:52%}to{left:44%;top:50%}}
+@keyframes batball-out{from{left:44%;top:50%}to{left:104%;top:-22%}}
+@keyframes swing{from{transform:rotate(38deg)}to{transform:rotate(-72deg)}}
+/* bowl scene */
+.astumps{position:absolute;right:9%;top:32%;width:34px;height:44px}
+.astumps i{position:absolute;bottom:0;width:6px;height:40px;border-radius:3px;background:linear-gradient(180deg,#D9C79A,#A8905E);transform-origin:bottom center}
+.astumps i:nth-child(1){left:0}.astumps i:nth-child(2){left:14px}.astumps i:nth-child(3){left:28px}
+.astumps .bail{position:absolute;top:-5px;width:15px;height:4px;border-radius:2px;background:#D9C79A}
+.astumps .bail.b1{left:1px}.astumps .bail.b2{left:17px}
+.scene-bowl .aball{left:-8%;top:16%}
+.scene-bowl.play .aball{animation:bowl-path .85s cubic-bezier(.35,.1,.6,.9) forwards}
+@keyframes bowl-path{0%{left:-8%;top:16%}55%{left:52%;top:70%}100%{left:82%;top:44%}}
+.scene-bowl.play .astumps i:nth-child(2){animation:stump-hit .3s .8s ease-out forwards}
+.scene-bowl.play .astumps .bail{animation:bail-fly .45s .8s ease-out forwards}
+@keyframes stump-hit{to{transform:rotate(16deg)}}
+@keyframes bail-fly{to{transform:translate(16px,-26px) rotate(140deg);opacity:0}}
+/* reveal card */
+.draw-card{width:100%;background:var(--panel-2);border:1px solid var(--brass);border-radius:12px;padding:14px 16px;
+  display:flex;align-items:center;gap:14px;box-shadow:var(--shadow);animation:fadeUp .3s ease both}
+.draw-card[hidden]{display:none}
+.draw-card .dc-flag{font-size:34px;line-height:1}
+.draw-card .dc-nation{font-family:'Graduate',serif;font-size:19px;letter-spacing:.04em}
+.draw-card .dc-decade{font-family:'IBM Plex Mono',monospace;font-size:11.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--brass);margin-top:3px}
+
+/* ---------- player pick cards ---------- */
+.pick-grid{display:grid;gap:10px;margin-bottom:14px}
+.pcard{width:100%;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;cursor:pointer;display:flex;align-items:center;gap:14px;color:var(--cream);font-family:'Archivo',sans-serif;transition:border-color .15s ease, background .15s ease}
+.pcard:hover{border-color:var(--brass);background:var(--panel-2)}
+.pcard .flag{font-size:22px;flex:0 0 auto}
+.pcard .who{flex:1;min-width:0}
+.pcard .who .nm{font-weight:700;font-size:15.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.pcard .who .rl{font-size:11.5px;color:var(--cream-dim);letter-spacing:.05em;text-transform:uppercase;margin-top:2px}
+.pcard .rt{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:22px;color:var(--brass)}
+.pcard .rt small{display:block;font-size:9px;letter-spacing:.18em;color:var(--cream-dim);font-weight:400;text-align:right}
+.decade{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;color:var(--pitch);background:var(--brass);border-radius:4px;padding:2px 6px;font-weight:600}
+
+.squad-head{display:flex;justify-content:space-between;align-items:baseline;font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--cream-dim);padding:2px 2px 8px}
+.pos-prompt{font-family:'Graduate',serif;font-size:16px;letter-spacing:.03em;text-align:center;margin:2px 0 10px}
+.pos-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.pos-btn{padding:12px 8px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--cream);cursor:pointer;font-family:'Archivo',sans-serif;font-weight:600;font-size:14px;transition:border-color .15s}
+.pos-btn.fit-good{border-color:#4A9D5F}
+.pos-btn.fit-good small{color:#5FC97A}
+.pos-btn small{display:block;font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.14em;color:var(--cream-dim);margin-top:3px;text-transform:uppercase}
+.pos-btn:hover{border-color:var(--brass)}
+.back-link{display:block;width:100%;text-align:center;background:none;border:none;color:var(--cream-dim);font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;padding:8px;margin-bottom:6px}
+.back-link:hover{color:var(--brass)}
+.order-cell.open{opacity:.55}
+.mini-sheet{margin-top:16px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.mini-sheet .ms-title{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--brass);margin-bottom:8px;display:flex;justify-content:space-between}
+.ms-row{display:flex;align-items:baseline;gap:10px;padding:3.5px 0;font-size:12.5px;border-bottom:1px solid rgba(239,233,216,.05)}
+.ms-row:last-child{border-bottom:none}
+.ms-pos{width:22px;flex:0 0 auto;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--brass);text-align:center}
+.ms-name{flex:1;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ms-name.empty{color:var(--cream-dim);font-weight:400;font-style:italic}
+.ms-rt{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--brass)}
+.ms-row{position:relative}
+.ms-row.dragging{opacity:.92;z-index:50;box-shadow:0 12px 26px rgba(0,0,0,.55);pointer-events:none}
+.ms-row.drag-over{border-radius:6px;background:var(--panel-2)}
+.ms-row.drag-illegal{opacity:.35}
+.ms-move{flex:0 0 auto;width:26px;height:26px;border-radius:7px;border:1px solid var(--line);background:var(--panel-2);color:var(--cream-dim);font-size:13px;line-height:1;cursor:pointer;touch-action:none}
+.ms-move:active{border-color:var(--brass);color:var(--brass)}
+.capbadge{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:var(--brass);color:#0D120C;font-size:9px;font-weight:700;margin-left:6px;font-family:'Archivo',sans-serif;vertical-align:middle}
+/* ---------- XI sheet ---------- */
+.sheet{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;box-shadow:var(--shadow);margin-bottom:16px}
+.sheet-head{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;font-family:'Graduate',serif;letter-spacing:.04em}
+.sheet-head .t{font-size:16px}
+.sheet-head .s{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--brass)}
+.sheet-row{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid rgba(239,233,216,.06);font-size:14px}
+.sheet-row:last-child{border-bottom:none}
+.sheet-row .no{font-family:'IBM Plex Mono',monospace;width:18px;color:var(--cream-dim);font-size:12px}
+.sheet-row .fl{width:24px}
+.sheet-row .nm{flex:1;font-weight:600;min-width:0}
+.sheet-row .dk{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--brass)}
+.sheet-row .rt{font-family:'IBM Plex Mono',monospace;color:var(--brass);width:28px;text-align:right}
+
+.strength-bars{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.sbox{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.sbox .lb{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--cream-dim)}
+.sbox .vl{font-family:'Graduate',serif;font-size:26px;margin-top:2px}
+.sbox .bar{height:5px;border-radius:3px;background:#0A0F07;margin-top:8px;overflow:hidden}
+.sbox .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--grass-b),var(--brass));border-radius:3px}
+
+#redrawBtn{
+  background:linear-gradient(180deg,#3A2E0E,#241A05);
+  border:1px solid var(--brass);
+  color:var(--brass);
+  box-shadow:0 4px 0 #17100200, 0 0 0 1px rgba(201,162,75,.15) inset, 0 8px 20px rgba(201,162,75,.18);
+  margin-bottom:16px;
+  font-weight:600;
+}
+#redrawBtn:active{transform:translateY(2px)}
+#skipBtn{position:fixed;left:50%;transform:translateX(-50%);top:calc(10px + env(safe-area-inset-top));bottom:auto;width:min(480px,calc(100% - 32px));z-index:60;padding:12px;border:1px solid rgba(201,162,75,.45);box-shadow:0 10px 28px rgba(0,0,0,.7);transition:none}
+#skipBtn:active{transform:translateX(-50%) translateY(2px)}
+body.sim-active .masthead{
+  position:fixed;top:0;left:0;right:0;z-index:61;
+  max-width:520px;margin:0 auto;
+  background:var(--pitch);
+  padding-top:calc(6px + env(safe-area-inset-top));
+}
+#skipBtn{top:calc(var(--masthead-h, 90px) + 8px + env(safe-area-inset-top)) !important;}
+#scr-season.sim-active{padding-top:calc(var(--masthead-h, 90px) + 66px)}
+.restart-link{display:flex;align-items:center;justify-content:center;gap:6px;margin:16px auto 0;padding:10px 18px;width:fit-content;border-radius:999px;border:1px solid var(--line);background:var(--panel);font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--cream-dim);text-decoration:none;cursor:pointer}
+.restart-link:active{border-color:var(--ball);color:var(--ball)}
+.restart-link:active{color:var(--brass)}
+/* ---------- fixtures / scoreboard ---------- */
+.tour-stop{display:flex;align-items:baseline;gap:10px;margin:16px 0 8px;padding-bottom:6px;border-bottom:1px dashed var(--line);opacity:0}
+.tour-stop.shown{animation:fadeUp .4s ease both}
+.tour-stop .st-flag{font-size:20px}
+.tour-stop .st-name{font-family:'Graduate',serif;font-size:15px;letter-spacing:.04em;flex:1}
+.tour-stop .st-venue{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--brass)}
+.fixture .score{display:block;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--cream);margin-top:3px}
+.fixture .potm{display:block;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--brass);margin-top:3px}
+.fixture{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-bottom:8px;opacity:0;transform:translateY(8px)}
+.fixture.series-row{border-color:var(--brass);background:var(--panel-2);margin-bottom:16px}
+.fixture.shown{animation:fadeUp .4s ease both}
+.fixture .tno{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--cream-dim);width:44px;letter-spacing:.1em}
+.fixture .op{flex:1;font-weight:600;font-size:14px}
+.fixture .op small{display:block;font-weight:400;color:var(--cream-dim);font-size:11.5px;margin-top:2px}
+.badge{font-family:'Graduate',serif;font-size:13px;letter-spacing:.06em;padding:5px 11px;border-radius:6px;flex:0 0 auto}
+.badge.W{background:var(--grass-b);color:var(--cream)}
+.badge.D{background:#4A4531;color:var(--cream)}
+.badge.L{background:var(--ball-deep);color:var(--cream)}
+.badge.G{background:var(--brass);color:#0D120C}
+.tdots{display:flex;gap:4px;margin-top:6px}
+.tdot{width:15px;height:15px;border-radius:4px;display:inline-flex}
+.tdot.W{background:var(--grass-b)}
+.tdot.D{background:#4A4531}
+.tdot.L{background:var(--ball-deep)}
+
+.verdict{text-align:center;background:var(--panel);border:1px solid var(--brass);border-radius:14px;padding:22px 18px;margin:16px 0;box-shadow:var(--shadow);display:none}
+.verdict.show{display:block;animation:fadeUp .5s ease both}
+.verdict .rec{font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.24em;color:var(--cream-dim)}
+.verdict h2{font-family:'Graduate',serif;font-size:30px;letter-spacing:.04em;color:var(--brass);margin:8px 0 6px}
+.verdict p{font-size:13.5px;color:var(--cream-dim);line-height:1.55}
+.stat-sheet{margin-top:16px;text-align:left}
+.stat-sheet h3{font-family:'Graduate',serif;font-size:14px;letter-spacing:.05em;color:var(--cream);margin:14px 0 6px;text-align:center}
+.stat-table{width:100%;table-layout:fixed;border-collapse:collapse;font-family:'IBM Plex Mono',monospace;font-size:10px;font-variant-numeric:tabular-nums}
+.stat-table th{color:var(--brass);text-transform:uppercase;letter-spacing:.04em;font-weight:600;padding:5px 3px;border-bottom:1px solid var(--line);text-align:right;overflow:hidden}
+.stat-table th:first-child,.stat-table td:first-child{text-align:left;width:31%}
+.stat-table td{padding:5px 3px;border-bottom:1px solid rgba(239,233,216,.07);color:var(--cream);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat-table td:first-child{font-family:'Archivo',sans-serif;font-weight:600;font-size:11px}
+
+.data-note{font-size:10.5px;color:var(--cream-dim);text-align:center;line-height:1.6;margin-top:22px;opacity:.8}
+
+.table-card{margin:16px 0;padding:12px 14px;background:var(--panel);border:1px solid var(--line);border-radius:12px;opacity:0}
+.table-card.shown{animation:fadeUp .4s ease both}
+.table-card h3{font-family:'Graduate',serif;font-size:14px;letter-spacing:.04em;color:var(--cream);margin-bottom:6px;text-align:center}
+.tour-announce{text-align:center;font-family:'Archivo',sans-serif;font-size:13.5px;color:var(--cream-dim);line-height:1.5;margin:14px 0;padding:12px 14px;border:1px dashed var(--brass);border-radius:10px;background:var(--panel);opacity:0}
+.tour-announce.shown{animation:fadeUp .4s ease both}
+.tour-announce b{color:var(--brass)}
+
+.score-card{margin:18px 0;padding:16px;text-align:center;background:linear-gradient(180deg,var(--panel-2),var(--panel));border:1px solid var(--brass);border-radius:14px}
+.score-card .sc-label{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.24em;text-transform:uppercase;color:var(--cream-dim)}
+.score-card .sc-value{font-family:'Graduate',serif;font-size:38px;color:var(--brass);margin:4px 0}
+.score-card .sc-rank{font-family:'Archivo',sans-serif;font-size:12.5px;color:var(--cream-dim)}
+.review-badge{display:inline-block;margin-top:6px;padding:9px 14px;border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:700;letter-spacing:.02em;line-height:1.4}
+.review-badge.review-good{background:rgba(62,107,58,.22);border:1px solid var(--grass-b);color:#7FE08A}
+.review-badge.review-bad{background:rgba(214,64,43,.16);border:1px solid var(--ball);color:#F28B7A}
+.review-sub{margin-top:6px;font-family:'Archivo',sans-serif;font-size:12.5px;color:var(--cream-dim)}
+
+.lb-row{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--panel);border:1px solid var(--line);border-radius:10px;margin-bottom:8px}
+.lb-row.top1{border-color:var(--brass);box-shadow:0 0 0 1px var(--brass) inset}
+.lb-rank{font-family:'Graduate',serif;font-size:16px;color:var(--brass);width:26px;flex:0 0 auto}
+.lb-mid{flex:1;min-width:0}
+.lb-score{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:700;color:var(--cream)}
+.lb-meta{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.06em;color:var(--cream-dim);margin-top:2px;text-transform:uppercase}
+.lb-fmt{font-family:'IBM Plex Mono',monospace;font-size:9.5px;letter-spacing:.1em;padding:3px 8px;border-radius:999px;border:1px solid var(--brass);color:var(--brass);flex:0 0 auto}
+.lb-empty{text-align:center;color:var(--cream-dim);font-size:13px;padding:24px 10px}
+.lineup-row{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.lineup-row.is-cap{border-color:var(--brass)}
+.lineup-row .who{flex:1;min-width:0}
+.lineup-row .nm-row{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%}
+.lu-move{flex:0 0 auto;width:34px;height:34px;border-radius:8px;border:1px solid var(--line);background:var(--panel-2);color:var(--cream-dim);font-size:16px;line-height:1;cursor:pointer}
+.lu-move:active{border-color:var(--brass);color:var(--brass)}
+.lu-cap{flex:0 0 auto;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--panel-2);color:var(--cream-dim);font-size:15px;line-height:1;cursor:pointer}
+.lu-cap.active{border-color:var(--brass);color:var(--brass);background:rgba(201,162,75,.14)}
+.oop-badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:8.5px;letter-spacing:.08em;color:var(--ball);border:1px solid var(--ball-deep);border-radius:4px;padding:1px 5px;margin-left:6px;vertical-align:middle}
+.lineup-row{position:relative}
+.lineup-row.dragging{opacity:.92;z-index:50;box-shadow:0 12px 26px rgba(0,0,0,.55);pointer-events:none}
+.lineup-row.drag-over{border-color:var(--brass);background:var(--panel-2)}
+.lineup-row.drag-illegal{opacity:.35}
+.lu-move{touch-action:none}
+.lb-filter{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:2px 0 14px}
+.lb-pill{padding:7px 13px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--cream-dim);font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.05em;cursor:pointer}
+.lb-pill.selected{border-color:var(--brass);color:var(--brass);background:var(--panel-2)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="masthead">
+    <h1>NOT OUT<span class="red">*</span></h1>
+    <div class="sub" id="mastSub">Cricket World Domination · All-era Test Match XI</div>
+  </header>
+
+  <button class="btn secondary" id="skipBtn" style="display:none" onclick="skipReveal()">Skip to the final result</button>
+
+  <!-- INTRO -->
+  <section class="screen active" id="scr-intro">
+    <div class="intro-card">
+      <h2>Choose your format</h2>
+      <button class="fmt-hero represent-hero" id="fmt-represent-hero" onclick="showRepresentSetup()"><span class="newtag">NEW</span>REPRESENT YOUR NATION<small>One country only · face the rest of the world in a league table</small></button>
+      <p id="dataStatus" class="data-status" style="display:none"></p>
+      <div class="fmt-row">
+        <button class="fmt-btn selected" id="fmt-test" onclick="selectFormat('test')">Test<small>4,734 players · 16 decades</small></button>
+        <button class="fmt-btn" id="fmt-odi" onclick="selectFormat('odi')">ODI<small>3,422 players · 6 decades</small></button>
+        <button class="fmt-btn" id="fmt-t20" onclick="selectFormat('t20')">T20<small>1,744 players · 3 decades</small></button>
+      </div>
+      <div class="era-filter-row" id="eraFilterRow"></div>
+      <button class="btn" onclick="startDraft()">Start the draft</button>
+      <button class="btn secondary" style="margin-top:10px" onclick="openLeaderboard()">🏆 View Leaderboard</button>
+      <h2 style="margin-top:20px">How it works</h2>
+      <ul class="rule-list">
+        <li><span class="dotball"></span><span><b>Press the ball.</b> Every press deals you a random nation <b>and</b> a random decade — 1890s England, 1970s West Indies, 2020s India…</span></li>
+        <li><span class="dotball"></span><span><b>Choose your era first.</b> Test lets you pick how far back to reach — <b>Full Archive</b> for the whole story, <b>Vintage XI</b> for the 1940s onward, <b>Colour TV Era</b> for the 1970s onward, or <b>Hawk-Eye Era</b> for the 2000s onward. ODI keeps it simple: <b>Whites</b> for everything, or <b>Coloured Kit Era</b> for the 1990s onward. T20's whole history already fits in one era, so there's nothing to choose.</span></li>
+        <li><span class="dotball"></span><span><b>Pick from the whole squad.</b> Every available player from that nation's decade comes up. Choose one, then choose <b>where he goes</b> in your batting order.</span></li>
+        <li><span class="dotball"></span><span><b>Every player is rated for his own decade</b> — how he ranked among his contemporaries. A 97 from the ’80s is every bit as good as a 97 from today.</span></li>
+        <li><span class="dotball"></span><span><b>Fill the card your way.</b> Openers up top, bowlers at the death — but there's no fixed slot for the keeper any more, he just needs to be <b>somewhere</b> in your side. All-rounders slot in based on how they actually played: some open, some finish. Players with no legal spot left simply won't appear. And you still get <b>one do-over per game</b> for a hopeless draw.</span></li>
+        <li><span class="dotball"></span><span><b>Set your lineup, then pick a captain.</b> Before the tour starts, fine-tune your order — tap or drag to swap anyone into a different spot — then name your captain. Players batting in their correct position give the team a small boost, and so does a captain with a genuine, real-world winning record for that side.</span></li>
+        <li><span class="dotball"></span><span id="challengeBullet"><b>Beat them all, at their place.</b> Your XI tours the world: a five-match series against each of today’s twelve international sides, played across <b>real grounds in their country</b> — sixty matches in total, all away. Win matches, win series, sweep one 5-0 — that's what separates a good tour from a legendary one.</span></li>
+      </ul>
+      <p class="foot-note" style="margin-top:16px">Fair warning: the draw doesn't care about your plans. Sometimes you need a spinner and it deals you the 1984 West Indies pace battery.<br><span style="opacity:.75">Inspired by the brilliant <a href="https://38-0.app" target="_blank" rel="noopener" style="color:var(--brass)">38-0</a> website.</span></p>
+    </div>
+  </section>
+
+  <!-- REPRESENT YOUR NATION: SETUP -->
+  <section class="screen" id="scr-represent-setup">
+    <div class="slot-callout">
+      <div class="eyebrow">Represent Your Nation</div>
+      <h2>Pick your country</h2>
+      <p>One nation, one format — every player in your XI has to be theirs.</p>
+    </div>
+    <div class="fmt-row" id="representFmtRow">
+      <button class="fmt-btn selected" data-fmt="test" onclick="selectRepresentFormat('test')">Test<small>16 decades</small></button>
+      <button class="fmt-btn" data-fmt="odi" onclick="selectRepresentFormat('odi')">ODI<small>6 decades</small></button>
+      <button class="fmt-btn" data-fmt="t20" onclick="selectRepresentFormat('t20')">T20<small>3 decades</small></button>
+    </div>
+    <div class="represent-country-grid" id="representCountryGrid"></div>
+    <button class="btn" id="representStartBtn" disabled onclick="startRepresentDraft()">Start the draft</button>
+    <a href="javascript:void(0)" class="back-link" style="margin-top:10px" onclick="exitRepresentSetup()">← Back</a>
+  </section>
+
+  <!-- DRAFT -->
+  <section class="screen" id="scr-draft">
+    <div class="order-strip" id="orderStrip"></div>
+
+    <div class="slot-callout">
+      <div class="eyebrow" id="slotEyebrow">Slot 1 of 11</div>
+      <h2 id="slotTitle">Opener</h2>
+      <p id="slotDesc"></p>
+    </div>
+
+    <div class="draw-stage">
+      <div class="anim-stage" aria-hidden="true">
+        <div class="crease"></div>
+        <div class="scene scene-bat" id="sceneBat">
+          <div class="abat"></div>
+          <div class="aball"></div>
+        </div>
+        <div class="scene scene-bowl" id="sceneBowl">
+          <div class="astumps"><i></i><i></i><i></i><span class="bail b1"></span><span class="bail b2"></span></div>
+          <div class="aball"></div>
+        </div>
+      </div>
+      <button class="btn" id="drawBtn" onclick="draw()">Draw nation &amp; decade</button>
+      <button class="btn" id="redrawBtn" style="display:none;margin-top:10px" onclick="useRedraw()">↺ Do-over — get a fresh pick (1 per game)</button>
+      <div class="draw-card" id="drawCard" hidden>
+        <span class="dc-flag" id="dcFlag"></span>
+        <div>
+          <div class="dc-nation" id="dcNation"></div>
+          <div class="dc-decade" id="dcDecade"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pick-grid" id="pickGrid" style="margin-top:14px"></div>
+
+    <div class="mini-sheet" id="miniSheet"></div>
+    <a href="javascript:void(0)" class="restart-link" onclick="restartDraft()">↺ Restart draft</a>
+  </section>
+
+  <!-- CAPTAIN -->
+  <section class="screen" id="scr-captain">
+    <div class="slot-callout">
+      <div class="eyebrow">One last call</div>
+      <h2>Set Your Lineup</h2>
+      <p id="captainSub">Move players into position and pick your captain.</p>
+    </div>
+    <a href="javascript:void(0)" class="info-link" onclick="openInfoModal()">ⓘ How position &amp; captaincy affect your team</a>
+    <div class="pick-grid" id="captainList"></div>
+    <button class="btn" style="margin-top:14px" onclick="showReview()">Continue to team review</button>
+  </section>
+
+  <!-- REVIEW -->
+  <section class="screen" id="scr-review">
+    <div class="sheet">
+      <div class="sheet-head"><span class="t">Your All-Era XI</span><span class="s" id="avgRating"></span></div>
+      <div id="xiRows"></div>
+    </div>
+    <div class="strength-bars">
+      <div class="sbox"><div class="lb">Batting</div><div class="vl" id="batVal">–</div><div class="bar"><i id="batBar"></i></div></div>
+      <div class="sbox"><div class="lb">Bowling</div><div class="vl" id="bowlVal">–</div><div class="bar"><i id="bowlBar"></i></div></div>
+    </div>
+    <p id="balanceNote" style="font-size:12.5px;color:var(--cream-dim);line-height:1.55;margin-bottom:16px;text-align:center"></p>
+    <a href="javascript:void(0)" class="info-link" onclick="openInfoModal()">ⓘ How your score is worked out</a>
+    <button class="btn" style="margin-top:14px" onclick="beginTour()" id="tourBtn">Start the world tour · 60 away matches</button>
+  </section>
+
+  <!-- SEASON -->
+  <section class="screen" id="scr-season">
+    <div class="slot-callout">
+      <div class="eyebrow" id="seasonEyebrow">World Tour · 60 Matches · All In Their Stadiums</div>
+      <h2 id="seasonTally">0–0–0</h2>
+      <p>Matches won · drawn · lost <span id="testTally" style="display:block;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--brass);margin-top:4px">Tour stop 0 of 12</span></p>
+    </div>
+    <div id="fixtures"></div>
+    <div class="verdict" id="verdict">
+      <div class="rec" id="verdictRec"></div>
+      <h2 id="verdictTitle"></h2>
+      <p id="verdictBody"></p>
+      <div class="score-card" id="scoreCard">
+        <div class="sc-label">Performance Score</div>
+        <div class="sc-value" id="scoreValue">0</div>
+        <div class="sc-rank" id="scoreRank"></div>
+      </div>
+      <div id="squadStats" class="stat-sheet"></div>
+      <button class="btn secondary" style="margin-top:16px" onclick="openLeaderboard()">🏆 View Leaderboard</button>
+      <button class="btn secondary" style="margin-top:10px" onclick="copyShare()" id="shareBtn">Copy result</button>
+      <textarea id="shareFallback" readonly style="display:none;width:100%;height:150px;margin-top:10px;background:var(--panel-2);color:var(--cream);border:1px solid var(--line);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:10px;padding:10px;line-height:1.5"></textarea>
+      <button class="btn" style="margin-top:10px" onclick="draftAgain()">Draft again</button>
+    </div>
+  </section>
+
+  <!-- LEADERBOARD -->
+  <section class="screen" id="scr-leaderboard">
+    <div class="slot-callout">
+      <div class="eyebrow">Global Hall Of Fame</div>
+      <h2>Global Leaderboard</h2>
+      <p>Best performance scores from players everywhere</p>
+    </div>
+    <div class="lb-filter" id="lbFilterRow">
+      <button class="lb-pill selected" data-mode="all" onclick="setLbFilter('all')">All</button>
+      <button class="lb-pill" data-mode="test" onclick="setLbFilter('test')">Test</button>
+      <button class="lb-pill" data-mode="odi" onclick="setLbFilter('odi')">ODI</button>
+      <button class="lb-pill" data-mode="t20" onclick="setLbFilter('t20')">T20</button>
+      <button class="lb-pill" data-mode="hundred" onclick="setLbFilter('hundred')">Hundred</button>
+      <button class="lb-pill" data-mode="represent" onclick="setLbFilter('represent')">Represent</button>
+    </div>
+    <div id="lbBody"></div>
+    <button class="btn secondary" style="margin-top:14px" onclick="closeLeaderboard()">← Back</button>
+  </section>
+
+  <p class="data-note">Curated databases: 4,734 Test, 3,422 ODI and 1,744 T20 players, each rated for his standing within his own decade and format. Era-spanning greats may appear in more than one decade but can only be drafted once per game. Test pools run 1870s–2020s, ODI 1970s–2020s, T20 2000s–2020s.</p>
+</div>
+
+<!-- Optional: global leaderboard via Firebase. See setup notes near
+     firebaseConfig below the main script tag. Safe to leave as-is —
+     the game falls back to a device-only leaderboard automatically. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/12.15.0/firebase-app-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/12.15.0/firebase-firestore-compat.min.js"></script>
+<script>
+/* ================= NATIONS ================= */
+/* Real grounds for each nation — five matches per series now rotate
+   through these instead of all being played at one fixed venue.
+   Where a country genuinely doesn't have five current international
+   venues, the list repeats as needed ("if possible" — some nations
+   just don't have five to give). */
+const NATIONS = [
+  {id:'AUS', name:'Australia',    flag:'🇦🇺', opp:100, venues:['the MCG','the SCG','the Gabba','Adelaide Oval','Perth Stadium']},
+  {id:'SA',  name:'South Africa', flag:'🇿🇦', opp:98,  venues:['the Wanderers','Newlands','Kingsmead','SuperSport Park','St George\u2019s Park']},
+  {id:'NZ',  name:'New Zealand',  flag:'🇳🇿', opp:96,  venues:['the Basin Reserve','Eden Park','Hagley Oval','Seddon Park','University Oval']},
+  {id:'IND', name:'India',        flag:'🇮🇳', opp:95,  venues:['Eden Gardens','Wankhede Stadium','M. Chinnaswamy Stadium','Narendra Modi Stadium','Arun Jaitley Stadium']},
+  {id:'ENG', name:'England',      flag:'🏴󠁧󠁢󠁥󠁮󠁧󠁿', opp:94,  venues:['Lord\u2019s','the Oval','Old Trafford','Edgbaston','Headingley']},
+  {id:'PAK', name:'Pakistan',     flag:'🇵🇰', opp:92,  venues:['Gaddafi Stadium','National Stadium Karachi','Rawalpindi Cricket Stadium','Multan Cricket Stadium']},
+  {id:'SL',  name:'Sri Lanka',    flag:'🇱🇰', opp:90,  venues:['Galle International Stadium','R. Premadasa Stadium','Pallekele International Stadium','Sinhalese Sports Club']},
+  {id:'WI',  name:'West Indies',  flag:'🏝️', opp:88,  venues:['Kensington Oval','Sabina Park','Queen\u2019s Park Oval','Sir Vivian Richards Stadium','Warner Park']},
+  {id:'BAN', name:'Bangladesh',   flag:'🇧🇩', opp:86,  venues:['Sher-e-Bangla National Stadium','Zahur Ahmed Chowdhury Stadium','Sylhet International Stadium']},
+  {id:'AFG', name:'Afghanistan',  flag:'🇦🇫', opp:85,  venues:['Sharjah Cricket Stadium','Zayed Cricket Stadium','Greater Noida Sports Complex']},
+  {id:'ZIM', name:'Zimbabwe',     flag:'🇿🇼', opp:84,  venues:['Harare Sports Club','Queens Sports Club']},
+  {id:'IRE', name:'Ireland',      flag:'🇮🇪', opp:83,  venues:['Malahide','the Village','Civil Service Cricket Club']},
+];
+
+/* =================================================================
+   PLAYER DATABASES — three formats; each player rated for his
+   standing within his own decade. d: decade · roles: bat/bowl/ar/wk
+   ================================================================= */
+/* Player databases now live in separate JSON files (data/test.json,
+   data/odi.json, data/t20.json, data/hundred.json) and are fetched on
+   demand instead of being inlined here — keeps the page itself small
+   and only downloads the format someone actually plays. Each is cached
+   in DB[key] the first time it loads. */
+const DB = {};
+const DATA_DIR = 'data/';
+const DATA_COUNTS = {test:2885, odi:2730, t20:1744};   // for the intro screen labels, before anything's fetched
+let dataLoadError = null;
+
+async function loadFormatData(k){
+  if(DB[k]) return DB[k];
+  const res = await fetch(DATA_DIR + k + '.json');
+  if(!res.ok) throw new Error('HTTP ' + res.status);
+  const data = await res.json();
+  DB[k] = data;
+  return data;
+}
+
+let PLAYERS = [];
+
+
+/* ================= SLOTS ================= */
+/* All-rounders come in three explicit sub-types now (data column
+   'position': true / batter / bowling all rounder), each with its
+   own realistic range of legal batting slots. */
+function arSubtype(p){
+  if(!p.roles.includes('ar')) return null;
+  return p.arsub || 'true';
+}
+const AR_RANGE = { true:[3,9], batting:[3,7], bowling:[6,9] };
+function arFitsSlot(p, slotNo){
+  const sub = arSubtype(p);
+  if(!sub) return false;
+  const [lo,hi] = AR_RANGE[sub];
+  return slotNo>=lo && slotNo<=hi;
+}
+
+const SLOTS = [
+ {no:1, title:'Opener',        short:'OP', desc:'Faces the new ball first. A batter, keeper, or an all-rounder who opens.', fits:p=>p.roles.includes('bat')||p.roles.includes('wk')||(p.roles.includes('ar')&&p.bp==='O')},
+ {no:2, title:'Opener',        short:'OP', desc:'The other half of the opening stand. Same eligibility as slot 1.', fits:p=>p.roles.includes('bat')||p.roles.includes('wk')||(p.roles.includes('ar')&&p.bp==='O')},
+ {no:3, title:'No.3',          short:'3',  desc:'First drop. A batter — or a batting/true all-rounder who bats big.',  fits:p=>p.roles.includes('bat')||p.roles.includes('wk')||(p.roles.includes('ar')&&arFitsSlot(p,3))},
+ {no:4, title:'No.4',          short:'4',  desc:'The engine room. Batter or batting/true all-rounder.',    fits:p=>p.roles.includes('bat')||p.roles.includes('wk')||(p.roles.includes('ar')&&arFitsSlot(p,4))},
+ {no:5, title:'No.5',          short:'5',  desc:'Builds or rebuilds. Batter, or a true/batting all-rounder.', fits:p=>p.roles.includes('bat')||p.roles.includes('wk')||(p.roles.includes('ar')&&arFitsSlot(p,5))},
+ {no:6, title:'No.6',          short:'6',  desc:'Any player can bat here — the side still needs a keeper somewhere, just not necessarily here.', fits:p=>true},
+ {no:7, title:'Flex Pick',     short:'7',  desc:'Your call: extra batter, extra bowler, or any all-rounder.', fits:p=>p.roles.includes('bat')||p.roles.includes('bowl')||p.roles.includes('wk')||(p.roles.includes('ar')&&arFitsSlot(p,7))},
+ {no:8, title:'Bowler',        short:'B',  desc:'Strike bowler, or a true/bowling all-rounder.',           fits:p=>p.roles.includes('bowl')||(p.roles.includes('ar')&&arFitsSlot(p,8))},
+ {no:9, title:'Bowler',        short:'B',  desc:'Partner at the other end. Bowler or true/bowling all-rounder.', fits:p=>p.roles.includes('bowl')||(p.roles.includes('ar')&&arFitsSlot(p,9))},
+ {no:10,title:'Bowler',        short:'B',  desc:'First change, no easy overs.',                            fits:p=>p.roles.includes('bowl')},
+ {no:11,title:'Bowler',        short:'B',  desc:'Last name on the card, first to the second new ball.',    fits:p=>p.roles.includes('bowl')},
+];
+
+const ROLE_LABEL = {bat:'Batter', wk:'Wicketkeeper', ar:'All-rounder', bowl:'Bowler'};
+const BP_LABEL = {O:'Opener', T:'Top order', M:'Middle order', L:'Lower order', X:'Tailender'};
+
+/* ================= STATE ================= */
+let xiSlots = new Array(11).fill(null);   // batting order 1–11, filled in any order
+let picksMade = 0;
+let xi = [];
+let currentPair = null;
+let captainIdx = -1;
+let draftedNames = new Set();   // by person, so era-spanning legends can't appear twice
+let drawing = false;
+let redoLeft = 1;   // one redraw per game, all formats
+
+/* ================= THE DRAW =================
+   One button press = one random (nation, decade) pair.
+   Only pairs with at least one eligible, undrafted player
+   for the current slot can be dealt — no dead draws.      */
+const FORMATS = {
+  test:{label:'Test Match', noun:'Test',  decades:['1870s','1880s','1890s','1900s','1910s','1920s','1930s','1940s','1950s','1960s','1970s','1980s','1990s','2000s','2010s','2020s']},
+  odi: {label:'ODI',        noun:'ODI',   decades:['1970s','1980s','1990s','2000s','2010s','2020s']},
+  t20: {label:'T20',        noun:'T20',   decades:['2000s','2010s','2020s']},
+};
+let FMT = FORMATS.test, FMTKEY = 'test';
+/* Era filter: narrows which decades are eligible to be drawn, from a
+   chosen starting point onward. Test gets the full four-tier history;
+   ODI (which only spans 1970s onward anyway) gets a simpler two-tier
+   version; T20's whole history already fits inside one era, so it
+   gets no filter at all. Tiers reference the real turning points in
+   how each format was actually played, not arbitrary round numbers. */
+const ERA_TIERS = {
+  test: [
+    {id:'all',     name:'Full Archive',   minYear:null},
+    {id:'vintage', name:'Vintage XI',     minYear:1940},
+    {id:'colourtv',name:'Colour TV Era',  minYear:1970},
+    {id:'hawkeye', name:'Hawk-Eye Era',   minYear:2000},
+  ],
+  odi: [
+    {id:'all',     name:'Whites',         minYear:null},
+    {id:'coloured',name:'Coloured Kit Era',minYear:1990},
+  ],
+  t20: [],
+};
+let eraFilter = 'all';
+let DECADES = FORMATS.test.decades;
+const DECADE_LABEL = {'1870s':'The 1870s', '1880s':'The 1880s', '1890s':'The 1890s', '1900s':'The 1900s', '1910s':'The 1910s', '1920s':'The 1920s', '1930s':'The 1930s', '1940s':'The 1940s', '1950s':'The 1950s', '1960s':'The 1960s', '1970s':'The 1970s', '1980s':'The 1980s', '1990s':'The 1990s', '2000s':'The 2000s', '2010s':'The 2010s', '2020s':'The 2020s'};
+const CAPTAINS_DB = [{"n":"Steve Waugh","c":"AUS","fmt":"test","d":"1990s","rt":92,"cid":"CRK0573"},{"n":"Mitchell Santner","c":"NZ","fmt":"odi","d":"2020s","rt":91,"cid":"CRK2336"},{"n":"Asghar Afghan","c":"AFG","fmt":"t20","d":"2020s","rt":91,"cid":"CRK0011"},{"n":"Asghar Afghan","c":"AFG","fmt":"t20","d":"2010s","rt":94,"cid":"CRK0011"},{"n":"Dhananjaya de Silva","c":"SL","fmt":"test","d":"2020s","rt":90,"cid":"CRK3318"},{"n":"Rohit Sharma","c":"IND","fmt":"t20","d":"2020s","rt":93,"cid":"CRK1867"},{"n":"Pat Cummins","c":"AUS","fmt":"odi","d":"2020s","rt":91,"cid":"CRK0490"},{"n":"Rohit Sharma","c":"IND","fmt":"t20","d":"2010s","rt":91,"cid":"CRK1867"},{"n":"Mike Brearley","c":"ENG","fmt":"odi","d":"1970s","rt":91,"cid":"CRK1235"},{"n":"Sarfaraz Ahmed","c":"PAK","fmt":"t20","d":"2010s","rt":93,"cid":"CRK2738"},{"n":"Ricky Ponting","c":"AUS","fmt":"odi","d":"2000s","rt":93,"cid":"CRK0538"},{"n":"Clive Lloyd","c":"WI","fmt":"odi","d":"1980s","rt":93,"cid":"CRK3594"},{"n":"Clive Lloyd","c":"WI","fmt":"odi","d":"1970s","rt":90,"cid":"CRK3594"},{"n":"Kane Williamson","c":"NZ","fmt":"test","d":"2020s","rt":89,"cid":"CRK2296"},{"n":"Mitchell Marsh","c":"AUS","fmt":"odi","d":"2020s","rt":89,"cid":"CRK0455"},{"n":"MS Dhoni","c":"IND","fmt":"test","d":"2000s","rt":89,"cid":"CRK1795"},{"n":"Ian Chappell","c":"AUS","fmt":"odi","d":"1970s","rt":89,"cid":"CRK0315"},{"n":"Tim Southee","c":"NZ","fmt":"t20","d":"2020s","rt":89,"cid":"CRK2430"},{"n":"Faf du Plessis","c":"SA","fmt":"odi","d":"2010s","rt":91,"cid":"CRK2968"},{"n":"Hansie Cronje","c":"SA","fmt":"odi","d":"1990s","rt":92,"cid":"CRK3258"},{"n":"Keshav Maharaj","c":"SA","fmt":"odi","d":"2020s","rt":88,"cid":"CRK3077"},{"n":"Steve Waugh","c":"AUS","fmt":"odi","d":"1990s","rt":92,"cid":"CRK0573"},{"n":"Rohit Sharma","c":"IND","fmt":"odi","d":"2020s","rt":92,"cid":"CRK1867"},{"n":"Shoaib Malik","c":"PAK","fmt":"t20","d":"2000s","rt":89,"cid":"CRK2765"},{"n":"Mitchell Marsh","c":"AUS","fmt":"t20","d":"2020s","rt":89,"cid":"CRK0455"},{"n":"Mike Gatting","c":"ENG","fmt":"odi","d":"1980s","rt":91,"cid":"CRK1357"},{"n":"Virat Kohli","c":"IND","fmt":"odi","d":"2010s","rt":92,"cid":"CRK1969"},{"n":"Kumar Sangakkara","c":"SL","fmt":"t20","d":"2000s","rt":88,"cid":"CRK3365"},{"n":"Paul Collingwood","c":"ENG","fmt":"t20","d":"2010s","rt":88,"cid":"CRK1396"},{"n":"Suryakumar Yadav","c":"IND","fmt":"t20","d":"2020s","rt":88,"cid":"CRK1917"},{"n":"Ricky Ponting","c":"AUS","fmt":"test","d":"2000s","rt":91,"cid":"CRK0538"},{"n":"Steve Waugh","c":"AUS","fmt":"test","d":"2000s","rt":91,"cid":"CRK0573"},{"n":"Allan Border","c":"AUS","fmt":"odi","d":"1990s","rt":91,"cid":"CRK0130"},{"n":"Michael Clarke","c":"AUS","fmt":"odi","d":"2010s","rt":91,"cid":"CRK0440"},{"n":"Shoaib Malik","c":"PAK","fmt":"odi","d":"2000s","rt":90,"cid":"CRK2765"},{"n":"Graeme Smith","c":"SA","fmt":"t20","d":"2000s","rt":89,"cid":"CRK2983"},{"n":"Rovman Powell","c":"WI","fmt":"t20","d":"2020s","rt":88,"cid":"CRK3834"},{"n":"KL Rahul","c":"IND","fmt":"odi","d":"2020s","rt":88,"cid":"CRK1749"},{"n":"Mahela Jayawardene","c":"SL","fmt":"t20","d":"2000s","rt":87,"cid":"CRK3322"},{"n":"Charith Asalanka","c":"SL","fmt":"odi","d":"2020s","rt":87,"cid":"CRK3370"},{"n":"Eoin Morgan","c":"ENG","fmt":"t20","d":"2020s","rt":89,"cid":"CRK1027"},{"n":"Viv Richards","c":"WI","fmt":"odi","d":"1980s","rt":90,"cid":"CRK3699"},{"n":"Kane Williamson","c":"NZ","fmt":"odi","d":"2020s","rt":87,"cid":"CRK2296"},{"n":"Shaun Pollock","c":"SA","fmt":"odi","d":"2000s","rt":90,"cid":"CRK3227"},{"n":"Rashid Khan","c":"AFG","fmt":"t20","d":"2020s","rt":88,"cid":"CRK0064"},{"n":"Waqar Younis","c":"PAK","fmt":"test","d":"1990s","rt":87,"cid":"CRK2797"},{"n":"AB de Villiers","c":"SA","fmt":"odi","d":"2010s","rt":90,"cid":"CRK2831"},{"n":"Ben Stokes","c":"ENG","fmt":"test","d":"2020s","rt":88,"cid":"CRK0902"},{"n":"Graeme Smith","c":"SA","fmt":"odi","d":"2000s","rt":90,"cid":"CRK2983"},{"n":"Rohit Sharma","c":"IND","fmt":"test","d":"2020s","rt":87,"cid":"CRK1867"},{"n":"Hardik Pandya","c":"IND","fmt":"t20","d":"2020s","rt":87,"cid":"CRK1707"},{"n":"Temba Bavuma","c":"SA","fmt":"test","d":"2020s","rt":86,"cid":"CRK3231"},{"n":"Younis Khan","c":"PAK","fmt":"t20","d":"2000s","rt":86,"cid":"CRK2809"},{"n":"Virat Kohli","c":"IND","fmt":"test","d":"2010s","rt":90,"cid":"CRK1969"},{"n":"Faf du Plessis","c":"SA","fmt":"t20","d":"2010s","rt":89,"cid":"CRK2968"},{"n":"Mohammad Hafeez","c":"PAK","fmt":"t20","d":"2010s","rt":88,"cid":"CRK2639"},{"n":"Eoin Morgan","c":"ENG","fmt":"odi","d":"2010s","rt":90,"cid":"CRK1027"},{"n":"Mitchell Santner","c":"NZ","fmt":"t20","d":"2020s","rt":87,"cid":"CRK2336"},{"n":"Mike Brearley","c":"ENG","fmt":"test","d":"1970s","rt":87,"cid":"CRK1235"},{"n":"Virat Kohli","c":"IND","fmt":"t20","d":"2020s","rt":87,"cid":"CRK1969"},{"n":"Pat Cummins","c":"AUS","fmt":"test","d":"2020s","rt":87,"cid":"CRK0490"},{"n":"Wasim Akram","c":"PAK","fmt":"odi","d":"1990s","rt":89,"cid":"CRK2799"},{"n":"Tom Latham","c":"NZ","fmt":"odi","d":"2020s","rt":88,"cid":"CRK2436"},{"n":"Babar Azam","c":"PAK","fmt":"odi","d":"2020s","rt":89,"cid":"CRK2525"},{"n":"MS Dhoni","c":"IND","fmt":"odi","d":"2000s","rt":89,"cid":"CRK1795"},{"n":"Jeremy Coney","c":"NZ","fmt":"odi","d":"1980s","rt":87,"cid":"CRK2283"},{"n":"Temba Bavuma","c":"SA","fmt":"t20","d":"2020s","rt":87,"cid":"CRK3231"},{"n":"MS Dhoni","c":"IND","fmt":"t20","d":"2000s","rt":87,"cid":"CRK1795"},{"n":"Greg Chappell","c":"AUS","fmt":"odi","d":"1970s","rt":86,"cid":"CRK0287"},{"n":"Virat Kohli","c":"IND","fmt":"odi","d":"2020s","rt":86,"cid":"CRK1969"},{"n":"Dimuth Karunaratne","c":"SL","fmt":"test","d":"2010s","rt":86,"cid":"CRK3332"},{"n":"Michael Clarke","c":"AUS","fmt":"t20","d":"2000s","rt":86,"cid":"CRK0440"},{"n":"Wanindu Hasaranga","c":"SL","fmt":"t20","d":"2020s","rt":86,"cid":"CRK3450"},{"n":"Litton Das","c":"BAN","fmt":"odi","d":"2020s","rt":85,"cid":"CRK0698"},{"n":"Waqar Younis","c":"PAK","fmt":"odi","d":"2000s","rt":89,"cid":"CRK2797"},{"n":"Mahela Jayawardene","c":"SL","fmt":"odi","d":"2000s","rt":89,"cid":"CRK3322"},{"n":"Virat Kohli","c":"IND","fmt":"t20","d":"2010s","rt":87,"cid":"CRK1969"},{"n":"Waqar Younis","c":"PAK","fmt":"test","d":"2000s","rt":86,"cid":"CRK2797"},{"n":"Inzamam-ul-Haq","c":"PAK","fmt":"odi","d":"2000s","rt":89,"cid":"CRK2582"},{"n":"Shikhar Dhawan","c":"IND","fmt":"odi","d":"2020s","rt":86,"cid":"CRK1896"},{"n":"Brendon McCullum","c":"NZ","fmt":"odi","d":"2010s","rt":89,"cid":"CRK2122"},{"n":"Aaron Finch","c":"AUS","fmt":"odi","d":"2020s","rt":87,"cid":"CRK0113"},{"n":"Mashrafe Mortaza","c":"BAN","fmt":"odi","d":"2010s","rt":88,"cid":"CRK0709"},{"n":"Darren Sammy","c":"WI","fmt":"t20","d":"2010s","rt":88,"cid":"CRK3623"},{"n":"Temba Bavuma","c":"SA","fmt":"odi","d":"2020s","rt":87,"cid":"CRK3231"},{"n":"Tamim Iqbal","c":"BAN","fmt":"odi","d":"2020s","rt":87,"cid":"CRK0796"},{"n":"Babar Azam","c":"PAK","fmt":"t20","d":"2020s","rt":88,"cid":"CRK2525"},{"n":"Imran Khan","c":"PAK","fmt":"odi","d":"1980s","rt":88,"cid":"CRK2577"},{"n":"Dasun Shanaka","c":"SL","fmt":"odi","d":"2020s","rt":87,"cid":"CRK3406"},{"n":"Sarfaraz Ahmed","c":"PAK","fmt":"odi","d":"2010s","rt":88,"cid":"CRK2738"},{"n":"Sanath Jayasuriya","c":"SL","fmt":"odi","d":"2000s","rt":88,"cid":"CRK3499"},{"n":"MS Dhoni","c":"IND","fmt":"t20","d":"2010s","rt":88,"cid":"CRK1795"},{"n":"Marvan Atapattu","c":"SL","fmt":"odi","d":"2000s","rt":88,"cid":"CRK3420"},{"n":"Viv Richards","c":"WI","fmt":"test","d":"1980s","rt":87,"cid":"CRK3699"},{"n":"Kane Williamson","c":"NZ","fmt":"t20","d":"2020s","rt":87,"cid":"CRK2296"},{"n":"Andrew Strauss","c":"ENG","fmt":"test","d":"2000s","rt":85,"cid":"CRK0868"},{"n":"Kusal Mendis","c":"SL","fmt":"odi","d":"2020s","rt":85,"cid":"CRK3291"},{"n":"Asghar Afghan","c":"AFG","fmt":"odi","d":"2010s","rt":88,"cid":"CRK0011"},{"n":"Allan Border","c":"AUS","fmt":"odi","d":"1980s","rt":88,"cid":"CRK0130"},{"n":"Steve Waugh","c":"AUS","fmt":"odi","d":"2000s","rt":88,"cid":"CRK0573"},{"n":"JP Duminy","c":"SA","fmt":"t20","d":"2010s","rt":85,"cid":"CRK3066"},{"n":"Brian Lara","c":"WI","fmt":"odi","d":"1990s","rt":87,"cid":"CRK3559"},{"n":"Graeme Smith","c":"SA","fmt":"odi","d":"2010s","rt":85,"cid":"CRK2983"},{"n":"Kieron Pollard","c":"WI","fmt":"odi","d":"2020s","rt":85,"cid":"CRK3742"},{"n":"Daniel Vettori","c":"NZ","fmt":"t20","d":"2000s","rt":85,"cid":"CRK2185"},{"n":"Shaun Pollock","c":"SA","fmt":"test","d":"2000s","rt":86,"cid":"CRK3227"},{"n":"Mark Taylor","c":"AUS","fmt":"odi","d":"1990s","rt":87,"cid":"CRK0427"},{"n":"Jos Buttler","c":"ENG","fmt":"t20","d":"2020s","rt":87,"cid":"CRK1194"},{"n":"Mahela Jayawardene","c":"SL","fmt":"test","d":"2000s","rt":86,"cid":"CRK3322"},{"n":"Eoin Morgan","c":"ENG","fmt":"t20","d":"2010s","rt":87,"cid":"CRK1027"},{"n":"Aaron Finch","c":"AUS","fmt":"t20","d":"2020s","rt":87,"cid":"CRK0113"},{"n":"Rahul Dravid","c":"IND","fmt":"odi","d":"2000s","rt":87,"cid":"CRK1847"},{"n":"Kane Williamson","c":"NZ","fmt":"odi","d":"2010s","rt":87,"cid":"CRK2296"},{"n":"Ricky Ponting","c":"AUS","fmt":"odi","d":"2010s","rt":87,"cid":"CRK0538"},{"n":"Faf du Plessis","c":"SA","fmt":"test","d":"2010s","rt":86,"cid":"CRK2968"},{"n":"Richie Richardson","c":"WI","fmt":"odi","d":"1990s","rt":87,"cid":"CRK3842"},{"n":"Steve Smith","c":"AUS","fmt":"test","d":"2010s","rt":86,"cid":"CRK0570"},{"n":"Dean Elgar","c":"SA","fmt":"test","d":"2020s","rt":85,"cid":"CRK2913"},{"n":"Kapil Dev","c":"IND","fmt":"odi","d":"1980s","rt":87,"cid":"CRK1806"},{"n":"MS Dhoni","c":"IND","fmt":"odi","d":"2010s","rt":87,"cid":"CRK1795"},{"n":"Greg Chappell","c":"AUS","fmt":"test","d":"1970s","rt":85,"cid":"CRK0287"},{"n":"Tim Paine","c":"AUS","fmt":"test","d":"2010s","rt":85,"cid":"CRK0580"},{"n":"Najmul Hossain Shanto","c":"BAN","fmt":"t20","d":"2020s","rt":85,"cid":"CRK0739"},{"n":"Alastair Cook","c":"ENG","fmt":"odi","d":"2010s","rt":87,"cid":"CRK0876"},{"n":"Aiden Markram","c":"SA","fmt":"t20","d":"2020s","rt":85,"cid":"CRK2850"},{"n":"Sourav Ganguly","c":"IND","fmt":"odi","d":"2000s","rt":87,"cid":"CRK1920"},{"n":"Mark Taylor","c":"AUS","fmt":"test","d":"1990s","rt":87,"cid":"CRK0427"},{"n":"Mohammad Azharuddin","c":"IND","fmt":"odi","d":"1990s","rt":87,"cid":"CRK1769"},{"n":"Misbah-ul-Haq","c":"PAK","fmt":"odi","d":"2010s","rt":87,"cid":"CRK2630"},{"n":"Geoff Howarth","c":"NZ","fmt":"odi","d":"1980s","rt":87,"cid":"CRK2223"},{"n":"Aaron Finch","c":"AUS","fmt":"t20","d":"2010s","rt":85,"cid":"CRK0113"},{"n":"Clive Lloyd","c":"WI","fmt":"test","d":"1970s","rt":86,"cid":"CRK3594"},{"n":"Courtney Walsh","c":"WI","fmt":"odi","d":"1990s","rt":86,"cid":"CRK3574"},{"n":"Michael Clarke","c":"AUS","fmt":"test","d":"2010s","rt":87,"cid":"CRK0440"},{"n":"Daniel Vettori","c":"NZ","fmt":"odi","d":"2000s","rt":87,"cid":"CRK2185"},{"n":"Michael Vaughan","c":"ENG","fmt":"test","d":"2000s","rt":87,"cid":"CRK1348"},{"n":"Hansie Cronje","c":"SA","fmt":"test","d":"1990s","rt":87,"cid":"CRK3258"},{"n":"Nasser Hussain","c":"ENG","fmt":"odi","d":"2000s","rt":86,"cid":"CRK1362"},{"n":"Shahid Afridi","c":"PAK","fmt":"odi","d":"2010s","rt":86,"cid":"CRK2747"},{"n":"Kane Williamson","c":"NZ","fmt":"test","d":"2010s","rt":85,"cid":"CRK2296"},{"n":"Hashmatullah Shahidi","c":"AFG","fmt":"odi","d":"2020s","rt":85,"cid":"CRK0025"},{"n":"Ian Chappell","c":"AUS","fmt":"test","d":"1970s","rt":85,"cid":"CRK0315"},{"n":"George Bailey","c":"AUS","fmt":"t20","d":"2010s","rt":85,"cid":"CRK0271"},{"n":"Dinesh Chandimal","c":"SL","fmt":"t20","d":"2010s","rt":85,"cid":"CRK3387"},{"n":"Shai Hope","c":"WI","fmt":"odi","d":"2020s","rt":84,"cid":"CRK3886"},{"n":"Babar Azam","c":"PAK","fmt":"test","d":"2020s","rt":84,"cid":"CRK2525"},{"n":"Paul Collingwood","c":"ENG","fmt":"t20","d":"2000s","rt":84,"cid":"CRK1396"},{"n":"Eoin Morgan","c":"ENG","fmt":"odi","d":"2020s","rt":84,"cid":"CRK1027"},{"n":"Shakib Al Hasan","c":"BAN","fmt":"t20","d":"2020s","rt":84,"cid":"CRK0779"},{"n":"Mohammad Nabi","c":"AFG","fmt":"t20","d":"2010s","rt":83,"cid":"CRK0043"},{"n":"Mahmudullah","c":"BAN","fmt":"t20","d":"2010s","rt":83,"cid":"CRK0705"},{"n":"Steve Smith","c":"AUS","fmt":"t20","d":"2010s","rt":83,"cid":"CRK0570"},{"n":"Najmul Hossain Shanto","c":"BAN","fmt":"test","d":"2020s","rt":83,"cid":"CRK0739"},{"n":"Steve Smith","c":"AUS","fmt":"odi","d":"2010s","rt":86,"cid":"CRK0570"},{"n":"Imran Khan","c":"PAK","fmt":"odi","d":"1990s","rt":85,"cid":"CRK2577"},{"n":"Graeme Smith","c":"SA","fmt":"test","d":"2010s","rt":85,"cid":"CRK2983"},{"n":"Kane Williamson","c":"NZ","fmt":"t20","d":"2010s","rt":85,"cid":"CRK2296"},{"n":"Graeme Smith","c":"SA","fmt":"test","d":"2000s","rt":86,"cid":"CRK2983"},{"n":"Daniel Vettori","c":"NZ","fmt":"odi","d":"2010s","rt":85,"cid":"CRK2185"},{"n":"Andrew Strauss","c":"ENG","fmt":"odi","d":"2000s","rt":85,"cid":"CRK0868"},{"n":"Graham Gooch","c":"ENG","fmt":"odi","d":"1990s","rt":86,"cid":"CRK1079"},{"n":"Wasim Akram","c":"PAK","fmt":"test","d":"1990s","rt":84,"cid":"CRK2799"},{"n":"Martin Crowe","c":"NZ","fmt":"odi","d":"1990s","rt":85,"cid":"CRK2318"},{"n":"Sanath Jayasuriya","c":"SL","fmt":"test","d":"2000s","rt":85,"cid":"CRK3499"},{"n":"Jos Buttler","c":"ENG","fmt":"odi","d":"2020s","rt":85,"cid":"CRK1194"},{"n":"Dinesh Chandimal","c":"SL","fmt":"test","d":"2010s","rt":83,"cid":"CRK3387"},{"n":"Sikandar Raza","c":"ZIM","fmt":"t20","d":"2020s","rt":83,"cid":"CRK4071"},{"n":"Stephen Fleming","c":"NZ","fmt":"odi","d":"2000s","rt":86,"cid":"CRK2416"},{"n":"Carl Hooper","c":"WI","fmt":"odi","d":"2000s","rt":86,"cid":"CRK3597"},{"n":"Arjuna Ranatunga","c":"SL","fmt":"odi","d":"1990s","rt":86,"cid":"CRK3270"},{"n":"Virat Kohli","c":"IND","fmt":"test","d":"2020s","rt":83,"cid":"CRK1969"},{"n":"Michael Atherton","c":"ENG","fmt":"odi","d":"1990s","rt":85,"cid":"CRK1311"},{"n":"Misbah-ul-Haq","c":"PAK","fmt":"test","d":"2010s","rt":86,"cid":"CRK2630"},{"n":"Shakib Al Hasan","c":"BAN","fmt":"odi","d":"2010s","rt":85,"cid":"CRK0779"},{"n":"Angelo Mathews","c":"SL","fmt":"odi","d":"2010s","rt":86,"cid":"CRK3272"},{"n":"Clive Lloyd","c":"WI","fmt":"test","d":"1980s","rt":85,"cid":"CRK3594"},{"n":"Gary Wilson","c":"IRE","fmt":"t20","d":"2010s","rt":84,"cid":"CRK2032"},{"n":"Craig Ervine","c":"ZIM","fmt":"t20","d":"2020s","rt":84,"cid":"CRK3968"},{"n":"Steve Smith","c":"AUS","fmt":"odi","d":"2020s","rt":83,"cid":"CRK0570"},{"n":"Ross Taylor","c":"NZ","fmt":"t20","d":"2010s","rt":83,"cid":"CRK2307"},{"n":"Dasun Shanaka","c":"SL","fmt":"t20","d":"2020s","rt":85,"cid":"CRK3406"},{"n":"Richie Richardson","c":"WI","fmt":"test","d":"1990s","rt":83,"cid":"CRK3842"},{"n":"Brendon McCullum","c":"NZ","fmt":"t20","d":"2010s","rt":83,"cid":"CRK2122"},{"n":"Ricky Ponting","c":"AUS","fmt":"test","d":"2010s","rt":83,"cid":"CRK0538"},{"n":"Dilip Vengsarkar","c":"IND","fmt":"odi","d":"1980s","rt":83,"cid":"CRK1668"},{"n":"AB de Villiers","c":"SA","fmt":"t20","d":"2010s","rt":83,"cid":"CRK2831"},{"n":"Younis Khan","c":"PAK","fmt":"test","d":"2000s","rt":82,"cid":"CRK2809"},{"n":"Tom Latham","c":"NZ","fmt":"test","d":"2020s","rt":82,"cid":"CRK2436"},{"n":"William Porterfield","c":"IRE","fmt":"odi","d":"2010s","rt":85,"cid":"CRK2093"},{"n":"Paul Collingwood","c":"ENG","fmt":"odi","d":"2000s","rt":83,"cid":"CRK1396"},{"n":"Andrew Strauss","c":"ENG","fmt":"test","d":"2010s","rt":84,"cid":"CRK0868"},{"n":"Joe Root","c":"ENG","fmt":"test","d":"2010s","rt":84,"cid":"CRK1209"},{"n":"Kumar Sangakkara","c":"SL","fmt":"odi","d":"2010s","rt":85,"cid":"CRK3365"},{"n":"Mohammad Nabi","c":"AFG","fmt":"t20","d":"2020s","rt":83,"cid":"CRK0043"},{"n":"Michael Vaughan","c":"ENG","fmt":"odi","d":"2000s","rt":85,"cid":"CRK1348"},{"n":"Brian Lara","c":"WI","fmt":"odi","d":"2000s","rt":85,"cid":"CRK3559"},{"n":"Sourav Ganguly","c":"IND","fmt":"test","d":"2000s","rt":85,"cid":"CRK1920"},{"n":"Javed Miandad","c":"PAK","fmt":"odi","d":"1980s","rt":84,"cid":"CRK2593"},{"n":"Tim Southee","c":"NZ","fmt":"test","d":"2020s","rt":82,"cid":"CRK2430"},{"n":"Shahid Afridi","c":"PAK","fmt":"t20","d":"2010s","rt":84,"cid":"CRK2747"}];
+function isEliteCaptain(p, fmtKey){
+  if(!p) return null;
+  /* Matched on Cricketer ID, not name — names in the player database
+     use Cricinfo's abbreviated style ("SR Waugh"), while this list was
+     originally built with full names ("Steve Waugh"). Matching on ID
+     survives any future naming-convention changes; c.n is kept purely
+     for the display text in the note below. */
+  return CAPTAINS_DB.find(c=>c.cid===p.cid && c.c===p.c && c.fmt===fmtKey && c.d===p.d) || null;
+}
+
+
+/* Slot 6 no longer requires a keeper — any player can bat there — so the
+   'every team has a keeper' guarantee can't come from one reserved
+   slot anymore. Instead: while no keeper has been drafted yet, this
+   keeps at least one keeper-capable slot open at all times, refusing
+   to let a non-keeper take the LAST such slot. Once any keeper is in
+   the XI, every slot opens up completely. */
+const WK_PROBE = {roles:['wk'], bp:'', bt:'', arsub:''};
+function openSlotsFor(p){
+  const isKeeper = p.roles.includes('wk');
+  const keeperDrafted = xiSlots.some(x => x && x.roles.includes('wk'));
+  let keeperEligibleOpen = null;
+  if(!isKeeper && !keeperDrafted){
+    keeperEligibleOpen = [];
+    for(let i=0;i<SLOTS.length;i++){ if(!xiSlots[i] && SLOTS[i].fits(WK_PROBE)) keeperEligibleOpen.push(i); }
+  }
+  const out=[];
+  for(let i=0;i<SLOTS.length;i++){
+    if(xiSlots[i] || !SLOTS[i].fits(p)) continue;
+    if(keeperEligibleOpen && keeperEligibleOpen.length===1 && keeperEligibleOpen[0]===i) continue;   // reserved for a keeper
+    out.push(i);
+  }
+  return out;
+}
+/* Index PLAYERS by nation+decade once per format switch instead of
+   re-scanning the full array (up to 1,445 entries) on every single
+   draw and every squad-list render. Rebuilt only when selectFormat()
+   changes which database is active — draftedNames/slot state don't
+   affect the bucket membership, only the later per-player filter. */
+let playerIndex = new Map();
+function buildPlayerIndex(){
+  playerIndex = new Map();
+  for(const p of PLAYERS){
+    const k = p.c+'|'+p.d;
+    let bucket = playerIndex.get(k);
+    if(!bucket){ bucket=[]; playerIndex.set(k, bucket); }
+    bucket.push(p);
+  }
+}
+function selectablePool(natId, decade){
+  const bucket = playerIndex.get(natId+'|'+decade);
+  if(!bucket) return [];
+  return bucket.filter(p => !draftedNames.has(p.n) && openSlotsFor(p).length>0);
+}
+function eligiblePairs(){
+  const pairs = [];
+  const natList = represMode ? NATIONS.filter(n=>n.id===represCountry) : NATIONS;
+  const decList = eraFilteredDecades();
+  for(const nat of natList){
+    for(const dec of decList){
+      if(selectablePool(nat.id, dec).length > 0) pairs.push({nat, dec});
+    }
+  }
+  return pairs;
+}
+
+function draw(){
+  if(drawing) return;
+  const pairs = eligiblePairs();
+  const pair = pairs[Math.floor(Math.random()*pairs.length)];
+  currentPair = pair;
+
+  drawing = true;
+  const btn = document.getElementById('drawBtn');
+  btn.disabled = true;
+  document.getElementById('pickGrid').innerHTML = '';
+  document.getElementById('redrawBtn').style.display='none';
+  document.getElementById('drawCard').hidden = true;
+
+  const isBatting = Math.random()<0.5;
+  const scene = document.getElementById(isBatting ? 'sceneBat' : 'sceneBowl');
+  const other = document.getElementById(isBatting ? 'sceneBowl' : 'sceneBat');
+  other.classList.remove('on','play');
+  scene.classList.remove('play');
+  scene.classList.add('on');
+  void scene.offsetWidth;
+  scene.classList.add('play');
+
+  setTimeout(()=>{
+    document.getElementById('dcFlag').textContent = pair.nat.flag;
+    document.getElementById('dcNation').textContent = pair.nat.name;
+    document.getElementById('dcDecade').textContent = DECADE_LABEL[pair.dec];
+    document.getElementById('drawCard').hidden = false;
+    showSquad(pair);
+  }, 1250);
+}
+
+/* squad list: every undrafted player from the drawn nation+decade
+   who still has at least one open position to go into */
+function playerTypeLabel(p){
+  const bpTxt = p.bp && BP_LABEL[p.bp] ? BP_LABEL[p.bp] : '';
+  const btTxt = p.bt || '';
+  if(p.roles.includes('ar')) return [bpTxt, btTxt].filter(Boolean).join(' · ');
+  if(p.roles.includes('bowl')) return btTxt;
+  return bpTxt;   /* bat or wk */
+}
+function showSquad(pair){
+  const pool = selectablePool(pair.nat.id, pair.dec).sort((a,b)=>b.r-a.r);
+  const grid = document.getElementById('pickGrid');
+  grid.innerHTML = `<div class="squad-head"><span>${pair.nat.name} · ${DECADE_LABEL[pair.dec]}</span><span>${pool.length} available</span></div>` +
+    pool.map(p=>{
+      const typeTxt = playerTypeLabel(p);
+      return `
+    <button class="pcard" onclick="showPositions(this.dataset.n, this.dataset.d, this.dataset.c)" data-n="${escAttr(p.n)}" data-d="${p.d}" data-c="${p.c}">
+      <span class="flag">${pair.nat.flag}</span>
+      <span class="who">
+        <span class="nm">${p.n} <span class="decade">'${p.d}</span></span>
+        <span class="rl">${p.roles.map(r=>ROLE_LABEL[r]).join(' · ')}${typeTxt?' — '+typeTxt:''}${p.tag?' — '+p.tag:''}</span>
+      </span>
+      <span class="rt">${p.r}<small>DECADE RTG</small></span>
+    </button>`;
+    }).join('');
+  document.getElementById('redrawBtn').style.display = redoLeft>0 ? 'block' : 'none';
+}
+
+/* step 2: pick where he goes */
+function fitBadge(pen){
+  return pen===0 ? '🔒 Natural fit' : 'Out of position';
+}
+function showPositions(name, decade, country){
+  const p = PLAYERS.find(x=>x.n===name && x.d===decade && x.c===country);
+  const open = openSlotsFor(p);
+  const grid = document.getElementById('pickGrid');
+  document.getElementById('redrawBtn').style.display='none';
+  grid.innerHTML = `<button class="back-link" onclick="showSquad(currentPair)">← Back to the squad</button>
+    <div class="pos-prompt">Where does ${p.n} go?</div>
+    <div class="pos-grid">` +
+    open.map(i=>{
+      const pen = positionPenalty(p, SLOTS[i].no);
+      return `<button class="pos-btn ${pen===0?'fit-good':''}" onclick="place(this.dataset.n, this.dataset.d, ${i}, this.dataset.c)" data-n="${escAttr(p.n)}" data-d="${p.d}" data-c="${p.c}">
+        ${SLOTS[i].no}<small>${fitBadge(pen)}</small></button>`;
+    }).join('') +
+    `</div>`;
+}
+
+function place(name, decade, idx, country){
+  const p = PLAYERS.find(x=>x.n===name && x.d===decade && x.c===country);
+  /* Defence-in-depth: only ever commit a placement that openSlotsFor
+     would actually offer right now. The UI only ever renders buttons
+     for legal indices already, but this guarantees the keeper-
+     reservation rule can never be bypassed by any other code path. */
+  if(!openSlotsFor(p).includes(idx)) return;
+  xiSlots[idx] = p;
+  draftedNames.add(p.n);
+  picksMade++;
+  currentPair = null;
+  document.getElementById('pickGrid').innerHTML='';
+  document.getElementById('drawCard').hidden = true;
+  document.getElementById('redrawBtn').style.display='none';
+  document.getElementById('drawBtn').disabled = false;
+  drawing = false;
+  if(picksMade >= 11){ xi = xiSlots.slice(); showCaptainPick(); return; }
+  renderBoard();
+}
+
+function useRedraw(){
+  if(redoLeft<=0 || !drawing) return;
+  redoLeft--;
+  document.getElementById('redrawBtn').style.display='none';
+  drawing=false;
+  document.getElementById('drawBtn').disabled=false;
+  draw();
+}
+
+
+
+function showConfirm(title, body, actionLabel){
+  return new Promise((resolve)=>{
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmBody').textContent = body;
+    document.getElementById('confirmActionBtn').textContent = actionLabel || 'Confirm';
+    document.getElementById('confirmModal').style.display = 'flex';
+    window.__resolveConfirm = (val)=>{
+      document.getElementById('confirmModal').style.display = 'none';
+      resolve(val);
+    };
+  });
+}
+function resolveConfirm(val){ window.__resolveConfirm(val); }
+function openInfoModal(){ document.getElementById('infoModal').style.display = 'flex'; }
+function closeInfoModal(){ document.getElementById('infoModal').style.display = 'none'; }
+async function restartDraft(){
+  const ok = await showConfirm('Restart the draft?', 'This clears your picks so far.', 'Restart');
+  if(!ok) return;
+  xiSlots = new Array(11).fill(null);
+  picksMade = 0;
+  xi = [];
+  currentPair = null;
+  captainIdx = -1;
+  draftedNames = new Set();
+  drawing = false;
+  redoLeft = 1;
+  document.getElementById('pickGrid').innerHTML = '';
+  document.getElementById('drawCard').hidden = true;
+  document.getElementById('redrawBtn').style.display = 'none';
+  document.getElementById('drawBtn').disabled = false;
+  renderBoard();
+  window.scrollTo({top:0});
+}
+
+function renderBoard(){
+  const strip = document.getElementById('orderStrip');
+  strip.innerHTML = SLOTS.map((sl,i)=>{
+    const filled = !!xiSlots[i];
+    return `<div class="order-cell ${filled?'done':'open'}" title="${sl.title}">${sl.no}</div>`;
+  }).join('');
+  document.getElementById('slotEyebrow').textContent = `Pick ${picksMade+1} of 11`;
+  document.getElementById('slotTitle').textContent = 'Build your XI';
+  document.getElementById('slotDesc').textContent = 'Draw a nation and decade, choose any player from that squad, then give him a batting position.';
+  renderMiniSheet();
+}
+
+/* Rearranging now happens here, on the draft screen, as slots fill
+   in — not on a separate post-draft screen. Only two FILLED slots
+   can swap with each other; an empty slot is never a swap target. */
+function legalSwapTargets(i){
+  const targets = [];
+  const src = xiSlots[i];
+  if(!src) return targets;
+  for(let j=0;j<11;j++){
+    if(j===i || !xiSlots[j]) continue;
+    if(swapFits(j, src) && swapFits(i, xiSlots[j])) targets.push(j);
+  }
+  return targets;
+}
+function renderMiniSheet(){
+  const list = document.getElementById('miniSheet');
+  if(moveFromIdx===null){
+    list.innerHTML = `<div class="ms-title"><span>Your XI so far</span><span>${picksMade}/11</span></div>` +
+      SLOTS.map((sl,i)=>{
+        const p = xiSlots[i];
+        if(!p) return `<div class="ms-row"><span class="ms-pos">${sl.no}</span><span class="ms-name empty">— open —</span></div>`;
+        const pen = positionPenalty(p, sl.no);
+        const badge = pen>0 ? `<span class="oop-badge">OUT OF POSITION</span>` : '';
+        return `<div class="ms-row" data-idx="${i}">
+          <span class="ms-pos">${sl.no}</span>
+          <span class="ms-name">${p.n} <span class="decade">'${p.d}</span>${badge}</span>
+          <span class="ms-rt">${p.r}</span>
+          <button class="ms-move" onclick="startMove(${i})" ontouchstart="dragTouchStart(event,${i})" ontouchmove="dragTouchMove(event)" ontouchend="dragTouchEnd(event)" title="Move or drag to swap">\u21c5</button>
+        </div>`;
+      }).join('');
+  } else {
+    const p = xiSlots[moveFromIdx];
+    const targets = legalSwapTargets(moveFromIdx);
+    list.innerHTML = `<button class="back-link" onclick="cancelMove()">\u2190 Cancel</button>
+      <div class="pos-prompt">Swap ${p.n} with...</div>
+      <div class="pos-grid">` +
+      (targets.length
+        ? targets.map(j=>{
+            const pen = positionPenalty(p, SLOTS[j].no);
+            return `<button class="pos-btn ${pen===0?'fit-good':''}" onclick="doSwap(${moveFromIdx},${j})">${xiSlots[j].n}<small>Position ${SLOTS[j].no} \u2014 ${fitBadge(pen)}</small></button>`;
+          }).join('')
+        : `<div class="lb-empty">No other filled position can legally swap with him yet.</div>`
+      ) + `</div>`;
+  }
+}
+function startMove(i){ moveFromIdx = i; renderMiniSheet(); }
+function cancelMove(){ moveFromIdx = null; renderMiniSheet(); }
+function doSwap(i, j){
+  const tmp = xiSlots[i]; xiSlots[i] = xiSlots[j]; xiSlots[j] = tmp;
+  moveFromIdx = null;
+  renderBoard();
+}
+
+let formatLoading = null;   // the format key currently being fetched, if any
+
+async function selectFormat(k){
+  FMTKEY=k; FMT=FORMATS[k]; DECADES=FMT.decades;
+  GROUPS = NATIONS;   // drafting is always by real nation, whatever the format
+  eraFilter = 'all';
+  renderEraFilterRow();
+  document.querySelectorAll('.fmt-btn,.fmt-hero').forEach(b=>b.classList.remove('selected'));
+  document.getElementById('fmt-'+k).classList.add('selected');
+  document.getElementById('mastSub').textContent = `Cricket World Domination · All-era ${FMT.label} XI`;
+  document.getElementById('challengeBullet').innerHTML = '<b>Beat them all, at their place.</b> Your XI tours the world: a five-match series against each of today’s twelve international sides, played across <b>real grounds in their country</b> — sixty matches in total, all away. Win matches, win series, sweep one 5-0 — that’s what separates a good tour from a legendary one.';
+  document.getElementById('tourBtn').textContent = 'Start the world tour · 60 away matches';
+  await ensureFormatLoaded(k);
+}
+/* Renders the era-filter row for whichever format is currently
+   selected. Empty for T20 (no tiers defined), which the CSS then
+   hides entirely via .era-filter-row:empty. */
+function renderEraFilterRow(){
+  const row = document.getElementById('eraFilterRow');
+  const tiers = ERA_TIERS[FMTKEY] || [];
+  row.innerHTML = tiers.map(t=>{
+    const sel = eraFilter===t.id;
+    const sub = t.minYear==null ? 'everything' : `${t.minYear}s onward`;
+    return `<button class="era-btn ${sel?'selected':''}" onclick="selectEraFilter('${t.id}')">${t.name}<small>${sub}</small></button>`;
+  }).join('');
+}
+function selectEraFilter(tierId){
+  eraFilter = tierId;
+  renderEraFilterRow();
+}
+/* The decades actually offered during drafting: the full list, unless
+   an era filter is active and this isn't Represent Your Nation (that
+   mode already restricts to one country and keeps the full decade
+   range within it, rather than stacking two restrictions at once). */
+function eraFilteredDecades(){
+  if(represMode) return DECADES;
+  const tiers = ERA_TIERS[FMTKEY] || [];
+  const tier = tiers.find(t=>t.id===eraFilter);
+  if(!tier || tier.minYear==null) return DECADES;
+  return DECADES.filter(d => parseInt(d, 10) >= tier.minYear);
+}
+
+/* Fetch this format's player data if it isn't cached yet. Shared by
+   selectFormat() (fires in the background the moment a format is
+   chosen) and startDraft() (a safety net in case someone taps Start
+   before that background fetch has finished). */
+async function ensureFormatLoaded(k){
+  if(DB[k]){ if(FMTKEY===k){ PLAYERS=DB[k]; buildPlayerIndex(); } return true; }
+  formatLoading = k;
+  setDataStatus('loading', k);
+  try{
+    const data = await loadFormatData(k);
+    if(FMTKEY===k){ PLAYERS=data; buildPlayerIndex(); }
+    dataLoadError = null;
+    if(formatLoading===k){ formatLoading=null; setDataStatus('ready', k); }
+    return true;
+  }catch(e){
+    dataLoadError = e;
+    if(formatLoading===k){ formatLoading=null; setDataStatus('error', k); }
+    return false;
+  }
+}
+function setDataStatus(state, k){
+  const el = document.getElementById('dataStatus');
+  if(!el) return;
+  if(state==='loading'){ el.textContent = `Loading ${FORMATS[k].label} players\u2026`; el.style.display='block'; el.className='data-status loading'; }
+  else if(state==='error'){ el.textContent = `Couldn\u2019t load the player database. Check your connection and try again.`; el.style.display='block'; el.className='data-status error'; }
+  else { el.style.display='none'; }
+}
+
+async function startDraft(){
+  represMode = false;
+  if(!DB[FMTKEY]){
+    const ok = await ensureFormatLoaded(FMTKEY);
+    if(!ok) return;   // setDataStatus already shows the error; stay on the intro screen
+  }
+  switchScreen('scr-draft');
+  renderBoard();
+}
+
+/* ================= TEAM STRENGTH ================= */
+/* ODI / T20 / Hundred all cap how many overs (or balls) one bowler
+   may send down, so a legal attack needs five bowling options to
+   cover the innings. Test cricket has no such cap. If the XI has
+   fewer than five recognised bowlers/all-rounders in a white-ball
+   format, the weakest specialist batter is nominated to fill the
+   fifth slot with part-time overs \u2014 exactly as a real side would. */
+/* Each player's real-world batting_position (openers / top / middle /
+   lower / tailender) gives him a natural home in the order. Play him
+   well outside it and he pays a small penalty \u2014 a top-order star
+   shoved down to No.10 won't perform like he does at No.3. */
+const BP_NATURAL = { O:[1,2], T:[1,2,3,4], M:[3,4,5,6,7], L:[6,7,8,9], X:[8,9,10,11], TM:[1,2,3,4,5,6,7], ML:[3,4,5,6,7,8,9], LX:[6,7,8,9,10,11] };
+function positionPenalty(p, slotNo){
+  const range = BP_NATURAL[p.bp];
+  if(!range || !range.length) return 0;
+  if(range.includes(slotNo)) return 0;
+  const dist = Math.min(...range.map(s=>Math.abs(s-slotNo)));
+  return Math.min(8, dist*1.5);
+}
+function isOutOfPosition(p, slotNo){ return positionPenalty(p, slotNo) > 0; }
+
+function getBowlingUnit(xi){
+  const core = xi.filter(p=>p.roles.includes('bowl')||p.roles.includes('ar'));
+  if(FMTKEY==='test' || core.length>=5) return {unit:core, partTimer:null};
+  const candidates = xi.filter(p=>p.roles.includes('bat') && !p.roles.includes('bowl') && !p.roles.includes('ar') && !p.roles.includes('wk'))
+                        .sort((a,b)=>a.r-b.r);
+  const partTimer = candidates[0];
+  if(!partTimer) return {unit:core, partTimer:null};
+  return {unit:[...core, partTimer], partTimer};
+}
+
+function teamStrengths(){
+  /* Batting: every batting-capable player counts, wherever he bats.
+     An all-rounder at 8 or 9 adds nearly full batting value; a pure
+     bowler forced up into the top seven bats at a heavy discount.
+     Anyone out of his natural batting position takes a small hit;
+     anyone IN position gets a small +0.1 lift on his own rating
+     instead (applied per player, not as a flat team-wide number —
+     so it only actually helps if that player's contribution is good
+     enough to make the top 7 batting / top 5 bowling cut). */
+  const contrib = [];
+  let misplaced = 0;
+  xi.forEach((p,i)=>{
+    const slotNo = i+1;
+    const canBat = p.roles.includes('bat')||p.roles.includes('wk')||p.roles.includes('ar');
+    const pen = positionPenalty(p, slotNo);
+    const posLift = pen===0 ? 0.1 : 0;
+    if(pen>0) misplaced++;
+    if(canBat) contrib.push((p.r+posLift-pen) * (i>=7 ? 0.97 : 1));
+    else if(i<7) contrib.push((p.r+posLift-pen) * 0.65);
+  });
+  contrib.sort((a,b)=>b-a);
+  const batTop = contrib.slice(0,7);
+  /* batting depth: every batting-capable player at 8–11 lifts the number */
+  const depth = xi.slice(7).filter(p=>p.roles.includes('ar')||p.roles.includes('bat')||p.roles.includes('wk'))
+                  .reduce((a,p)=>a+Math.max(0,(p.r-75)*0.12), 0);
+  const bat = batTop.reduce((a,b)=>a+b,0)/batTop.length + Math.min(4, depth);
+
+  /* Bowling: anyone who can bowl, wherever he bats in the order.
+     Same +0.1 in-position lift applies here too, on his own rating. */
+  const {unit:bowlUnit, partTimer} = getBowlingUnit(xi);
+  const top5 = bowlUnit.map(p=>{
+    const idx = xi.indexOf(p);
+    const posLift = idx>=0 && positionPenalty(p, idx+1)===0 ? 0.1 : 0;
+    const base = p.r + posLift;
+    return partTimer && p.n===partTimer.n ? base*0.82 : base;
+  }).sort((a,b)=>b-a).slice(0,5);
+  const bowl = top5.reduce((a,b)=>a+b,0)/Math.max(top5.length,1);
+
+  const decadesUsed = new Set(xi.map(p=>p.d)).size;
+  const nationsUsed = new Set(xi.map(p=>p.c)).size;
+  let bonus = 0, notes=[];
+  const arDeep = xi.slice(7).some(p=>p.roles.includes('ar'));
+  const arTop = xi.slice(0,5).some(p=>p.roles.includes('ar'));
+  if(arDeep) notes.push('All-rounder in the lower order — the batting runs deep.');
+  if(arTop) notes.push('All-rounder in the top five — an extra bowling option up front.');
+  if(partTimer) notes.push(`Only 4 frontline bowlers — ${partTimer.n} (Bat) makes up the legal fifth option.`);
+  else notes.push(`${bowlUnit.length} bowling option${bowlUnit.length===1?'':'s'} in the XI.`);
+  if(misplaced>0) notes.push(`${misplaced} player${misplaced===1?' is':'s are'} batting out of position — a small hit to the batting number.`);
+  if(decadesUsed>=4){bonus+=3; notes.push(`Time-travelling XI: ${decadesUsed} decades represented.`);}
+  if(nationsUsed>=6){bonus+=3; notes.push(`World XI: ${nationsUsed} nations in one dressing room.`);}
+  /* A captain with a genuine, real-world great captaincy record for
+     this exact country/format/decade gives a small, flat leadership
+     boost — not scaled by how good the record was, just a reward for
+     picking a real historically great leader. Both this and the
+     position lift are back, now layered on top of a tighter win-
+     probability curve so wins still can't stack up too easily. */
+  const capMatch = isEliteCaptain(xi[captainIdx], FMTKEY);
+  if(capMatch){ bonus += 0.25; notes.push(`🎖️ ${capMatch.n} led with a real ${DECADE_LABEL[capMatch.d]} ${FMT.label} captaincy record — +0.25 team boost.`); }
+  const inPositionCount = xi.filter((p,i)=>positionPenalty(p, i+1)===0).length;
+  if(inPositionCount>0) notes.push(`${inPositionCount} player${inPositionCount===1?'':'s'} in their correct position — each gets a small individual rating boost.`);
+  const strength = bat*0.5 + bowl*0.5 + bonus;
+  return {bat:Math.round(bat), bowl:Math.round(bowl), strength, notes};
+}
+
+let moveFromIdx = null;
+
+function showCaptainPick(){
+  switchScreen('scr-captain');
+  document.getElementById('captainSub').textContent = 'Who leads this side onto twelve hostile grounds?';
+  moveFromIdxCap = null;
+  renderCaptainList();
+}
+
+/* Rearranging is possible both live during the draft (mini-sheet, on
+   xiSlots) AND here on the finished XI (this screen, on xi) — a last
+   chance to fine-tune positions before picking a captain. */
+let moveFromIdxCap = null;
+function legalCaptainSwapTargets(i){
+  const targets = [];
+  for(let j=0;j<11;j++){
+    if(j===i) continue;
+    if(swapFits(j, xi[i]) && swapFits(i, xi[j])) targets.push(j);
+  }
+  return targets;
+}
+function renderCaptainList(){
+  const nat = id=>NATIONS.find(n=>n.id===id);
+  const list = document.getElementById('captainList');
+  if(moveFromIdxCap===null){
+    list.innerHTML = xi.map((p,i)=>{
+      const isCap = i===captainIdx;
+      const pen = positionPenalty(p, i+1);
+      const posBadge = pen===0
+        ? `<span class="oop-badge" style="color:#5FC97A;border-color:#4A9D5F">IN POSITION</span>`
+        : `<span class="oop-badge">OUT OF POSITION</span>`;
+      const capMatch = isEliteCaptain(p, FMTKEY);
+      const capBadge = capMatch ? `<span class="oop-badge" style="color:var(--brass);border-color:var(--brass)">🎖️ ELITE CAPTAIN</span>` : '';
+      return `<div class="lineup-row ${isCap?'is-cap':''}" data-idx="${i}">
+        <button class="lu-move" onclick="startMoveCap(${i})" ontouchstart="captainDragTouchStart(event,${i})" ontouchmove="captainDragTouchMove(event)" ontouchend="captainDragTouchEnd(event)" title="Move or drag to swap">⇅</button>
+        <span class="flag">${nat(p.c).flag}</span>
+        <div class="who">
+          <div class="nm-row">
+            <span class="nm">${p.n} <span class="decade">'${p.d}</span></span>
+            <button class="lu-cap ${isCap?'active':''}" onclick="chooseCaptain(${i})" title="Captain">C</button>
+          </div>
+          <span class="rl">${SLOTS[i].title} (${SLOTS[i].no}) · ${p.roles.map(r=>ROLE_LABEL[r]).join(' · ')} ${posBadge}${capBadge}</span>
+        </div>
+      </div>`;
+    }).join('');
+  } else {
+    const p = xi[moveFromIdxCap];
+    const targets = legalCaptainSwapTargets(moveFromIdxCap);
+    list.innerHTML = `<button class="back-link" onclick="cancelMoveCap()">← Cancel</button>
+      <div class="pos-prompt">Swap ${p.n} with...</div>
+      <div class="pos-grid">` +
+      (targets.length
+        ? targets.map(j=>{
+            const pen = positionPenalty(p, SLOTS[j].no);
+            return `<button class="pos-btn ${pen===0?'fit-good':''}" onclick="doCaptainSwap(${moveFromIdxCap},${j})">${xi[j].n}<small>Position ${SLOTS[j].no} — ${fitBadge(pen)}</small></button>`;
+          }).join('')
+        : `<div class="lb-empty">No other position can legally swap with him.</div>`
+      ) + `</div>`;
+  }
+}
+function startMoveCap(i){ moveFromIdxCap = i; renderCaptainList(); }
+function cancelMoveCap(){ moveFromIdxCap = null; renderCaptainList(); }
+function doCaptainSwap(i, j){
+  const tmp = xi[i]; xi[i] = xi[j]; xi[j] = tmp;
+  if(captainIdx===i) captainIdx=j; else if(captainIdx===j) captainIdx=i;
+  moveFromIdxCap = null;
+  renderCaptainList();
+}
+let capDragState = null;
+function captainDragTouchStart(e, i){
+  const t = e.touches[0];
+  const rowEl = e.currentTarget.closest('.lineup-row');
+  capDragState = { fromIdx:i, startX:t.clientX, startY:t.clientY, moved:false, legal: legalCaptainSwapTargets(i), rowEl, hoverIdx:null };
+}
+function captainDragTouchMove(e){
+  if(!capDragState) return;
+  const t = e.touches[0];
+  const dx = t.clientX-capDragState.startX, dy = t.clientY-capDragState.startY;
+  if(!capDragState.moved && Math.hypot(dx,dy) > 12){
+    capDragState.moved = true;
+    capDragState.rowEl.classList.add('dragging');
+    document.querySelectorAll('.lineup-row').forEach(r=>{
+      const idx = +r.dataset.idx;
+      if(idx!==capDragState.fromIdx) r.classList.toggle('drag-illegal', !capDragState.legal.includes(idx));
+    });
+  }
+  if(capDragState.moved){
+    e.preventDefault();
+    capDragState.rowEl.style.transform = `translateY(${dy}px)`;
+    const el = document.elementFromPoint(t.clientX, t.clientY);
+    const overRow = el ? el.closest('.lineup-row') : null;
+    const overIdx = overRow ? +overRow.dataset.idx : null;
+    document.querySelectorAll('.lineup-row').forEach(r=>r.classList.remove('drag-over'));
+    if(overIdx!==null && overIdx!==capDragState.fromIdx && capDragState.legal.includes(overIdx)){
+      overRow.classList.add('drag-over');
+      capDragState.hoverIdx = overIdx;
+    } else capDragState.hoverIdx = null;
+  }
+}
+function captainDragTouchEnd(e){
+  if(!capDragState) return;
+  if(capDragState.moved){
+    e.preventDefault();
+    const from = capDragState.fromIdx, to = capDragState.hoverIdx;
+    capDragState = null;
+    if(to!==null && to!==undefined) doCaptainSwap(from, to);
+    else renderCaptainList();
+  } else {
+    capDragState = null;
+  }
+}
+function chooseCaptain(i){
+  captainIdx = i;
+  renderCaptainList();
+}
+
+/* Once the XI is set, the keeper slot stops being wk-exclusive for
+   rearranging purposes — a straight swap needs BOTH directions to
+   be legal, and only another keeper could otherwise ever vacate a
+   pure wk slot. This lets a keeper move anywhere batting-capable
+   and lets any batter/all-rounder cover his old spot. */
+function swapFits(slotIdx, p){
+  return SLOTS[slotIdx].fits(p);
+}
+
+/* touch drag: press-and-hold the ⇅ handle on a mini-sheet row and
+   drag onto another filled row to swap. A quick tap (no real
+   movement) still opens the tap-to-pick menu via the onclick above. */
+let dragState = null;
+function dragTouchStart(e, i){
+  const t = e.touches[0];
+  const rowEl = e.currentTarget.closest('.ms-row');
+  dragState = { fromIdx:i, startX:t.clientX, startY:t.clientY, moved:false, legal: legalSwapTargets(i), rowEl, hoverIdx:null };
+}
+function dragTouchMove(e){
+  if(!dragState) return;
+  const t = e.touches[0];
+  const dx = t.clientX-dragState.startX, dy = t.clientY-dragState.startY;
+  if(!dragState.moved && Math.hypot(dx,dy) > 12){
+    dragState.moved = true;
+    dragState.rowEl.classList.add('dragging');
+    document.querySelectorAll('.ms-row').forEach(r=>{
+      const idx = +r.dataset.idx;
+      if(r.dataset.idx!==undefined && idx!==dragState.fromIdx) r.classList.toggle('drag-illegal', !dragState.legal.includes(idx));
+    });
+  }
+  if(dragState.moved){
+    e.preventDefault();
+    dragState.rowEl.style.transform = `translateY(${dy}px)`;
+    const el = document.elementFromPoint(t.clientX, t.clientY);
+    const overRow = el ? el.closest('.ms-row') : null;
+    const overIdx = (overRow && overRow.dataset.idx!==undefined) ? +overRow.dataset.idx : null;
+    document.querySelectorAll('.ms-row').forEach(r=>r.classList.remove('drag-over'));
+    if(overIdx!==null && overIdx!==dragState.fromIdx && dragState.legal.includes(overIdx)){
+      overRow.classList.add('drag-over');
+      dragState.hoverIdx = overIdx;
+    } else dragState.hoverIdx = null;
+  }
+}
+function dragTouchEnd(e){
+  if(!dragState) return;
+  if(dragState.moved){
+    e.preventDefault();
+    const from = dragState.fromIdx, to = dragState.hoverIdx;
+    dragState = null;
+    if(to!==null && to!==undefined) doSwap(from, to);
+    else renderMiniSheet();
+  } else {
+    dragState = null;
+  }
+}
+
+function showReview(){
+  switchScreen('scr-review');
+  const rows = document.getElementById('xiRows');
+  rows.innerHTML = xi.map((p,i)=>{
+    const nat = NATIONS.find(n=>n.id===p.c);
+    return `<div class="sheet-row">
+      <span class="no">${i+1}</span><span class="fl">${nat.flag}</span>
+      <span class="nm">${p.n}${i===captainIdx?'<span class="capbadge">C</span>':''}</span>
+      <span class="dk">'${p.d}</span>
+      <span class="rt">${p.r}</span></div>`;
+  }).join('');
+  const st = teamStrengths();
+  document.getElementById('avgRating').textContent = 'Avg ' + (xi.reduce((a,p)=>a+p.r,0)/11).toFixed(1);
+  document.getElementById('batVal').textContent = st.bat;
+  document.getElementById('bowlVal').textContent = st.bowl;
+  document.getElementById('batBar').style.width = clamp((st.bat-70)/29*100,4,100)+'%';
+  document.getElementById('bowlBar').style.width = clamp((st.bowl-70)/29*100,4,100)+'%';
+  document.getElementById('balanceNote').textContent = st.notes.join('  ·  ');
+}
+
+/* ================= SEASON SIM =================
+   Nine 5-Test series, one against every nation.
+   The dream result: every series won 5-0 (45-0). */
+let tourStops = [];
+let revealRows = [];
+let revealTimers = [];
+let revealIdx = 0;
+let tourTotals = null;
+let runScore = 0;
+
+/* ---- one match, always in their stadium, always played to a result ----
+   Test keeps genuine draws. ODI / T20 / Hundred never draw: a level
+   scores match goes to a Super Over (or Super Five) which decides it. */
+function showSkipBtn(){
+  document.body.classList.add('sim-active');          // pins the NOT OUT masthead
+  const mh = document.querySelector('.masthead').offsetHeight;
+  document.documentElement.style.setProperty('--masthead-h', mh+'px');
+  document.getElementById('skipBtn').style.display='block';
+  document.getElementById('scr-season').classList.add('sim-active');
+}
+function hideSkipBtn(){
+  document.getElementById('skipBtn').style.display='none';
+  document.getElementById('scr-season').classList.remove('sim-active');
+  document.body.classList.remove('sim-active');
+}
+function decideMatch(strength, oppRating){
+  const diff = strength - oppRating;
+  /* Tightened from the original 0.04/0.95 — even independent of the
+     captain and position bonuses, the decades/nations bonuses alone
+     were enough to push a well-built side past the win-probability
+     cap against most of the field. This keeps wins genuinely harder
+     to stack up regardless of which bonuses apply. */
+  const pW = clamp(0.50 + diff*0.02, 0.06, 0.85);
+  if(FMTKEY==='test'){
+    const pD = clamp(0.13 - diff*0.004, 0.04, 0.18);
+    const roll = Math.random();
+    return { code: roll<pW ? 'W' : roll<pW+pD ? 'D' : 'L', superOver:false };
+  }
+  const pTie = clamp(0.08 - Math.abs(diff)*0.0015, 0.02, 0.08);
+  if(Math.random() < pTie){
+    const pWsuper = clamp(0.5 + diff*0.05, 0.18, 0.82);
+    return { code: Math.random()<pWsuper ? 'W' : 'L', superOver:true };
+  }
+  const rescaled = clamp(pW/(1-pTie), 0.06, 0.85);
+  return { code: Math.random()<rescaled ? 'W' : 'L', superOver:false };
+}
+function decideNeutral(oppA, oppB){
+  const diff = oppA - oppB;
+  const pTie = clamp(0.08 - Math.abs(diff)*0.0015, 0.02, 0.08);
+  if(Math.random() < pTie) return Math.random() < clamp(0.5+diff*0.05,0.18,0.82);
+  return Math.random() < clamp(clamp(0.5+diff*0.04,0.06,0.95)/(1-pTie), 0.06, 0.95);
+}
+
+/* ---- scorecard generation ---- */
+function genTestMatch(code, nat){
+  let score, margin, pts;
+  if(code==='D'){
+    const a1=rand(300,540), b1=rand(280,520), a2=rand(150,330), a2w=rand(4,8), b2=rand(90,260), b2w=rand(4,9);
+    score=`You ${b1} & ${b2}/${b2w} \u00b7 ${nat.id} ${a1} & ${a2}/${a2w}d`;
+    margin=pickOne(['drawn \u2014 last pair survive','drawn \u2014 flat pitch wins','drawn \u2014 nine down at stumps']);
+    pts = 35;
+  } else {
+    const weWin = code==='W';
+    const style = Math.random()<0.18?'inn':(Math.random()<0.5?'runs':'wkts');
+    if(style==='inn'){
+      const big=rand(440,660), x1=rand(120,300), x2=rand(80,Math.max(90,big-x1-15));
+      const gap=Math.max(5,big-x1-x2);
+      score = weWin ? `You ${big}d \u00b7 ${nat.id} ${x1} & ${x2}` : `${nat.id} ${big}d \u00b7 You ${x1} & ${x2}`;
+      margin = `${weWin?'won':'lost'} by an innings & ${gap} runs`;
+      pts = weWin ? 190 : -160;
+    } else if(style==='runs'){
+      const f1=rand(260,500), f2=rand(140,330), R=rand(25,260);
+      const c1=rand(120,Math.max(140,Math.min(360,f1+f2-R-60))), c2=Math.max(40,f1+f2-c1-R);
+      score = weWin ? `You ${f1} & ${f2}d \u00b7 ${nat.id} ${c1} & ${c2}`
+                    : `${nat.id} ${f1} & ${f2}d \u00b7 You ${c1} & ${c2}`;
+      margin = `${weWin?'won':'lost'} by ${R} runs`;
+      pts = weWin ? 100 + clamp(R/3, 5, 85) : -(70 + clamp(R/4, 5, 60));
+    } else {
+      const a1=rand(180,400), b1=rand(150,420), a2=rand(140,360);
+      const chase=Math.max(30,a1+a2-b1+1), w=rand(2,8);
+      score = weWin ? `${nat.id} ${a1} & ${a2} \u00b7 You ${b1} & ${chase}/${10-w}`
+                    : `You ${a1} & ${a2} \u00b7 ${nat.id} ${b1} & ${chase}/${10-w}`;
+      margin = `${weWin?'won':'lost'} by ${w} wickets`;
+      pts = weWin ? 100 + clamp(w*10, 20, 80) : -(70 + clamp(w*8, 15, 60));
+    }
+  }
+  return {score, margin, pts: Math.round(pts)};
+}
+function genWhiteBallMatch(code, nat, superOver){
+  const t20 = FMTKEY==='t20';
+  const lo=t20?130:220, hi=t20?225:380, ov=t20?'20 ov':'50 ov';
+  const weWin = code==='W';
+  const runMult = t20 ? 1.4 : 0.65;
+  if(superOver){
+    const x=rand(lo+20,hi-10), w1=rand(4,9), w2=rand(4,9);
+    const mine=rand(9, t20?24:20), theirs= weWin? rand(Math.max(3,mine-9),mine-1) : rand(mine+1,mine+9);
+    const line = weWin ? `Super Over: You ${mine}/${rand(0,2)} beat ${nat.id} ${theirs}/${rand(0,2)}`
+                        : `Super Over: ${nat.id} ${mine}/${rand(0,2)} beat You ${theirs}/${rand(0,2)}`;
+    return {score:`You ${x}/${w1} (${ov}) \u00b7 ${nat.id} ${x}/${w2} (${ov})`, margin:line, pts: weWin?115:-75};
+  }
+  if(Math.random()<0.5){
+    const first=rand(lo+30,hi), R=rand(t20?4:8, t20?60:130), chase=Math.max(40,first-R);
+    const bonus = clamp(R*runMult, 5, 85);
+    return {score: weWin?`You ${first}/${rand(3,8)} (${ov}) \u00b7 ${nat.id} ${chase} all out`
+                        :`${nat.id} ${first}/${rand(3,8)} (${ov}) \u00b7 You ${chase} all out`,
+            margin:`${weWin?'won':'lost'} by ${first-chase} runs`,
+            pts: Math.round(weWin ? 100+bonus : -(65+bonus*0.7))};
+  } else {
+    const first=rand(lo,hi-25), w=rand(1,8);
+    const bonus = clamp(w*11, 15, 85);
+    return {score: weWin?`${nat.id} ${first}/${rand(5,10)} (${ov}) \u00b7 You ${first+rand(1,6)}/${10-w}`
+                        :`You ${first}/${rand(5,10)} (${ov}) \u00b7 ${nat.id} ${first+rand(1,6)}/${10-w}`,
+            margin:`${weWin?'won':'lost'} by ${w} wickets`,
+            pts: Math.round(weWin ? 100+bonus : -(65+bonus*0.6))};
+  }
+}
+
+/* ---- player of the match ---- */
+function potmStat(p){
+  const short=FMTKEY==='t20', odi=FMTKEY==='odi';
+  const role = p.roles[0];
+  const bat = ()=> FMTKEY==='test' ? (Math.random()<0.3?`${rand(90,190)} & ${rand(40,110)}`:`${rand(85,224)}`)
+              : odi ? `${rand(72,168)} (${rand(60,140)})` : `${rand(40,102)} (${rand(24,58)})`;
+  const bowl= ()=> FMTKEY==='test' ? `${rand(5,9)}-${rand(34,130)} in the match` : `${rand(3,short?5:6)}-${rand(short?8:18,short?26:52)}`;
+  if(role==='bowl') return bowl();
+  if(role==='bat'||role==='wk') return bat();
+  return Math.random()<0.5 ? bat() : bowl();
+}
+function pickPOTM(code, nat){
+  if(code!=='L'){
+    const pool=[...xi].sort((a,b)=>b.r-a.r);
+    const p=pool[Math.min(pool.length-1, Math.floor(Math.pow(Math.random(),2)*7))];
+    return `${p.n} \u2014 ${potmStat(p)}`;
+  }
+  let opp=PLAYERS.filter(x=>x.c===nat.id && x.d==='2020s' && !draftedNames.has(x.n));
+  if(!opp.length) opp=PLAYERS.filter(x=>x.c===nat.id && !draftedNames.has(x.n));
+  if(!opp.length) return `their captain \u2014 match-winning knock`;
+  const p=opp.sort((a,b)=>b.r-a.r)[Math.min(opp.length-1,Math.floor(Math.random()*3))];
+  return `${p.n} (${nat.id}) \u2014 ${potmStat(p)}`;
+}
+
+/* The whole tour is run under a seeded RNG so it's reproducible.
+   The seed (not the score) is what gets sent for verification —
+   the server replays the exact same deterministic simulation from
+   the seed and computes its own score, never trusting the client's. */
+function mulberry32(seed){
+  return function(){
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+let runSeed = null;
+const __nativeRandom = Math.random.bind(Math);
+function beginTour(){
+  runSeed = Math.floor(__nativeRandom() * 2**31);
+  Math.random = mulberry32(runSeed);
+  if(represMode) startRepresentLeague();
+  else startSeason();
+}
+
+let revealTotalStops = 12;
+let revealStopWord = 'Tour stop';
+let revealOnFinish = (delay)=>finishSeason(delay);
+
+function startSeason(){
+  switchScreen('scr-season');
+  document.getElementById('seasonEyebrow').textContent = 'World Tour \u00b7 60 Matches \u00b7 All In Their Stadiums';
+  revealTotalStops = 12; revealStopWord = 'Tour stop'; revealOnFinish = (delay)=>finishSeason(delay);
+  const st = teamStrengths();
+  const stops = shuffle(NATIONS.slice());
+
+  tourStops = []; revealRows = [];
+  let w=0,d=0,l=0;
+  let totalSeriesWon=0, totalSweeps=0, marginSum=0, marginCount=0;
+  stops.forEach((nat,si)=>{
+    revealRows.push({kind:'stop', html:`<span class="st-flag">${nat.flag}</span><span class="st-name">${nat.name}</span><span class="st-venue">Five ${FMT.noun}${FMTKEY==='test'?'es':'s'} across the country \u00b7 today\u2019s ${FMT.label} side</span>`,
+                     tally:null, stop:si+1});
+    const matches=[];
+    for(let m=0;m<5;m++){
+      const venue = nat.venues[m % nat.venues.length];
+      const res = decideMatch(st.strength, nat.opp+4);
+      const code = res.code;
+      const gen = FMTKEY==='test' ? genTestMatch(code, nat) : genWhiteBallMatch(code, nat, res.superOver);
+      const potm = pickPOTM(code, nat);
+      if(code==='W'){
+        w++;
+        /* margin-of-victory quality, normalised 0-1 across the realistic
+           range of win points a match can score */
+        marginSum += clamp((gen.pts-100)/(190-100), 0, 1);
+        marginCount++;
+      } else if(code==='D')d++; else l++;
+      matches.push({code, ...gen, potm, venue});
+      revealRows.push({kind:'match', code, num:si*5+m+1,
+        html:`<span class="tno">M${String(si*5+m+1).padStart(2,'0')}</span>
+        <span class="op">vs ${nat.name} \u2014 ${venue}<span class="score">${gen.score}</span><span class="score" style="color:var(--cream-dim)">${gen.margin}</span><span class="potm">POTM: ${potm}</span></span>
+        <span class="badge ${code}">${code==='W'?'WON':code==='D'?'DRAW':'LOST'}</span>`,
+        tally:`${w}\u2013${d}\u2013${l}`, stop:si+1});
+    }
+    tourStops.push({nat, matches});
+
+    /* A series-score line after every five matches, on top of the
+       individual match reveal — not instead of it. */
+    const sw=matches.filter(x=>x.code==='W').length, sd=matches.filter(x=>x.code==='D').length, sl=matches.filter(x=>x.code==='L').length;
+    const seriesCode = sw>sl ? 'W' : sw<sl ? 'L' : 'D';
+    const seriesLabel = seriesCode==='W' ? 'SERIES WON' : seriesCode==='L' ? 'SERIES LOST' : 'SERIES DRAWN';
+    const record = FMTKEY==='test' ? `${sw}\u2013${sd}\u2013${sl}` : `${sw}\u2013${sl}`;
+    if(sw>sl) totalSeriesWon++;
+    if(sw===5) totalSweeps++;
+    revealRows.push({kind:'series', code:seriesCode, num:si+1,
+      html:`<span class="tno">SERIES</span>
+      <span class="op">vs ${nat.name}<span class="score">Series score: ${record}</span></span>
+      <span class="badge ${seriesCode}">${seriesLabel}</span>`,
+      tally:`${w}\u2013${d}\u2013${l}`, stop:si+1});
+  });
+  tourTotals={w,d,l};
+  /* Weighted composite: 50% matches won, 20% series won, 20% clean
+     sweeps (5-0), 10% average margin-of-victory quality. SCORE_POOL is
+     the total achievable by a flawless 60-0, every-series-swept tour. */
+  const SCORE_POOL = 10000;
+  const winsComponent   = (w/60) * SCORE_POOL * 0.50;
+  const seriesComponent = (totalSeriesWon/12) * SCORE_POOL * 0.20;
+  const sweepComponent  = (totalSweeps/12) * SCORE_POOL * 0.20;
+  const marginComponent = (marginCount>0 ? marginSum/marginCount : 0) * SCORE_POOL * 0.10;
+  runScore = Math.round(winsComponent + seriesComponent + sweepComponent + marginComponent);
+  Math.random = __nativeRandom;   // tour fully computed; stop consuming the seeded sequence
+
+  const box=document.getElementById('fixtures');
+  box.innerHTML='';
+  document.getElementById('verdict').classList.remove('show');
+  document.getElementById('seasonTally').textContent='0\u20130\u20130';
+  document.getElementById('testTally').textContent='Tour stop 0 of 12';
+  showSkipBtn();
+  revealIdx=0;
+  revealTimers=revealRows.map((_,i)=>setTimeout(()=>revealOne(i), 340*(i+1)));
+}
+
+function appendRow(row){
+  const el=document.createElement('div');
+  const cls = row.kind==='stop' ? 'tour-stop' : row.kind==='table' ? 'table-card' : row.kind==='announce' ? 'tour-announce' : row.kind==='series' ? 'fixture series-row' : 'fixture';
+  el.className = cls+' shown';
+  el.innerHTML=row.html;
+  document.getElementById('fixtures').appendChild(el);
+  return el;
+}
+function revealOne(i){
+  const row=revealRows[i];
+  const el=appendRow(row);
+  if(row.tally) document.getElementById('seasonTally').textContent=row.tally;
+  document.getElementById('testTally').textContent=`${revealStopWord} ${row.stop} of ${revealTotalStops}`;
+  el.scrollIntoView({behavior:'smooth', block:'nearest'});
+  revealIdx=i+1;
+  if(revealIdx===revealRows.length) revealOnFinish(700);
+}
+function skipReveal(){
+  revealTimers.forEach(clearTimeout);
+  for(let i=revealIdx;i<revealRows.length;i++) appendRow(revealRows[i]);
+  revealIdx=revealRows.length;
+  const last = revealRows[revealRows.length-1];
+  if(last && last.tally) document.getElementById('seasonTally').textContent=last.tally;
+  document.getElementById('testTally').textContent=`${revealStopWord} ${revealTotalStops} of ${revealTotalStops}`;
+  revealOnFinish(150);
+}
+function finishSeason(delay){
+  hideSkipBtn();
+  setTimeout(()=>verdict(), delay);
+}
+
+/* ---- tour-long squad statistics, consistent with the tour result ---- */
+function computeSquadStats(){
+  const M = Math.max(1, tourTotals.w+tourTotals.d+tourTotals.l);
+  const winRate = tourTotals.w/M;
+  const test=FMTKEY==='test', odi=FMTKEY==='odi', t20=FMTKEY==='t20';
+  const battingMult = 0.85 + 0.45*winRate;      /* good tours = bigger averages */
+  const bowlingMult = 1.15 - 0.35*winRate;      /* good tours = cheaper wickets */
+
+  /* Individual innings scores, simulated one by one (exponential-shaped:
+     mostly small scores, occasional big ones, matching how batting really
+     distributes) so that High Score, 100s and 50s are read directly off
+     the same underlying innings — they can never contradict each other,
+     unlike deriving them from separate unrelated formulas. */
+  function genInningsScores(inns, mean, cap){
+    const scores = [];
+    for(let i=0;i<inns;i++){
+      let sc = Math.round(-mean * Math.log(1 - Math.random()*0.995));
+      if(sc<0) sc=0;
+      if(sc>cap) sc=cap;
+      scores.push(sc);
+    }
+    return scores;
+  }
+  const batting = xi.map((p,i)=>{
+    const pos=i+1;
+    const pureBowler = p.roles.includes('bowl') && !p.roles.includes('ar');
+    const isAR = p.roles.includes('ar');
+    /* position sets opportunity (innings, not-outs); the PLAYER sets quality */
+    let inns = test ? Math.round(M*(pos<=7?rand(165,185):rand(110,145))/100)
+                    : Math.round(M*(pos<=4?rand(94,100):pos<=7?rand(78,92):isAR?rand(55,72):rand(28,55))/100);
+    const no = Math.max(0, Math.round(inns*(pos>=8?rand(20,32):pos>=6?rand(12,18):rand(5,11))/100));
+    let base;
+    if(pureBowler){
+      base = pos<=7 ? rand(14,26) : rand(9,20);          /* bowlers bat like bowlers, wherever they are */
+    } else {
+      const effR = p.r - positionPenalty(p, pos);         /* small hit for batting out of position */
+      base = test ? 38 + (effR-81)*1.35 : odi ? 34 + (effR-80)*1.15 : 22 + (effR-80)*0.75;
+      if(isAR) base *= 0.88;                              /* genuine AR batting, reflective of the player */
+      if(pos>=8) base *= 0.92;                            /* slightly fewer chances down at 8/9 */
+    }
+    const mean = Math.max(4, base*battingMult*(0.92+Math.random()*0.16));
+    const cap = test?294:odi?189:121;
+    const scores = genInningsScores(Math.max(inns,1), mean, cap);
+    const runs = scores.reduce((a,b)=>a+b,0);
+    const hs = scores.length ? Math.max(...scores) : 0;
+    const h = scores.filter(sc=>sc>=100).length;
+    const f = scores.filter(sc=>sc>=50 && sc<100).length;
+    const sr = t20 ? Math.round(105 + (p.r-80)*2.2 + Math.random()*12)
+             : odi ? Math.round(72 + (p.r-80)*1.4 + Math.random()*8) : null;
+    return {n:p.n, pos, inns, no, runs, hs, ave: runs/(Math.max(1,inns-no)), h, f, sr};
+  }).sort((a,b)=>b.runs-a.runs);
+
+  const {unit:bowlUnit, partTimer} = getBowlingUnit(xi);
+  const bowlers = bowlUnit.map(p=>({p, pos: xi.findIndex(x=>x.n===p.n&&x.d===p.d)+1, partTime: !!(partTimer && p.n===partTimer.n)}));
+  const bowling = bowlers.map(({p,pos,partTime})=>{
+    const isAR = p.roles.includes('ar') && !p.roles.includes('bowl');
+    const ptMult = partTime ? 0.22 : 1;      /* occasional overs only, not a frontline workload */
+    const perMatch = (test ? 2.0+(p.r-80)*0.14 : odi ? 1.15+(p.r-80)*0.055 : 1.05+(p.r-80)*0.05) * (isAR?0.55:1) * ptMult;
+    const wkts = Math.max(partTime?2:isAR?8:20, Math.round(M*perMatch*(0.9+Math.random()*0.2)/bowlingMult));
+    const ave = Math.max(11, (test?30-(p.r-80)*0.55 : odi?31-(p.r-80)*0.5 : 23-(p.r-80)*0.35)*bowlingMult*(0.92+Math.random()*0.16)*(partTime?1.4:1));
+    const bbw = Math.min(test?9:6, (test?4:3)+Math.floor((p.r-80)/5)+rand(0,1));
+    const bbr = rand(test?18:8, test?70:isAR?38:30);
+    const five = partTime ? 0 : test ? Math.max(0,Math.round(wkts/rand(42,60))) : Math.max(0,Math.round(wkts/rand(60,90)));
+    const econ = t20 ? (8.7-(p.r-80)*0.085)*(0.95+Math.random()*0.1)*(partTime?1.3:1)
+               : odi ? (5.5-(p.r-80)*0.05)*(0.95+Math.random()*0.1)*(partTime?1.3:1) : null;
+    return {n:p.n+(partTime?' (pt)':''), wkts, ave, bb:`${bbw}-${bbr}`, five, econ};
+  }).sort((a,b)=>b.wkts-a.wkts);
+
+  return {batting, bowling};
+}
+
+function renderSquadStats(){
+  const {batting, bowling} = computeSquadStats();
+  const test=FMTKEY==='test', t20=FMTKEY==='t20';
+  const batHead = test ? ['Player','Inns','NO','Runs','HS','Ave','100s','50s']
+                       : ['Player','Inns','Runs','HS','Ave','SR', t20?'50s':'100/50'];
+  const batRows = batting.map(b=>{
+    const cells = test ? [b.inns,b.no,b.runs,b.hs,b.ave.toFixed(1),b.h,b.f]
+                       : [b.inns,b.runs,b.hs,b.ave.toFixed(1),b.sr, t20?b.f:`${b.h}/${b.f}`];
+    return `<tr><td>${b.n}</td>${cells.map(c=>`<td>${c}</td>`).join('')}</tr>`;
+  }).join('');
+  const bowlHead = test ? ['Player','Wkts','Ave','BBI','5WI']
+                        : ['Player','Wkts','Ave','Econ','BBI'];
+  const bowlRows = bowling.map(b=>{
+    const cells = test ? [b.wkts,b.ave.toFixed(1),b.bb,b.five]
+                       : [b.wkts,b.ave.toFixed(1),b.econ.toFixed(2),b.bb];
+    return `<tr><td>${b.n}</td>${cells.map(c=>`<td>${c}</td>`).join('')}</tr>`;
+  }).join('');
+  document.getElementById('squadStats').innerHTML =
+    `<h3>Tour batting · ${tourTotals.w+tourTotals.d+tourTotals.l} matches</h3>
+     <table class="stat-table"><tr>${batHead.map(h=>`<th>${h}</th>`).join('')}</tr>${batRows}</table>
+     <h3>Tour bowling</h3>
+     <table class="stat-table"><tr>${bowlHead.map(h=>`<th>${h}</th>`).join('')}</tr>${bowlRows}</table>`;
+}
+
+/* ================= LEADERBOARD =================
+   Prefers the sanctioned artifact storage (window.storage) so scores
+   persist inside Claude; falls back to localStorage for a deployed
+   copy of this page, and to an in-memory list if neither is available. */
+/* =================================================================
+   OPTIONAL GLOBAL LEADERBOARD (Firebase / Firestore)
+   ------------------------------------------------------------------
+   Setup (one-time, in the Firebase console):
+     1. console.firebase.google.com \u2192 Add project.
+     2. In the project, click the </> icon to register a Web App.
+        Firebase will show you a firebaseConfig object \u2014 copy it.
+     3. Build \u2192 Firestore Database \u2192 Create database
+        \u2192 Start in production mode \u2192 pick any location.
+     4. Firestore \u2192 Rules tab \u2192 replace the rules with:
+
+          rules_version = '2';
+          service cloud.firestore {
+            match /databases/{database}/documents {
+              match /leaderboard/{entryId} {
+                allow read: if true;
+                allow create: if request.resource.data.score is int
+                              && request.resource.data.score >= 0
+                              && request.resource.data.score <= 50000
+                              && request.resource.data.name is string
+                              && request.resource.data.name.size() <= 20
+                              && request.resource.data.label is string
+                              && request.resource.data.record is string;
+                allow update, delete: if false;
+              }
+            }
+          }
+
+     5. Paste your six config values into firebaseConfig below.
+   Until you do step 5, this game keeps working exactly as before,
+   with a leaderboard saved only to this device.
+   ================================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyAJn57TWDncUzvAfUqpuW7rFU2cQzV1r7Y",
+  authDomain: "not-out-186a9.firebaseapp.com",
+  projectId: "not-out-186a9",
+  storageBucket: "not-out-186a9.firebasestorage.app",
+  messagingSenderId: "918827446036",
+  appId: "1:918827446036:web:ae0b73529df3ff57e45c01",
+  measurementId: "G-WQBC2ZZ9Z3"
+};
+let fbDB = null;
+try{
+  if(firebaseConfig.apiKey !== "PASTE_YOUR_API_KEY_HERE" && typeof firebase !== 'undefined'){
+    firebase.initializeApp(firebaseConfig);
+    fbDB = firebase.firestore();
+  }
+}catch(e){ console.warn('Firebase not configured \u2014 using a device-only leaderboard.', e); }
+
+const LB_KEY = 'notout_leaderboard_v1';
+const NAME_KEY = 'notout_player_name';
+let leaderboard = [];
+let lbReturnScreen = 'scr-intro';
+
+/* Strip anything that could be used to inject markup, both because a
+   name this game stores gets rendered back into other players' pages
+   via the shared leaderboard, and because a direct API write could
+   bypass the client entirely — sanitising on capture is defence
+   layer one; escHtml() at render time (below) is layer two. */
+function sanitizeName(raw){
+  return String(raw).replace(/[<>&"'`]/g, '').replace(/\s+/g,' ').slice(0,20).trim();
+}
+function escHtml(s){
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function getPlayerName(){
+  let name = '';
+  try{ name = localStorage.getItem(NAME_KEY) || ''; }catch(e){}
+  if(name) return Promise.resolve(name);
+  if(!fbDB) return Promise.resolve('Anonymous');
+  return new Promise((resolve)=>{
+    const modal = document.getElementById('nameModal');
+    const input = document.getElementById('nameInput');
+    modal.style.display = 'flex';
+    input.value = '';
+    setTimeout(()=>input.focus(), 50);
+    window.__resolvePlayerName = (val)=>{
+      const clean = sanitizeName(val) || 'Anonymous';
+      try{ localStorage.setItem(NAME_KEY, clean); }catch(e){}
+      modal.style.display = 'none';
+      resolve(clean);
+    };
+  });
+}
+function confirmNameInput(){
+  window.__resolvePlayerName(document.getElementById('nameInput').value);
+}
+
+/* filterFmt, when given (and not 'all'), queries Firestore directly
+   for that format's own top scores instead of relying on a single
+   global top-200 across every format. That global list is what
+   originally broke the Hundred tab: Hundred kept its own, much
+   smaller scoring scale, so its entries never got anywhere near the
+   top 200 once Test/ODI/T20 moved to a 0–10,000 formula — the
+   Hundred filter wasn't missing data, it just never received any. */
+async function lbLoad(filterFmt){
+  if(fbDB){
+    try{
+      let query = fbDB.collection('leaderboard');
+      if(filterFmt === 'represent'){
+        query = query.where('mode','==','represent').orderBy('score','desc').limit(50);
+      } else if(filterFmt && filterFmt!=='all'){
+        query = query.where('format','==',filterFmt).orderBy('score','desc').limit(50);
+      } else {
+        query = query.orderBy('score','desc').limit(200);
+      }
+      const snap = await query.get();
+      let docs = snap.docs.map(d=>d.data());
+      // Represent Your Nation points (max ~132) are a different scale
+      // entirely from the weighted-composite Test/ODI/T20/Hundred score
+      // (thousands) — mixed into "All" they'd always sink to the
+      // bottom looking like bad runs rather than a different metric,
+      // so they're excluded here and shown only under their own tab.
+      if(!filterFmt || filterFmt==='all') docs = docs.filter(e => e.mode!=='represent');
+      return docs;
+    }catch(e){ console.warn('Firestore read failed, showing device-only scores.', e); }
+  }
+  let arr = [];
+  try{
+    if(typeof window!=='undefined' && window.storage && window.storage.get){
+      const res = await window.storage.get(LB_KEY, false);
+      arr = (res && res.value) ? JSON.parse(res.value) : [];
+    } else {
+      const raw = localStorage.getItem(LB_KEY);
+      arr = raw ? JSON.parse(raw) : [];
+    }
+  }catch(e){}
+  if(filterFmt === 'represent'){
+    arr = arr.filter(e => e.mode==='represent');
+  } else if(filterFmt && filterFmt!=='all'){
+    arr = arr.filter(e => e.mode!=='represent' && (e.format ? e.format===filterFmt : e.label===LB_FILTER_LABEL[filterFmt]));
+  } else {
+    arr = arr.filter(e => e.mode!=='represent');
+  }
+  return arr;
+}
+async function lbSaveLocal(arr){
+  try{
+    if(typeof window!=='undefined' && window.storage && window.storage.set){
+      await window.storage.set(LB_KEY, JSON.stringify(arr), false);
+      return;
+    }
+  }catch(e){}
+  try{ localStorage.setItem(LB_KEY, JSON.stringify(arr)); }catch(e){}
+}
+/* Direct client writes to the leaderboard are no longer trusted —
+   Firestore rules should reject them entirely. This posts only the
+   seed and the drafted XI to the verified Cloud Function, which
+   replays the exact deterministic tour server-side, computes its
+   own score from scratch, and is the only thing allowed to write
+   to the leaderboard. Paste your deployed function's URL below. */
+const FUNCTION_URL = 'https://submitscore-n64ap7izcq-uc.a.run.app';
+/* Set this to your deployed submitRepresentScore URL after running
+   `firebase deploy --only functions` — see the deployment guide. */
+const REPRESENT_FUNCTION_URL = 'https://us-central1-not-out-186a9.cloudfunctions.net/submitRepresentScore';
+async function submitVerifiedRepresentResult(playerName){
+  const xiPayload = xi.map(p=>({n:p.n, d:p.d, c:p.c}));
+  const res = await fetch(REPRESENT_FUNCTION_URL, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({format:FMTKEY, country:represCountry, seed:runSeed, xi:xiPayload, captainIdx, name:playerName})
+  });
+  const data = await res.json();
+  if(!res.ok || !data.ok) throw new Error(data.error || ('HTTP '+res.status));
+  return data; // {ok, rank, points, record}
+}
+async function showRepresentScoreAndSave(){
+  const yourNat = NATIONS.find(n=>n.id===represCountry);
+  const yourRow = representTable.find(r=>r.isYou);
+  const localRank = representTable.findIndex(r=>r.isYou)+1;
+  const localRecord = `${yourRow.w}-${yourRow.d}-${yourRow.t}-${yourRow.l}`;
+  const functionConfigured = REPRESENT_FUNCTION_URL && !REPRESENT_FUNCTION_URL.includes('PASTE_YOUR');
+  const playerName = await getPlayerName();
+  const rankEl = document.getElementById('scoreRank');
+
+  if(fbDB && functionConfigured){
+    try{
+      const data = await submitVerifiedRepresentResult(playerName);
+      rankEl.innerHTML = `<div class="review-badge review-good">${pickOne(NOT_OUT_REVIEWS)}</div><div class="review-sub">Saved to the leaderboard \u2014 finished P${data.rank} with ${data.points} points representing ${yourNat.name}.</div>`;
+      return;
+    }catch(e){
+      console.warn('Server verification failed for Represent Your Nation, saving to this device instead.', e);
+      const entry = {name:playerName, score:yourRow.pts, record:localRecord, label:FMT.label, mode:'represent', country:represCountry, countryName:yourNat.name, rank:localRank, points:yourRow.pts, date:new Date().toISOString()};
+      await recordScore(entry);
+      rankEl.innerHTML = `<div class="review-badge review-bad">${pickOne(OUT_REVIEWS)}</div><div class="review-sub">Saved to this device instead \u2014 finished P${localRank} with ${yourRow.pts} points.</div>`;
+      return;
+    }
+  }
+  const entry = {name:playerName, score:yourRow.pts, record:localRecord, label:FMT.label, mode:'represent', country:represCountry, countryName:yourNat.name, rank:localRank, points:yourRow.pts, date:new Date().toISOString()};
+  await recordScore(entry);
+  rankEl.innerHTML = `<div class="review-sub">Saved to this device \u2014 finished P${localRank} with ${yourRow.pts} points.</div>`;
+}
+
+async function lbLoadRawLocal(){
+  /* Unfiltered read of whatever's actually in local storage — used
+     only when writing, never for display. recordScore() must never
+     save the shared `leaderboard` variable directly, since that's
+     frequently a FILTERED view (lbLoad('all') deliberately excludes
+     Represent Your Nation entries so they don't get buried under the
+     normal Test/ODI/T20/Hundred scoring scale) — saving a filtered
+     view back to storage would silently delete whatever it excluded. */
+  try{
+    if(typeof window!=='undefined' && window.storage && window.storage.get){
+      const res = await window.storage.get(LB_KEY, false);
+      return (res && res.value) ? JSON.parse(res.value) : [];
+    } else {
+      const raw = localStorage.getItem(LB_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }
+  }catch(e){ return []; }
+}
+async function recordScore(entry){
+  /* device-only fallback — used if the verified endpoint isn't
+     configured yet, or a submission to it fails for any reason.
+     Always re-reads the full raw array from storage rather than
+     trusting the in-memory `leaderboard` variable, which may
+     currently hold a filtered view (see lbLoadRawLocal above). */
+  const full = await lbLoadRawLocal();
+  full.push(entry);
+  full.sort((a,b)=>b.score-a.score);
+  const idx = full.indexOf(entry);
+  const trimmed = full.slice(0,100);
+  await lbSaveLocal(trimmed);
+  return idx;
+}
+async function submitVerifiedScore(playerName){
+  /* Include country alongside name+decade — a handful of real players
+     (Eoin Morgan, Boyd Rankin, and others who switched allegiances or
+     predate today's national boundaries) share the exact same name and
+     decade across two different countries. Without country in the key,
+     the server could silently resolve the wrong one. */
+  const xiPayload = xi.map(p=>({n:p.n, d:p.d, c:p.c}));
+  const res = await fetch(FUNCTION_URL, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({format:FMTKEY, seed:runSeed, xi:xiPayload, captainIdx, name:playerName})
+  });
+  const data = await res.json();
+  if(!res.ok || !data.ok) throw new Error(data.error || ('HTTP '+res.status));
+  return data; // {ok, score, record}
+}
+const NOT_OUT_REVIEWS = [
+  'Reviewed by 3rd Umpire \u2014 DRS Tracking confirms \u2014 Not Out',
+  'Reviewed by 3rd Umpire \u2014 Snicko confirms \u2014 Not Out',
+  'Reviewed by 3rd Umpire \u2014 Catch Camera confirms \u2014 Not Out',
+  'Reviewed by 3rd Umpire \u2014 Run Out Camera confirms \u2014 Not Out',
+];
+const OUT_REVIEWS = [
+  'Reviewed by 3rd Umpire \u2014 DRS Tracking confirms \u2014 Out',
+  'Reviewed by 3rd Umpire \u2014 Snicko confirms \u2014 Out',
+  'Reviewed by 3rd Umpire \u2014 Catch Camera confirms \u2014 Out',
+  'Reviewed by 3rd Umpire \u2014 Run Out Camera confirms \u2014 Out',
+];
+/* Mode-specific rank, plus a top-15-overall callout when it applies —
+   purely a display computation over the leaderboard that was already
+   fetched via lbLoad(); it never affects what gets written. */
+/* modeEntries must already be scoped to this format specifically
+   (via lbLoad(FMTKEY)) — filtering a global top-200 client-side broke
+   this exact same way the leaderboard tabs did, for the same reason:
+   a low-scoring format's own best entry may never appear in a global
+   top-200 dominated by a higher-scoring format. overallEntries stays
+   the genuine global list, for the separate top-15-overall callout. */
+function formatRankMessage(modeEntries, overallEntries, score, record, modeName){
+  const modeIdx = modeEntries.findIndex(e => e.score===score && e.record===record);
+  const overallIdx = overallEntries.findIndex(e => e.score===score && e.record===record);
+  let msg = '';
+  if(modeIdx===0) msg = `New ${modeName} all-time best!`;
+  else if(modeIdx>=0) msg = `#${modeIdx+1} in ${modeName}!`;
+  else msg = `Saved to the ${modeName} leaderboard.`;
+  if(overallIdx>=0 && overallIdx<15) msg += ` (#${overallIdx+1} overall)`;
+  return msg;
+}
+async function showScoreAndSave(record){
+  document.getElementById('scoreValue').textContent = runScore.toLocaleString();
+  leaderboard = await lbLoad('all');
+  const rankEl = document.getElementById('scoreRank');
+  const functionConfigured = FUNCTION_URL && !FUNCTION_URL.includes('YOUR_REGION');
+  const playerName = await getPlayerName();
+
+  if(fbDB && functionConfigured){
+    try{
+      const data = await submitVerifiedScore(playerName);
+      document.getElementById('scoreValue').textContent = data.score.toLocaleString();
+      const [modeEntries, overallEntries] = await Promise.all([lbLoad(FMTKEY), lbLoad('all')]);
+      const extra = formatRankMessage(modeEntries, overallEntries, data.score, data.record, FMT.label);
+      rankEl.innerHTML = `<div class="review-badge review-good">${pickOne(NOT_OUT_REVIEWS)}</div><div class="review-sub">${extra}</div>`;
+      return;
+    }catch(e){
+      console.warn('Server verification failed, saving to this device instead.', e);
+      const entry = {name:playerName, score:runScore, label:FMT.label, format:FMTKEY, record, date:new Date().toISOString()};
+      await recordScore(entry);
+      const [modeEntries, overallEntries] = await Promise.all([lbLoad(FMTKEY), lbLoad('all')]);
+      const extra = formatRankMessage(modeEntries, overallEntries, entry.score, entry.record, FMT.label);
+      rankEl.innerHTML = `<div class="review-badge review-bad">${pickOne(OUT_REVIEWS)}</div><div class="review-sub">${extra} (saved to device)</div>`;
+      return;
+    }
+  }
+  const entry = {name:playerName, score:runScore, label:FMT.label, format:FMTKEY, record, date:new Date().toISOString()};
+  await recordScore(entry);
+  const [modeEntries, overallEntries] = await Promise.all([lbLoad(FMTKEY), lbLoad('all')]);
+  const extra = formatRankMessage(modeEntries, overallEntries, entry.score, entry.record, FMT.label);
+  rankEl.innerHTML = `<div class="review-sub">${extra} (saved to device)</div>`;
+}
+let lbFilter = 'all';
+const LB_FILTER_LABEL = {test:'Test Match', odi:'ODI', t20:'T20', hundred:'The Hundred'};
+
+function lbFilteredEntries(){
+  if(lbFilter==='all') return leaderboard;
+  if(lbFilter==='represent') return leaderboard.filter(e => e.mode==='represent');
+  return leaderboard.filter(e => e.mode!=='represent' && (e.format ? e.format===lbFilter : e.label===LB_FILTER_LABEL[lbFilter]));
+}
+function renderLbBody(){
+  const body = document.getElementById('lbBody');
+  const rows = lbFilteredEntries().slice(0,15);
+  if(!rows.length){
+    body.innerHTML = '<div class="lb-empty">No scores yet for this mode \u2014 be the first.</div>';
+    return;
+  }
+  body.innerHTML = rows.map((e,i)=>{
+    const d = new Date(e.date);
+    const when = isNaN(d) ? '' : d.toLocaleDateString();
+    if(e.mode==='represent'){
+      const nat = NATIONS.find(n=>n.id===e.country);
+      const flag = nat ? nat.flag : '';
+      const countryName = e.countryName || (nat ? nat.name : e.country);
+      return `<div class="lb-row ${i===0?'top1':''}">
+        <span class="lb-rank">${i+1}</span>
+        <div class="lb-mid"><div class="lb-score">${flag} ${countryName} \u00b7 P${e.rank} \u00b7 ${e.points} pts <span style="font-weight:400;color:var(--cream-dim);font-size:12px">\u2014 ${escHtml(e.name||'Anonymous')}</span></div><div class="lb-meta">${escHtml(e.record)} \u00b7 ${e.label} \u00b7 ${when}</div></div>
+        <span class="lb-fmt">Represent</span>
+      </div>`;
+    }
+    return `<div class="lb-row ${i===0?'top1':''}">
+      <span class="lb-rank">${i+1}</span>
+      <div class="lb-mid"><div class="lb-score">${e.score.toLocaleString()} pts <span style="font-weight:400;color:var(--cream-dim);font-size:12px">\u2014 ${escHtml(e.name||'Anonymous')}</span></div><div class="lb-meta">${escHtml(e.record)} \u00b7 ${when}</div></div>
+      <span class="lb-fmt">${e.label}</span>
+    </div>`;
+  }).join('');
+}
+async function setLbFilter(mode){
+  lbFilter = mode;
+  document.querySelectorAll('.lb-pill').forEach(b=>b.classList.remove('selected'));
+  const btn = document.querySelector(`.lb-pill[data-mode="${mode}"]`);
+  if(btn) btn.classList.add('selected');
+  const body = document.getElementById('lbBody');
+  body.innerHTML = '<div class="lb-empty">Loading\u2026</div>';
+  leaderboard = await lbLoad(mode);
+  renderLbBody();
+}
+async function openLeaderboard(){
+  lbReturnScreen = document.getElementById('verdict').classList.contains('show') ? 'scr-season' : 'scr-intro';
+  lbFilter = 'all';
+  document.querySelectorAll('.lb-pill').forEach(b=>b.classList.remove('selected'));
+  const allBtn = document.querySelector('.lb-pill[data-mode="all"]');
+  if(allBtn) allBtn.classList.add('selected');
+  leaderboard = await lbLoad('all');
+  renderLbBody();
+  switchScreen('scr-leaderboard');
+}
+function closeLeaderboard(){ switchScreen(lbReturnScreen); }
+
+/* ===================== REPRESENT YOUR NATION ===================== */
+/* One country, one format, every player drafted must be theirs (only
+   the decade is random). Simulated as a genuine round-robin league
+   against all 11 other nations \u2014 your 11 matches are revealed one
+   by one, and the other 55 matches between the OTHER nations are
+   simulated in the background (never shown) purely to produce a
+   realistic-looking final table. Points: win=12, tie=6 each,
+   draw=4 each, loss=0. Self-contained: does not submit to the global
+   leaderboard/score-verification system. */
+let represMode = false;
+let represCountry = null;
+let represFmt = 'test';
+let representMatches = [];
+let representTable = [];
+const REPRESENT_MIN_PLAYERS = 11;
+
+async function showRepresentSetup(){
+  represMode = true;
+  represCountry = null;
+  represFmt = 'test';
+  document.querySelectorAll('#representFmtRow .fmt-btn').forEach(b=>b.classList.remove('selected'));
+  const testBtn = document.querySelector('#representFmtRow .fmt-btn[data-fmt="test"]');
+  if(testBtn) testBtn.classList.add('selected');
+  document.getElementById('representStartBtn').disabled = true;
+  switchScreen('scr-represent-setup');
+  const grid = document.getElementById('representCountryGrid');
+  grid.innerHTML = '<div class="lb-empty">Loading\u2026</div>';
+  await ensureFormatLoaded('test');
+  renderRepresentCountryGrid();
+}
+function exitRepresentSetup(){
+  represMode = false;
+  switchScreen('scr-intro');
+}
+async function selectRepresentFormat(fmt){
+  represFmt = fmt;
+  represCountry = null;
+  document.getElementById('representStartBtn').disabled = true;
+  document.querySelectorAll('#representFmtRow .fmt-btn').forEach(b=>b.classList.remove('selected'));
+  const btn = document.querySelector(`#representFmtRow .fmt-btn[data-fmt="${fmt}"]`);
+  if(btn) btn.classList.add('selected');
+  const grid = document.getElementById('representCountryGrid');
+  grid.innerHTML = '<div class="lb-empty">Loading\u2026</div>';
+  await ensureFormatLoaded(fmt);
+  renderRepresentCountryGrid();
+}
+function representNationPlayerCount(natId, fmt){
+  const pool = DB[fmt] || [];
+  let n = 0;
+  for(const p of pool){ if(p.c===natId) n++; }
+  return n;
+}
+function renderRepresentCountryGrid(){
+  const grid = document.getElementById('representCountryGrid');
+  grid.innerHTML = NATIONS.map(n=>{
+    const count = representNationPlayerCount(n.id, represFmt);
+    const disabled = count < REPRESENT_MIN_PLAYERS;
+    const sel = represCountry===n.id;
+    return `<button class="represent-country-btn ${sel?'selected':''} ${disabled?'disabled':''}" ${disabled?'disabled':''} onclick="selectRepresentCountry('${n.id}')">
+      <span class="flag">${n.flag}</span><span class="nm">${n.name}</span>
+      ${disabled ? `<small>Not enough ${FORMATS[represFmt].label} players</small>` : ''}
+    </button>`;
+  }).join('');
+}
+function selectRepresentCountry(natId){
+  const count = representNationPlayerCount(natId, represFmt);
+  if(count < REPRESENT_MIN_PLAYERS) return;
+  represCountry = natId;
+  renderRepresentCountryGrid();
+  document.getElementById('representStartBtn').disabled = false;
+}
+async function startRepresentDraft(){
+  if(!represCountry) return;
+  await selectFormat(represFmt);
+  if(!DB[represFmt]){
+    const ok = await ensureFormatLoaded(represFmt);
+    if(!ok) return;
+  }
+  const nat = NATIONS.find(n=>n.id===represCountry);
+  document.getElementById('mastSub').textContent = `Represent ${nat.name} \u00b7 ${FMT.label}`;
+  switchScreen('scr-draft');
+  renderBoard();
+}
+
+/* Same underlying probability curve as decideMatch, but exposes the
+   draw/tie outcome directly instead of resolving white-ball ties via
+   Super Over \u2014 a league table needs a real third/fourth outcome to
+   award points against, not a forced winner. */
+function decideRepresentMatch(strength, oppRating){
+  const diff = strength - oppRating;
+  const pW = clamp(0.50 + diff*0.02, 0.06, 0.85);
+  if(FMTKEY==='test'){
+    const pD = clamp(0.13 - diff*0.004, 0.04, 0.18);
+    const roll = Math.random();
+    return roll<pW ? 'W' : roll<pW+pD ? 'D' : 'L';
+  }
+  const pTie = clamp(0.08 - Math.abs(diff)*0.0015, 0.02, 0.08);
+  const roll = Math.random();
+  if(roll<pTie) return 'T';
+  const rescaled = clamp(pW/(1-pTie), 0.06, 0.85);
+  return Math.random()<rescaled ? 'W' : 'L';
+}
+function decideRepresentNeutral(oppA, oppB){
+  const diff = oppA - oppB;
+  const pW = clamp(0.50 + diff*0.02, 0.06, 0.85);
+  if(FMTKEY==='test'){
+    const pD = clamp(0.13 - diff*0.004, 0.04, 0.18);
+    const roll = Math.random();
+    return roll<pW ? 'A' : roll<pW+pD ? 'D' : 'B';
+  }
+  const pTie = clamp(0.08 - Math.abs(diff)*0.0015, 0.02, 0.08);
+  const roll = Math.random();
+  if(roll<pTie) return 'T';
+  const rescaled = clamp(pW/(1-pTie), 0.06, 0.85);
+  return Math.random()<rescaled ? 'A' : 'B';
+}
+function genTieMatch(nat){
+  const t20 = FMTKEY==='t20';
+  const lo = t20?130:220, hi = t20?225:380, ov = t20?'20 ov':'50 ov';
+  const score = rand(lo+20, hi-10);
+  const w1 = rand(4,9), w2 = rand(4,9);
+  return { score:`You ${score}/${w1} (${ov}) \u00b7 ${nat.id} ${score}/${w2} (${ov})`, margin:'scores level \u2014 match tied' };
+}
+
+function buildRepresentTable(yourNat, opponents, yourMatches){
+  const recs = {};
+  const allNats = [yourNat, ...opponents];
+  allNats.forEach(n=>recs[n.id]={w:0,d:0,t:0,l:0,pts:0});
+
+  yourMatches.forEach(m=>{
+    const oppId = m.opp.id;
+    if(m.code==='W'){ recs[yourNat.id].w++; recs[yourNat.id].pts+=12; recs[oppId].l++; }
+    else if(m.code==='D'){ recs[yourNat.id].d++; recs[yourNat.id].pts+=4; recs[oppId].d++; recs[oppId].pts+=4; }
+    else if(m.code==='T'){ recs[yourNat.id].t++; recs[yourNat.id].pts+=6; recs[oppId].t++; recs[oppId].pts+=6; }
+    else { recs[yourNat.id].l++; recs[oppId].w++; recs[oppId].pts+=12; }
+  });
+
+  for(let i=0;i<opponents.length;i++){
+    for(let j=i+1;j<opponents.length;j++){
+      const A=opponents[i], B=opponents[j];
+      const result = decideRepresentNeutral(A.opp, B.opp);
+      if(result==='A'){ recs[A.id].w++; recs[A.id].pts+=12; recs[B.id].l++; }
+      else if(result==='B'){ recs[B.id].w++; recs[B.id].pts+=12; recs[A.id].l++; }
+      else if(result==='D'){ recs[A.id].d++; recs[A.id].pts+=4; recs[B.id].d++; recs[B.id].pts+=4; }
+      else if(result==='T'){ recs[A.id].t++; recs[A.id].pts+=6; recs[B.id].t++; recs[B.id].pts+=6; }
+    }
+  }
+
+  const rows = allNats.map(n=>({
+    id:n.id, name:n.name, flag:n.flag, isYou:n.id===yourNat.id,
+    w:recs[n.id].w, d:recs[n.id].d, t:recs[n.id].t, l:recs[n.id].l, pts:recs[n.id].pts,
+    jitter:Math.random()
+  }));
+  rows.sort((a,b)=> b.pts-a.pts || b.w-a.w || b.jitter-a.jitter);
+  return rows;
+}
+
+function startRepresentLeague(){
+  switchScreen('scr-season');
+  const yourNat = NATIONS.find(n=>n.id===represCountry);
+  document.getElementById('seasonEyebrow').textContent = `Represent ${yourNat.name} \u00b7 League \u00b7 11 Matches`;
+  revealTotalStops = 11; revealStopWord = 'Match'; revealOnFinish = (delay)=>finishRepresentLeague(delay);
+
+  const st = teamStrengths();
+  const opponents = shuffle(NATIONS.filter(n=>n.id!==represCountry));
+
+  representMatches = []; revealRows = [];
+  let w=0,d=0,t=0,l=0;
+  opponents.forEach((opp,i)=>{
+    revealRows.push({kind:'stop', html:`<span class="st-flag">${opp.flag}</span><span class="st-name">${opp.name}</span><span class="st-venue">Match ${i+1} of 11</span>`,
+                     tally:null, stop:i+1});
+    const code = decideRepresentMatch(st.strength, opp.opp);
+    let gen;
+    if(code==='T') gen = genTieMatch(opp);
+    else if(FMTKEY==='test') gen = genTestMatch(code, opp);
+    else gen = genWhiteBallMatch(code, opp, false);
+    const potm = pickPOTM(code, opp);
+    if(code==='W'){w++;} else if(code==='D'){d++;} else if(code==='T'){t++;} else {l++;}
+    representMatches.push({opp, code, ...gen, potm});
+    const resultLabel = code==='W'?'WON':code==='D'?'DRAWN':code==='T'?'TIED':'LOST';
+    revealRows.push({kind:'match', code,
+      html:`<span class="tno">M${i+1}</span>
+      <span class="op">vs ${opp.name}<span class="score">${gen.score}</span><span class="score" style="color:var(--cream-dim)">${gen.margin}</span><span class="potm">POTM: ${potm}</span></span>
+      <span class="badge ${code==='T'?'D':code}">${resultLabel}</span>`,
+      tally:`${w}\u2013${d}\u2013${t}\u2013${l}`, stop:i+1});
+  });
+
+  representTable = buildRepresentTable(yourNat, opponents, representMatches);
+  tourTotals = {w, d:d+t, l};
+
+  const box=document.getElementById('fixtures');
+  box.innerHTML='';
+  document.getElementById('verdict').classList.remove('show');
+  document.getElementById('seasonTally').textContent='0\u20130\u20130\u20130';
+  document.getElementById('testTally').textContent='Match 0 of 11';
+  showSkipBtn();
+  revealIdx=0;
+  revealTimers=revealRows.map((_,i)=>setTimeout(()=>revealOne(i), 340*(i+1)));
+}
+
+function representTableHTML(){
+  const rows = representTable.map((r,i)=>`<tr${r.isYou?' style="color:var(--brass);font-weight:700"':''}><td>${i+1}</td><td>${r.flag} ${r.name}${r.isYou?' (YOU)':''}</td><td>11</td><td>${r.w}</td><td>${r.d}</td><td>${r.t}</td><td>${r.l}</td><td>${r.pts}</td></tr>`).join('');
+  return `<h3 style="margin-top:2px">Final League Table</h3>
+    <table class="stat-table"><tr><th>Pos</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>T</th><th>L</th><th>Pts</th></tr>${rows}</table>`;
+}
+function finishRepresentLeague(delay){
+  hideSkipBtn();
+  setTimeout(()=>{
+    const box = document.getElementById('fixtures');
+    appendRow({kind:'table', html: representTableHTML()});
+    box.lastChild.scrollIntoView({behavior:'smooth', block:'nearest'});
+    setTimeout(()=>representVerdict(), 700);
+  }, delay);
+}
+function representVerdict(){
+  const v = document.getElementById('verdict');
+  const yourRow = representTable.find(r=>r.isYou);
+  const rank = representTable.findIndex(r=>r.isYou)+1;
+  const yourNat = NATIONS.find(n=>n.id===represCountry);
+  const rec = `${yourRow.w} WON \u00b7 ${yourRow.d} DRAWN \u00b7 ${yourRow.t} TIED \u00b7 ${yourRow.l} LOST \u2014 ${yourRow.pts} PTS`;
+  let title, body;
+  if(rank===1){ title='CHAMPIONS OF THE WORLD'; body=`${yourNat.name} finished top of the table with ${yourRow.pts} points from 11 matches \u2014 every other side in the world, and you came out on top.`; }
+  else if(rank<=3){ title=`FINISHED P${rank}`; body=`A genuine podium finish for ${yourNat.name} \u2014 ${yourRow.pts} points from 11 matches, right up with the very best sides in the world.`; }
+  else if(rank<=6){ title=`FINISHED P${rank}`; body=`A solid mid-table campaign for ${yourNat.name} with ${yourRow.pts} points \u2014 competitive, but the top sides in the world edged it this time.`; }
+  else { title=`FINISHED P${rank}`; body=`A tough league campaign for ${yourNat.name} \u2014 ${yourRow.pts} points from 11 matches. The rest of the cricketing world proved too strong on this occasion.`; }
+  document.getElementById('verdictRec').textContent = rec;
+  document.getElementById('verdictTitle').textContent = title;
+  document.getElementById('verdictBody').textContent = body;
+  document.getElementById('scoreCard').style.display = 'none';
+  renderSquadStats();
+  showRepresentScoreAndSave().then(()=>{
+    v.classList.add('show');
+    v.scrollIntoView({behavior:'smooth'});
+  });
+}
+
+function verdict(){
+  const v=document.getElementById('verdict');
+  document.getElementById('scoreCard').style.display = '';
+  const {w,d,l}=tourTotals;
+  const total=tourStops.length*5;
+  const seriesWins = tourStops.filter(st=>{
+    const sw=st.matches.filter(m=>m.code==='W').length;
+    const sl=st.matches.filter(m=>m.code==='L').length;
+    return sw>sl;
+  }).length;
+  const rec=`${w} WON \u00b7 ${d} ${FMTKEY==='test'?'DRAWN':'TIED'} \u00b7 ${l} LOST \u2014 ALL AWAY`;
+  let title, body;
+  if(w===total){ title=`THE IMMORTALS \u00b7 ${total}\u20130`; body=`${total} matches in twelve hostile stadiums. ${total} wins. Every current international side beaten in their own backyard, five times each, by a team pulled from across the decades. It will never be done again \u2014 including by you.`; }
+  else if(l===0){ title='UNBEATEN ON THE ROAD'; body=`Sixty away matches without defeat \u2014 but ${d} ${FMTKEY==='test'?'draw':'tie'}${d>1?'s':''} spoiled the perfect ${total}\u20130. Their crowds went home silent anyway.`; }
+  else if(w>=52){
+    title='WORLD DOMINATION';
+    const seriesNote = seriesWins===12 ? 'You swept every single series along the way \u2014 an absolute masterclass.' : 'A dropped series along the way keeps it from true perfection.';
+    body=`${w} wins out of ${total}, all in their stadiums. The ${l} that got away will haunt you, but every nation knows who runs this sport. ${seriesNote}`;
+  }
+  else if(w>=44){
+    title='FEARED TOURISTS';
+    const seriesNote = seriesWins===12 ? 'Remarkably, you still claimed victory in all 12 series!' : `You secured ${seriesWins} out of 12 series wins on hostile ground.`;
+    body=`${w} away wins is a serious body of work. Fortress after fortress fell \u2014 just not all of them. They will sing songs of this tour for years to come but it comes with what could have been... ${seriesNote}`;
+  }
+  else if(w>=31){
+    title='WINNING RECORD';
+    const seriesNote = seriesWins>=7 ? `You still came away with ${seriesWins} series victories out of 12.` : `Despite winning individual matches, you only claimed ${seriesWins} series win${seriesWins===1?'':'s'}.`;
+    body=`Won more than you lost in their backyards, which most touring sides never manage. The fans and selectors were happy with the ride but rueing the ones which got away! ${seriesNote}`;
+  }
+  else if(w>=22){
+    title='TOUGH TOUR';
+    const seriesNote = seriesWins>0 ? `Silver linings are hard to find, though you did salvage ${seriesWins} series win${seriesWins===1?'':'s'}.` : 'You failed to win a single series on the road.';
+    body=`The stadiums were loud, the pitches were theirs, and the results show it. The selectors and fans are asking a lot of questions. ${seriesNote}`;
+  }
+  else { title='SACK THE SELECTORS'; body='That was a long, painful lap of the world. On the bright side, the draft button still works.'; }
+  document.getElementById('verdictRec').textContent=rec;
+  document.getElementById('verdictTitle').textContent=title;
+  document.getElementById('verdictBody').textContent=body;
+  renderSquadStats();
+  showScoreAndSave(`${w}\u2013${d}\u2013${l}`).then(()=>{
+    v.classList.add('show');
+    v.scrollIntoView({behavior:'smooth'});
+  });
+}
+
+const SITE_URL = 'https://www.not-out.co.uk';
+const SHARE_CTA = `Think you can beat this? Draft your own XI \u2192 ${SITE_URL}`;
+function buildShareText(){
+  const {w,d,l}=tourTotals;
+  const lines=tourStops.map(st=>{
+    const dots=st.matches.map(m=>m.code==='W'?'\ud83d\udfe2':m.code==='D'?'\ud83d\udfe1':'\ud83d\udd34').join('');
+    const sw=st.matches.filter(m=>m.code==='W').length, sd=st.matches.filter(m=>m.code==='D').length, sl=st.matches.filter(m=>m.code==='L').length;
+    const record = FMTKEY==='test' ? `${sw}\u2013${sd}\u2013${sl}` : `${sw}\u2013${sl}`;
+    return `${st.nat.id} ${dots} Series: ${record}${sw===5?' \ud83e\uddf9':''}`;
+  }).join('\n');
+  return `NOT OUT* \u2014 Cricket World Domination \u00b7 ${FMT.label}\n60 matches, all away \u00b7 ${w}W ${d}${FMTKEY==='test'?'D':'T'} ${l}L\nScore: ${runScore.toLocaleString()} pts\n\n${lines}\n\n${SHARE_CTA}`;
+}
+
+
+function legacyCopy(txt){
+  try{
+    const ta=document.createElement('textarea');
+    ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    const ok=document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  }catch(e){ return false; }
+}
+
+function copyShare(){
+  const txt = buildShareText();
+  const b = document.getElementById('shareBtn');
+  const done = ()=>{ b.textContent='Copied to clipboard'; setTimeout(()=>b.textContent='Copy result',1600); };
+  const fallback = ()=>{
+    if(legacyCopy(txt)){ done(); return; }
+    const ta=document.getElementById('shareFallback');
+    ta.value=txt; ta.style.display='block'; ta.focus(); ta.select();
+    b.textContent='Select & copy the text below'; setTimeout(()=>b.textContent='Copy result',2600);
+  };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(txt).then(done).catch(fallback);
+  } else fallback();
+}
+
+/* ================= UTILS ================= */
+function switchScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  window.scrollTo({top:0});
+}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function rand(a,b){return a+Math.floor(Math.random()*(b-a+1));}
+function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
+function pickOne(a){return a[Math.floor(Math.random()*a.length)];}
+function escAttr(s){return s.replace(/"/g,'&quot;');}
+function draftAgain(){
+  /* instant reset \u2014 no page reload, so no re-downloading the Firebase
+     SDK or re-parsing the whole page. Same format stays selected. */
+  try{ localStorage.setItem('notout_last_format', FMTKEY); }catch(e){}
+
+  revealTimers.forEach(clearTimeout); revealTimers=[]; revealIdx=0;
+
+  xiSlots = new Array(11).fill(null);
+  picksMade = 0;
+  xi = [];
+  currentPair = null;
+  captainIdx = -1;
+  draftedNames = new Set();
+  drawing = false;
+  redoLeft = 1;
+
+  tourStops = [];
+  representMatches = [];
+  representTable = [];
+  tourTotals = null;
+  runScore = 0;
+
+  document.getElementById('pickGrid').innerHTML = '';
+  document.getElementById('drawCard').hidden = true;
+  document.getElementById('redrawBtn').style.display = 'none';
+  document.getElementById('drawBtn').disabled = false;
+  document.getElementById('miniSheet').innerHTML = '';
+  document.getElementById('fixtures').innerHTML = '';
+  document.getElementById('squadStats').innerHTML = '';
+  document.getElementById('verdict').classList.remove('show');
+  document.getElementById('scoreCard').style.display = '';
+  hideSkipBtn();
+  document.getElementById('shareFallback').style.display = 'none';
+
+  if(represMode){
+    switchScreen('scr-represent-setup');
+    renderRepresentCountryGrid();
+  } else {
+    switchScreen('scr-intro');
+  }
+  window.scrollTo({top:0});
+}
+const COOKIE_NOTICE_KEY = 'notout_cookie_notice_ack';
+function acceptCookieNotice(){
+  try{ localStorage.setItem(COOKIE_NOTICE_KEY, '1'); }catch(e){}
+  document.getElementById('cookieBanner').style.display = 'none';
+}
+function showCookieNoticeIfNeeded(){
+  try{
+    if(!localStorage.getItem(COOKIE_NOTICE_KEY)){
+      const el = document.getElementById('cookieBanner');
+      if(el) el.style.display = 'block';
+    }
+  }catch(e){}
+}
+if(document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', showCookieNoticeIfNeeded);
+}else{
+  showCookieNoticeIfNeeded(); // DOM already parsed by the time this script ran
+}
+
+let __startFmt = 'test';
+try{
+  const saved = localStorage.getItem('notout_last_format');
+  if(saved && FORMATS[saved]) __startFmt = saved;
+}catch(e){}
+selectFormat(__startFmt);   // async; fires the background fetch, intro screen doesn't need to wait
+</script>
+  <!-- NAME ENTRY MODAL -->
+  <div class="name-modal" id="nameModal" style="display:none">
+    <div class="name-modal-card">
+      <div class="name-modal-title">Name for the Leaderboard</div>
+      <p class="name-modal-sub">This is how you'll appear to everyone else</p>
+      <input type="text" id="nameInput" class="name-modal-input" maxlength="20" placeholder="Your name" autocomplete="off">
+      <button class="btn" style="margin-top:14px" onclick="confirmNameInput()">Save &amp; Continue</button>
+    </div>
+  </div>
+
+  <!-- GENERIC CONFIRM MODAL -->
+  <div class="name-modal" id="confirmModal" style="display:none">
+    <div class="name-modal-card">
+      <div class="name-modal-title" id="confirmTitle">Are you sure?</div>
+      <p class="name-modal-sub" id="confirmBody"></p>
+      <div class="confirm-btn-row">
+        <button class="btn secondary" onclick="resolveConfirm(false)">Cancel</button>
+        <button class="btn" id="confirmActionBtn" onclick="resolveConfirm(true)">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- COOKIE / STORAGE NOTICE -->
+  <div class="cookie-banner" id="cookieBanner" style="display:none">
+    <p>This site uses local storage on your device to remember your name and last-played format, and sends scores to a leaderboard service to keep the global rankings. No advertising or tracking cookies are used.</p>
+    <button class="btn" onclick="acceptCookieNotice()">Got it</button>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <div class="name-modal" id="infoModal" style="display:none">
+    <div class="name-modal-card" style="max-width:400px">
+      <div class="name-modal-title">How It Works</div>
+      <div class="info-modal-body">
+        <h4>Position</h4>
+        <p>Every player has a natural home in the batting order. Put him there and he's <b>IN POSITION</b> — anywhere else and he's <b>OUT OF POSITION</b>, which costs a little off his contribution. Correctly-placed players who make your best 7 batters or best 5 bowlers also add a small individual lift to your team.</p>
+        <h4>Captaincy</h4>
+        <p>Some players in this game were genuinely outstanding captains — real winning records, for that exact country, format and decade. Naming one of them your captain (look for the 🎖️ <b>ELITE CAPTAIN</b> tag) gives your team a small boost too.</p>
+        <h4>Rearranging</h4>
+        <p>You can fine-tune your order any time before the tour starts — tap the ⇅ handle to pick a swap, or press and drag a row straight onto another.</p>
+        <h4>Scoring</h4>
+        <p>Once the tour is under way, your team's overall strength is measured against each opponent to decide who wins. Your final score rewards <b>winning matches</b>, <b>winning series</b>, <b>whitewashing a series 5-0</b>, and <b>winning convincingly</b> rather than just scraping through — so a genuinely dominant, well-built XI scores far better than one that just gets over the line.</p>
+      </div>
+      <button class="btn" style="margin-top:16px" onclick="closeInfoModal()">Got it</button>
+    </div>
+  </div>
+</body>
+</html>
