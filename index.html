@@ -1993,11 +1993,15 @@ async function setLbFilter(mode){
 }
 async function openLeaderboard(){
   lbReturnScreen = document.getElementById('verdict').classList.contains('show') ? 'scr-season' : 'scr-intro';
-  lbFilter = 'all';
+  // Represent Your Nation entries never appear under "All" (different scoring
+  // scale — see lbLoad), so opening the leaderboard straight after a Represent
+  // run defaults to that tab instead, otherwise your own just-completed score
+  // looks like it's missing.
+  lbFilter = represMode ? 'represent' : 'all';
   document.querySelectorAll('.lb-pill').forEach(b=>b.classList.remove('selected'));
-  const allBtn = document.querySelector('.lb-pill[data-mode="all"]');
-  if(allBtn) allBtn.classList.add('selected');
-  leaderboard = await lbLoad('all');
+  const activeBtn = document.querySelector(`.lb-pill[data-mode="${lbFilter}"]`);
+  if(activeBtn) activeBtn.classList.add('selected');
+  leaderboard = await lbLoad(lbFilter);
   renderLbBody();
   switchScreen('scr-leaderboard');
 }
