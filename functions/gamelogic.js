@@ -201,7 +201,10 @@ function teamStrengths(){
   const inPositionCount = xi.filter((p,i)=>positionPenalty(p, i+1)===0).length;
   if(inPositionCount>0) notes.push(`${inPositionCount} player${inPositionCount===1?'':'s'} in their correct position — each gets a small individual rating boost.`);
   const strength = bat*0.5 + bowl*0.5 + bonus;
-  return {bat:Math.round(bat), bowl:Math.round(bowl), strength, notes};
+  // Display cap only — individual player ratings top out at 99, so the
+  // shown team number should too. strength (used for match odds) is
+  // computed above from the uncapped bat/bowl and is unaffected.
+  return {bat:Math.min(99, Math.round(bat)), bowl:Math.min(99, Math.round(bowl)), strength, notes};
 }
 
 function decideMatch(strength, oppRating){
