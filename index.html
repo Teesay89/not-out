@@ -82,6 +82,10 @@ img.emoji{height:1em;width:1em;vertical-align:-0.1em;margin:0 .02em}
 .name-modal-sub{font-family:'Archivo',sans-serif;font-size:12.5px;color:var(--cream-dim);margin-top:4px}
 .name-modal-input{width:100%;margin-top:16px;padding:12px 14px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--cream);font-family:'Archivo',sans-serif;font-size:15px;text-align:center}
 .name-modal-input:focus{outline:none;border-color:var(--brass)}
+.scorecard-modal-card{max-width:460px;text-align:left}
+.scorecard-modal-card .name-modal-title,.scorecard-modal-card .name-modal-sub{text-align:center}
+.fixture.clickable-match{cursor:pointer;transition:border-color .15s ease,background .15s ease}
+.fixture.clickable-match:hover{border-color:var(--brass);background:var(--panel-2)}
 .confirm-btn-row{display:flex;gap:10px;margin-top:16px}
 .confirm-btn-row .btn,.confirm-btn-row .btn+.btn{margin-top:0;flex:1}
 .cookie-banner{position:fixed;left:0;right:0;bottom:0;z-index:190;max-width:520px;margin:0 auto;background:linear-gradient(180deg,var(--panel-2),var(--panel));border-top:1px solid var(--brass);padding:14px 16px calc(14px + env(safe-area-inset-bottom));box-shadow:0 -10px 30px rgba(0,0,0,.5)}
@@ -630,7 +634,7 @@ const ERA_TIERS = {
 let eraFilter = 'all';
 let DECADES = FORMATS.test.decades;
 const DECADE_LABEL = {'1870s':'The 1870s', '1880s':'The 1880s', '1890s':'The 1890s', '1900s':'The 1900s', '1910s':'The 1910s', '1920s':'The 1920s', '1930s':'The 1930s', '1940s':'The 1940s', '1950s':'The 1950s', '1960s':'The 1960s', '1970s':'The 1970s', '1980s':'The 1980s', '1990s':'The 1990s', '2000s':'The 2000s', '2010s':'The 2010s', '2020s':'The 2020s'};
-const CAPTAINS_DB = [{"n":"Steve Waugh","c":"AUS","fmt":"test","d":"1990s","rt":92,"cid":"CRK0573"},{"n":"Mitchell Santner","c":"NZ","fmt":"odi","d":"2020s","rt":91,"cid":"CRK2336"},{"n":"Asghar Afghan","c":"AFG","fmt":"t20","d":"2020s","rt":91,"cid":"CRK0011"},{"n":"Asghar Afghan","c":"AFG","fmt":"t20","d":"2010s","rt":94,"cid":"CRK0011"},{"n":"Dhananjaya de Silva","c":"SL","fmt":"test","d":"2020s","rt":90,"cid":"CRK3318"},{"n":"Rohit Sharma","c":"IND","fmt":"t20","d":"2020s","rt":93,"cid":"CRK1867"},{"n":"Pat Cummins","c":"AUS","fmt":"odi","d":"2020s","rt":91,"cid":"CRK0490"},{"n":"Rohit Sharma","c":"IND","fmt":"t20","d":"2010s","rt":91,"cid":"CRK1867"},{"n":"Mike Brearley","c":"ENG","fmt":"odi","d":"1970s","rt":91,"cid":"CRK1235"},{"n":"Sarfaraz Ahmed","c":"PAK","fmt":"t20","d":"2010s","rt":93,"cid":"CRK2738"},{"n":"Ricky Ponting","c":"AUS","fmt":"odi","d":"2000s","rt":93,"cid":"CRK0538"},{"n":"Clive Lloyd","c":"WI","fmt":"odi","d":"1980s","rt":93,"cid":"CRK3594"},{"n":"Clive Lloyd","c":"WI","fmt":"odi","d":"1970s","rt":90,"cid":"CRK3594"},{"n":"Kane Williamson","c":"NZ","fmt":"test","d":"2020s","rt":89,"cid":"CRK2296"},{"n":"Mitchell Marsh","c":"AUS","fmt":"odi","d":"2020s","rt":89,"cid":"CRK0455"},{"n":"MS Dhoni","c":"IND","fmt":"test","d":"2000s","rt":89,"cid":"CRK1795"},{"n":"Ian Chappell","c":"AUS","fmt":"odi","d":"1970s","rt":89,"cid":"CRK0315"},{"n":"Tim Southee","c":"NZ","fmt":"t20","d":"2020s","rt":89,"cid":"CRK2430"},{"n":"Faf du Plessis","c":"SA","fmt":"odi","d":"2010s","rt":91,"cid":"CRK2968"},{"n":"Hansie Cronje","c":"SA","fmt":"odi","d":"1990s","rt":92,"cid":"CRK3258"},{"n":"Keshav Maharaj","c":"SA","fmt":"odi","d":"2020s","rt":88,"cid":"CRK3077"},{"n":"Steve Waugh","c":"AUS","fmt":"odi","d":"1990s","rt":92,"cid":"CRK0573"},{"n":"Rohit Sharma","c":"IND","fmt":"odi","d":"2020s","rt":92,"cid":"CRK1867"},{"n":"Shoaib Malik","c":"PAK","fmt":"t20","d":"2000s","rt":89,"cid":"CRK2765"},{"n":"Mitchell Marsh","c":"AUS","fmt":"t20","d":"2020s","rt":89,"cid":"CRK0455"},{"n":"Mike Gatting","c":"ENG","fmt":"odi","d":"1980s","rt":91,"cid":"CRK1357"},{"n":"Virat Kohli","c":"IND","fmt":"odi","d":"2010s","rt":92,"cid":"CRK1969"},{"n":"Kumar Sangakkara","c":"SL","fmt":"t20","d":"2000s","rt":88,"cid":"CRK3365"},{"n":"Paul Collingwood","c":"ENG","fmt":"t20","d":"2010s","rt":88,"cid":"CRK1396"},{"n":"Suryakumar Yadav","c":"IND","fmt":"t20","d":"2020s","rt":88,"cid":"CRK1917"},{"n":"Ricky Ponting","c":"AUS","fmt":"test","d":"2000s","rt":91,"cid":"CRK0538"},{"n":"Steve Waugh","c":"AUS","fmt":"test","d":"2000s","rt":91,"cid":"CRK0573"},{"n":"Allan Border","c":"AUS","fmt":"odi","d":"1990s","rt":91,"cid":"CRK0130"},{"n":"Michael Clarke","c":"AUS","fmt":"odi","d":"2010s","rt":91,"cid":"CRK0440"},{"n":"Shoaib Malik","c":"PAK","fmt":"odi","d":"2000s","rt":90,"cid":"CRK2765"},{"n":"Graeme Smith","c":"SA","fmt":"t20","d":"2000s","rt":89,"cid":"CRK2983"},{"n":"Rovman Powell","c":"WI","fmt":"t20","d":"2020s","rt":88,"cid":"CRK3834"},{"n":"KL Rahul","c":"IND","fmt":"odi","d":"2020s","rt":88,"cid":"CRK1749"},{"n":"Mahela Jayawardene","c":"SL","fmt":"t20","d":"2000s","rt":87,"cid":"CRK3322"},{"n":"Charith Asalanka","c":"SL","fmt":"odi","d":"2020s","rt":87,"cid":"CRK3370"},{"n":"Eoin Morgan","c":"ENG","fmt":"t20","d":"2020s","rt":89,"cid":"CRK1027"},{"n":"Viv Richards","c":"WI","fmt":"odi","d":"1980s","rt":90,"cid":"CRK3699"},{"n":"Kane Williamson","c":"NZ","fmt":"odi","d":"2020s","rt":87,"cid":"CRK2296"},{"n":"Shaun Pollock","c":"SA","fmt":"odi","d":"2000s","rt":90,"cid":"CRK3227"},{"n":"Rashid Khan","c":"AFG","fmt":"t20","d":"2020s","rt":88,"cid":"CRK0064"},{"n":"Waqar Younis","c":"PAK","fmt":"test","d":"1990s","rt":87,"cid":"CRK2797"},{"n":"AB de Villiers","c":"SA","fmt":"odi","d":"2010s","rt":90,"cid":"CRK2831"},{"n":"Ben Stokes","c":"ENG","fmt":"test","d":"2020s","rt":88,"cid":"CRK0902"},{"n":"Graeme Smith","c":"SA","fmt":"odi","d":"2000s","rt":90,"cid":"CRK2983"},{"n":"Rohit Sharma","c":"IND","fmt":"test","d":"2020s","rt":87,"cid":"CRK1867"},{"n":"Hardik Pandya","c":"IND","fmt":"t20","d":"2020s","rt":87,"cid":"CRK1707"},{"n":"Temba Bavuma","c":"SA","fmt":"test","d":"2020s","rt":86,"cid":"CRK3231"},{"n":"Younis Khan","c":"PAK","fmt":"t20","d":"2000s","rt":86,"cid":"CRK2809"},{"n":"Virat Kohli","c":"IND","fmt":"test","d":"2010s","rt":90,"cid":"CRK1969"},{"n":"Faf du Plessis","c":"SA","fmt":"t20","d":"2010s","rt":89,"cid":"CRK2968"},{"n":"Mohammad Hafeez","c":"PAK","fmt":"t20","d":"2010s","rt":88,"cid":"CRK2639"},{"n":"Eoin Morgan","c":"ENG","fmt":"odi","d":"2010s","rt":90,"cid":"CRK1027"},{"n":"Mitchell Santner","c":"NZ","fmt":"t20","d":"2020s","rt":87,"cid":"CRK2336"},{"n":"Mike Brearley","c":"ENG","fmt":"test","d":"1970s","rt":87,"cid":"CRK1235"},{"n":"Virat Kohli","c":"IND","fmt":"t20","d":"2020s","rt":87,"cid":"CRK1969"},{"n":"Pat Cummins","c":"AUS","fmt":"test","d":"2020s","rt":87,"cid":"CRK0490"},{"n":"Wasim Akram","c":"PAK","fmt":"odi","d":"1990s","rt":89,"cid":"CRK2799"},{"n":"Tom Latham","c":"NZ","fmt":"odi","d":"2020s","rt":88,"cid":"CRK2436"},{"n":"Babar Azam","c":"PAK","fmt":"odi","d":"2020s","rt":89,"cid":"CRK2525"},{"n":"MS Dhoni","c":"IND","fmt":"odi","d":"2000s","rt":89,"cid":"CRK1795"},{"n":"Jeremy Coney","c":"NZ","fmt":"odi","d":"1980s","rt":87,"cid":"CRK2283"},{"n":"Temba Bavuma","c":"SA","fmt":"t20","d":"2020s","rt":87,"cid":"CRK3231"},{"n":"MS Dhoni","c":"IND","fmt":"t20","d":"2000s","rt":87,"cid":"CRK1795"},{"n":"Greg Chappell","c":"AUS","fmt":"odi","d":"1970s","rt":86,"cid":"CRK0287"},{"n":"Virat Kohli","c":"IND","fmt":"odi","d":"2020s","rt":86,"cid":"CRK1969"},{"n":"Dimuth Karunaratne","c":"SL","fmt":"test","d":"2010s","rt":86,"cid":"CRK3332"},{"n":"Michael Clarke","c":"AUS","fmt":"t20","d":"2000s","rt":86,"cid":"CRK0440"},{"n":"Wanindu Hasaranga","c":"SL","fmt":"t20","d":"2020s","rt":86,"cid":"CRK3450"},{"n":"Litton Das","c":"BAN","fmt":"odi","d":"2020s","rt":85,"cid":"CRK0698"},{"n":"Waqar Younis","c":"PAK","fmt":"odi","d":"2000s","rt":89,"cid":"CRK2797"},{"n":"Mahela Jayawardene","c":"SL","fmt":"odi","d":"2000s","rt":89,"cid":"CRK3322"},{"n":"Virat Kohli","c":"IND","fmt":"t20","d":"2010s","rt":87,"cid":"CRK1969"},{"n":"Waqar Younis","c":"PAK","fmt":"test","d":"2000s","rt":86,"cid":"CRK2797"},{"n":"Inzamam-ul-Haq","c":"PAK","fmt":"odi","d":"2000s","rt":89,"cid":"CRK2582"},{"n":"Shikhar Dhawan","c":"IND","fmt":"odi","d":"2020s","rt":86,"cid":"CRK1896"},{"n":"Brendon McCullum","c":"NZ","fmt":"odi","d":"2010s","rt":89,"cid":"CRK2122"},{"n":"Aaron Finch","c":"AUS","fmt":"odi","d":"2020s","rt":87,"cid":"CRK0113"},{"n":"Mashrafe Mortaza","c":"BAN","fmt":"odi","d":"2010s","rt":88,"cid":"CRK0709"},{"n":"Darren Sammy","c":"WI","fmt":"t20","d":"2010s","rt":88,"cid":"CRK3623"},{"n":"Temba Bavuma","c":"SA","fmt":"odi","d":"2020s","rt":87,"cid":"CRK3231"},{"n":"Tamim Iqbal","c":"BAN","fmt":"odi","d":"2020s","rt":87,"cid":"CRK0796"},{"n":"Babar Azam","c":"PAK","fmt":"t20","d":"2020s","rt":88,"cid":"CRK2525"},{"n":"Imran Khan","c":"PAK","fmt":"odi","d":"1980s","rt":88,"cid":"CRK2577"},{"n":"Dasun Shanaka","c":"SL","fmt":"odi","d":"2020s","rt":87,"cid":"CRK3406"},{"n":"Sarfaraz Ahmed","c":"PAK","fmt":"odi","d":"2010s","rt":88,"cid":"CRK2738"},{"n":"Sanath Jayasuriya","c":"SL","fmt":"odi","d":"2000s","rt":88,"cid":"CRK3499"},{"n":"MS Dhoni","c":"IND","fmt":"t20","d":"2010s","rt":88,"cid":"CRK1795"},{"n":"Marvan Atapattu","c":"SL","fmt":"odi","d":"2000s","rt":88,"cid":"CRK3420"},{"n":"Viv Richards","c":"WI","fmt":"test","d":"1980s","rt":87,"cid":"CRK3699"},{"n":"Kane Williamson","c":"NZ","fmt":"t20","d":"2020s","rt":87,"cid":"CRK2296"},{"n":"Andrew Strauss","c":"ENG","fmt":"test","d":"2000s","rt":85,"cid":"CRK0868"},{"n":"Kusal Mendis","c":"SL","fmt":"odi","d":"2020s","rt":85,"cid":"CRK3291"},{"n":"Asghar Afghan","c":"AFG","fmt":"odi","d":"2010s","rt":88,"cid":"CRK0011"},{"n":"Allan Border","c":"AUS","fmt":"odi","d":"1980s","rt":88,"cid":"CRK0130"},{"n":"Steve Waugh","c":"AUS","fmt":"odi","d":"2000s","rt":88,"cid":"CRK0573"},{"n":"JP Duminy","c":"SA","fmt":"t20","d":"2010s","rt":85,"cid":"CRK3066"},{"n":"Brian Lara","c":"WI","fmt":"odi","d":"1990s","rt":87,"cid":"CRK3559"},{"n":"Graeme Smith","c":"SA","fmt":"odi","d":"2010s","rt":85,"cid":"CRK2983"},{"n":"Kieron Pollard","c":"WI","fmt":"odi","d":"2020s","rt":85,"cid":"CRK3742"},{"n":"Daniel Vettori","c":"NZ","fmt":"t20","d":"2000s","rt":85,"cid":"CRK2185"},{"n":"Shaun Pollock","c":"SA","fmt":"test","d":"2000s","rt":86,"cid":"CRK3227"},{"n":"Mark Taylor","c":"AUS","fmt":"odi","d":"1990s","rt":87,"cid":"CRK0427"},{"n":"Jos Buttler","c":"ENG","fmt":"t20","d":"2020s","rt":87,"cid":"CRK1194"},{"n":"Mahela Jayawardene","c":"SL","fmt":"test","d":"2000s","rt":86,"cid":"CRK3322"},{"n":"Eoin Morgan","c":"ENG","fmt":"t20","d":"2010s","rt":87,"cid":"CRK1027"},{"n":"Aaron Finch","c":"AUS","fmt":"t20","d":"2020s","rt":87,"cid":"CRK0113"},{"n":"Rahul Dravid","c":"IND","fmt":"odi","d":"2000s","rt":87,"cid":"CRK1847"},{"n":"Kane Williamson","c":"NZ","fmt":"odi","d":"2010s","rt":87,"cid":"CRK2296"},{"n":"Ricky Ponting","c":"AUS","fmt":"odi","d":"2010s","rt":87,"cid":"CRK0538"},{"n":"Faf du Plessis","c":"SA","fmt":"test","d":"2010s","rt":86,"cid":"CRK2968"},{"n":"Richie Richardson","c":"WI","fmt":"odi","d":"1990s","rt":87,"cid":"CRK3842"},{"n":"Steve Smith","c":"AUS","fmt":"test","d":"2010s","rt":86,"cid":"CRK0570"},{"n":"Dean Elgar","c":"SA","fmt":"test","d":"2020s","rt":85,"cid":"CRK2913"},{"n":"Kapil Dev","c":"IND","fmt":"odi","d":"1980s","rt":87,"cid":"CRK1806"},{"n":"MS Dhoni","c":"IND","fmt":"odi","d":"2010s","rt":87,"cid":"CRK1795"},{"n":"Greg Chappell","c":"AUS","fmt":"test","d":"1970s","rt":85,"cid":"CRK0287"},{"n":"Tim Paine","c":"AUS","fmt":"test","d":"2010s","rt":85,"cid":"CRK0580"},{"n":"Najmul Hossain Shanto","c":"BAN","fmt":"t20","d":"2020s","rt":85,"cid":"CRK0739"},{"n":"Alastair Cook","c":"ENG","fmt":"odi","d":"2010s","rt":87,"cid":"CRK0876"},{"n":"Aiden Markram","c":"SA","fmt":"t20","d":"2020s","rt":85,"cid":"CRK2850"},{"n":"Sourav Ganguly","c":"IND","fmt":"odi","d":"2000s","rt":87,"cid":"CRK1920"},{"n":"Mark Taylor","c":"AUS","fmt":"test","d":"1990s","rt":87,"cid":"CRK0427"},{"n":"Mohammad Azharuddin","c":"IND","fmt":"odi","d":"1990s","rt":87,"cid":"CRK1769"},{"n":"Misbah-ul-Haq","c":"PAK","fmt":"odi","d":"2010s","rt":87,"cid":"CRK2630"},{"n":"Geoff Howarth","c":"NZ","fmt":"odi","d":"1980s","rt":87,"cid":"CRK2223"},{"n":"Aaron Finch","c":"AUS","fmt":"t20","d":"2010s","rt":85,"cid":"CRK0113"},{"n":"Clive Lloyd","c":"WI","fmt":"test","d":"1970s","rt":86,"cid":"CRK3594"},{"n":"Courtney Walsh","c":"WI","fmt":"odi","d":"1990s","rt":86,"cid":"CRK3574"},{"n":"Michael Clarke","c":"AUS","fmt":"test","d":"2010s","rt":87,"cid":"CRK0440"},{"n":"Daniel Vettori","c":"NZ","fmt":"odi","d":"2000s","rt":87,"cid":"CRK2185"},{"n":"Michael Vaughan","c":"ENG","fmt":"test","d":"2000s","rt":87,"cid":"CRK1348"},{"n":"Hansie Cronje","c":"SA","fmt":"test","d":"1990s","rt":87,"cid":"CRK3258"},{"n":"Nasser Hussain","c":"ENG","fmt":"odi","d":"2000s","rt":86,"cid":"CRK1362"},{"n":"Shahid Afridi","c":"PAK","fmt":"odi","d":"2010s","rt":86,"cid":"CRK2747"},{"n":"Kane Williamson","c":"NZ","fmt":"test","d":"2010s","rt":85,"cid":"CRK2296"},{"n":"Hashmatullah Shahidi","c":"AFG","fmt":"odi","d":"2020s","rt":85,"cid":"CRK0025"},{"n":"Ian Chappell","c":"AUS","fmt":"test","d":"1970s","rt":85,"cid":"CRK0315"},{"n":"George Bailey","c":"AUS","fmt":"t20","d":"2010s","rt":85,"cid":"CRK0271"},{"n":"Dinesh Chandimal","c":"SL","fmt":"t20","d":"2010s","rt":85,"cid":"CRK3387"},{"n":"Shai Hope","c":"WI","fmt":"odi","d":"2020s","rt":84,"cid":"CRK3886"},{"n":"Babar Azam","c":"PAK","fmt":"test","d":"2020s","rt":84,"cid":"CRK2525"},{"n":"Paul Collingwood","c":"ENG","fmt":"t20","d":"2000s","rt":84,"cid":"CRK1396"},{"n":"Eoin Morgan","c":"ENG","fmt":"odi","d":"2020s","rt":84,"cid":"CRK1027"},{"n":"Shakib Al Hasan","c":"BAN","fmt":"t20","d":"2020s","rt":84,"cid":"CRK0779"},{"n":"Mohammad Nabi","c":"AFG","fmt":"t20","d":"2010s","rt":83,"cid":"CRK0043"},{"n":"Mahmudullah","c":"BAN","fmt":"t20","d":"2010s","rt":83,"cid":"CRK0705"},{"n":"Steve Smith","c":"AUS","fmt":"t20","d":"2010s","rt":83,"cid":"CRK0570"},{"n":"Najmul Hossain Shanto","c":"BAN","fmt":"test","d":"2020s","rt":83,"cid":"CRK0739"},{"n":"Steve Smith","c":"AUS","fmt":"odi","d":"2010s","rt":86,"cid":"CRK0570"},{"n":"Imran Khan","c":"PAK","fmt":"odi","d":"1990s","rt":85,"cid":"CRK2577"},{"n":"Graeme Smith","c":"SA","fmt":"test","d":"2010s","rt":85,"cid":"CRK2983"},{"n":"Kane Williamson","c":"NZ","fmt":"t20","d":"2010s","rt":85,"cid":"CRK2296"},{"n":"Graeme Smith","c":"SA","fmt":"test","d":"2000s","rt":86,"cid":"CRK2983"},{"n":"Daniel Vettori","c":"NZ","fmt":"odi","d":"2010s","rt":85,"cid":"CRK2185"},{"n":"Andrew Strauss","c":"ENG","fmt":"odi","d":"2000s","rt":85,"cid":"CRK0868"},{"n":"Graham Gooch","c":"ENG","fmt":"odi","d":"1990s","rt":86,"cid":"CRK1079"},{"n":"Wasim Akram","c":"PAK","fmt":"test","d":"1990s","rt":84,"cid":"CRK2799"},{"n":"Martin Crowe","c":"NZ","fmt":"odi","d":"1990s","rt":85,"cid":"CRK2318"},{"n":"Sanath Jayasuriya","c":"SL","fmt":"test","d":"2000s","rt":85,"cid":"CRK3499"},{"n":"Jos Buttler","c":"ENG","fmt":"odi","d":"2020s","rt":85,"cid":"CRK1194"},{"n":"Dinesh Chandimal","c":"SL","fmt":"test","d":"2010s","rt":83,"cid":"CRK3387"},{"n":"Sikandar Raza","c":"ZIM","fmt":"t20","d":"2020s","rt":83,"cid":"CRK4071"},{"n":"Stephen Fleming","c":"NZ","fmt":"odi","d":"2000s","rt":86,"cid":"CRK2416"},{"n":"Carl Hooper","c":"WI","fmt":"odi","d":"2000s","rt":86,"cid":"CRK3597"},{"n":"Arjuna Ranatunga","c":"SL","fmt":"odi","d":"1990s","rt":86,"cid":"CRK3270"},{"n":"Virat Kohli","c":"IND","fmt":"test","d":"2020s","rt":83,"cid":"CRK1969"},{"n":"Michael Atherton","c":"ENG","fmt":"odi","d":"1990s","rt":85,"cid":"CRK1311"},{"n":"Misbah-ul-Haq","c":"PAK","fmt":"test","d":"2010s","rt":86,"cid":"CRK2630"},{"n":"Shakib Al Hasan","c":"BAN","fmt":"odi","d":"2010s","rt":85,"cid":"CRK0779"},{"n":"Angelo Mathews","c":"SL","fmt":"odi","d":"2010s","rt":86,"cid":"CRK3272"},{"n":"Clive Lloyd","c":"WI","fmt":"test","d":"1980s","rt":85,"cid":"CRK3594"},{"n":"Gary Wilson","c":"IRE","fmt":"t20","d":"2010s","rt":84,"cid":"CRK2032"},{"n":"Craig Ervine","c":"ZIM","fmt":"t20","d":"2020s","rt":84,"cid":"CRK3968"},{"n":"Steve Smith","c":"AUS","fmt":"odi","d":"2020s","rt":83,"cid":"CRK0570"},{"n":"Ross Taylor","c":"NZ","fmt":"t20","d":"2010s","rt":83,"cid":"CRK2307"},{"n":"Dasun Shanaka","c":"SL","fmt":"t20","d":"2020s","rt":85,"cid":"CRK3406"},{"n":"Richie Richardson","c":"WI","fmt":"test","d":"1990s","rt":83,"cid":"CRK3842"},{"n":"Brendon McCullum","c":"NZ","fmt":"t20","d":"2010s","rt":83,"cid":"CRK2122"},{"n":"Ricky Ponting","c":"AUS","fmt":"test","d":"2010s","rt":83,"cid":"CRK0538"},{"n":"Dilip Vengsarkar","c":"IND","fmt":"odi","d":"1980s","rt":83,"cid":"CRK1668"},{"n":"AB de Villiers","c":"SA","fmt":"t20","d":"2010s","rt":83,"cid":"CRK2831"},{"n":"Younis Khan","c":"PAK","fmt":"test","d":"2000s","rt":82,"cid":"CRK2809"},{"n":"Tom Latham","c":"NZ","fmt":"test","d":"2020s","rt":82,"cid":"CRK2436"},{"n":"William Porterfield","c":"IRE","fmt":"odi","d":"2010s","rt":85,"cid":"CRK2093"},{"n":"Paul Collingwood","c":"ENG","fmt":"odi","d":"2000s","rt":83,"cid":"CRK1396"},{"n":"Andrew Strauss","c":"ENG","fmt":"test","d":"2010s","rt":84,"cid":"CRK0868"},{"n":"Joe Root","c":"ENG","fmt":"test","d":"2010s","rt":84,"cid":"CRK1209"},{"n":"Kumar Sangakkara","c":"SL","fmt":"odi","d":"2010s","rt":85,"cid":"CRK3365"},{"n":"Mohammad Nabi","c":"AFG","fmt":"t20","d":"2020s","rt":83,"cid":"CRK0043"},{"n":"Michael Vaughan","c":"ENG","fmt":"odi","d":"2000s","rt":85,"cid":"CRK1348"},{"n":"Brian Lara","c":"WI","fmt":"odi","d":"2000s","rt":85,"cid":"CRK3559"},{"n":"Sourav Ganguly","c":"IND","fmt":"test","d":"2000s","rt":85,"cid":"CRK1920"},{"n":"Javed Miandad","c":"PAK","fmt":"odi","d":"1980s","rt":84,"cid":"CRK2593"},{"n":"Tim Southee","c":"NZ","fmt":"test","d":"2020s","rt":82,"cid":"CRK2430"},{"n":"Shahid Afridi","c":"PAK","fmt":"t20","d":"2010s","rt":84,"cid":"CRK2747"}];
+const CAPTAINS_DB = [{"n":"Ricky Ponting","c":"AUS","fmt":"odi","d":"2000s","rt":99,"cid":"CRK0538"},{"n":"Asghar Afghan","c":"AFG","fmt":"t20","d":"2010s","rt":99,"cid":"CRK0011"},{"n":"Clive Lloyd","c":"WI","fmt":"odi","d":"1980s","rt":99,"cid":"CRK3594"},{"n":"Rohit Sharma","c":"IND","fmt":"t20","d":"2020s","rt":99,"cid":"CRK1867"},{"n":"Hansie Cronje","c":"SA","fmt":"odi","d":"1990s","rt":99,"cid":"CRK3258"},{"n":"Virat Kohli","c":"IND","fmt":"odi","d":"2010s","rt":99,"cid":"CRK1969"},{"n":"Ricky Ponting","c":"AUS","fmt":"test","d":"2000s","rt":99,"cid":"CRK0538"},{"n":"Michael Clarke","c":"AUS","fmt":"odi","d":"2010s","rt":99,"cid":"CRK0440"},{"n":"Steve Waugh","c":"AUS","fmt":"test","d":"2000s","rt":99,"cid":"CRK0573"},{"n":"Rohit Sharma","c":"IND","fmt":"odi","d":"2020s","rt":99,"cid":"CRK1867"},{"n":"Viv Richards","c":"WI","fmt":"odi","d":"1980s","rt":99,"cid":"CRK3699"},{"n":"Eoin Morgan","c":"ENG","fmt":"odi","d":"2010s","rt":99,"cid":"CRK1027"},{"n":"Graeme Smith","c":"SA","fmt":"odi","d":"2000s","rt":99,"cid":"CRK2983"},{"n":"Warwick Armstrong","c":"AUS","fmt":"test","d":"1920s","rt":99,"cid":"CRK0635"},{"n":"Shaun Pollock","c":"SA","fmt":"odi","d":"2000s","rt":99,"cid":"CRK3227"},{"n":"Allan Border","c":"AUS","fmt":"odi","d":"1990s","rt":98,"cid":"CRK0130"},{"n":"Wasim Akram","c":"PAK","fmt":"odi","d":"1990s","rt":98,"cid":"CRK2799"},{"n":"Tom Latham","c":"NZ","fmt":"odi","d":"2020s","rt":98,"cid":"CRK2436"},{"n":"Virat Kohli","c":"IND","fmt":"test","d":"2010s","rt":98,"cid":"CRK1969"},{"n":"Lord Hawke","c":"ENG","fmt":"test","d":"1890s","rt":98,"cid":"CRK1305"},{"n":"Allan Border","c":"AUS","fmt":"odi","d":"1980s","rt":98,"cid":"CRK0130"},{"n":"Mahela Jayawardene","c":"SL","fmt":"odi","d":"2000s","rt":98,"cid":"CRK3322"},{"n":"Faf du Plessis","c":"SA","fmt":"t20","d":"2010s","rt":98,"cid":"CRK2968"},{"n":"Inzamam-ul-Haq","c":"PAK","fmt":"odi","d":"2000s","rt":98,"cid":"CRK2582"},{"n":"Waqar Younis","c":"PAK","fmt":"odi","d":"2000s","rt":98,"cid":"CRK2797"},{"n":"Imran Khan","c":"PAK","fmt":"odi","d":"1980s","rt":98,"cid":"CRK2577"},{"n":"AB de Villiers","c":"SA","fmt":"odi","d":"2010s","rt":98,"cid":"CRK2831"},{"n":"George Bailey","c":"AUS","fmt":"odi","d":"2010s","rt":98,"cid":"CRK0271"},{"n":"Harry Trott","c":"AUS","fmt":"test","d":"1890s","rt":98,"cid":"CRK0270"},{"n":"MS Dhoni","c":"IND","fmt":"odi","d":"2000s","rt":98,"cid":"CRK1795"},{"n":"Babar Azam","c":"PAK","fmt":"odi","d":"2020s","rt":98,"cid":"CRK2525"},{"n":"Babar Azam","c":"PAK","fmt":"t20","d":"2020s","rt":98,"cid":"CRK2525"},{"n":"Asghar Afghan","c":"AFG","fmt":"odi","d":"2010s","rt":98,"cid":"CRK0011"},{"n":"Brendon McCullum","c":"NZ","fmt":"odi","d":"2010s","rt":98,"cid":"CRK2122"},{"n":"Mashrafe Mortaza","c":"BAN","fmt":"odi","d":"2010s","rt":96,"cid":"CRK0709"},{"n":"Vic Richardson","c":"AUS","fmt":"test","d":"1930s","rt":96,"cid":"CRK0605"},{"n":"Lindsay Hassett","c":"AUS","fmt":"test","d":"1940s","rt":96,"cid":"CRK0121"},{"n":"MS Dhoni","c":"IND","fmt":"t20","d":"2010s","rt":96,"cid":"CRK1795"},{"n":"Darren Sammy","c":"WI","fmt":"t20","d":"2010s","rt":96,"cid":"CRK3623"},{"n":"Sanath Jayasuriya","c":"SL","fmt":"odi","d":"2000s","rt":96,"cid":"CRK3499"},{"n":"MS Dhoni","c":"IND","fmt":"odi","d":"2010s","rt":96,"cid":"CRK1795"},{"n":"Arthur Shrewsbury","c":"ENG","fmt":"test","d":"1880s","rt":96,"cid":"CRK0830"},{"n":"WG Grace","c":"ENG","fmt":"test","d":"1880s","rt":96,"cid":"CRK1567"},{"n":"Marvan Atapattu","c":"SL","fmt":"odi","d":"2000s","rt":96,"cid":"CRK3420"},{"n":"Mohammad Azharuddin","c":"IND","fmt":"odi","d":"1990s","rt":96,"cid":"CRK1769"},{"n":"Sourav Ganguly","c":"IND","fmt":"odi","d":"2000s","rt":96,"cid":"CRK1920"},{"n":"Sarfaraz Ahmed","c":"PAK","fmt":"odi","d":"2010s","rt":96,"cid":"CRK2738"},{"n":"Don Bradman","c":"AUS","fmt":"test","d":"1930s","rt":96,"cid":"CRK0205"},{"n":"Viv Richards","c":"WI","fmt":"test","d":"1980s","rt":96,"cid":"CRK3699"},{"n":"Dasun Shanaka","c":"SL","fmt":"odi","d":"2020s","rt":96,"cid":"CRK3406"},{"n":"Richie Richardson","c":"WI","fmt":"odi","d":"1990s","rt":96,"cid":"CRK3842"},{"n":"Rahul Dravid","c":"IND","fmt":"odi","d":"2000s","rt":96,"cid":"CRK1847"},{"n":"Percy Chapman","c":"ENG","fmt":"test","d":"1920s","rt":96,"cid":"CRK0885"},{"n":"Kane Williamson","c":"NZ","fmt":"odi","d":"2010s","rt":96,"cid":"CRK2296"},{"n":"Mark Taylor","c":"AUS","fmt":"odi","d":"1990s","rt":96,"cid":"CRK0427"},{"n":"Arjuna Ranatunga","c":"SL","fmt":"odi","d":"1990s","rt":96,"cid":"CRK3270"},{"n":"Peter May","c":"ENG","fmt":"test","d":"1950s","rt":96,"cid":"CRK1394"},{"n":"Kapil Dev","c":"IND","fmt":"odi","d":"1980s","rt":94,"cid":"CRK1806"},{"n":"Graeme Smith","c":"SA","fmt":"test","d":"2000s","rt":94,"cid":"CRK2983"},{"n":"Jos Buttler","c":"ENG","fmt":"t20","d":"2020s","rt":94,"cid":"CRK1194"},{"n":"Michael Vaughan","c":"ENG","fmt":"odi","d":"2000s","rt":94,"cid":"CRK1348"},{"n":"Douglas Jardine","c":"ENG","fmt":"test","d":"1930s","rt":94,"cid":"CRK0998"},{"n":"Don Bradman","c":"AUS","fmt":"test","d":"1940s","rt":94,"cid":"CRK0205"},{"n":"Frank Worrell","c":"WI","fmt":"test","d":"1960s","rt":94,"cid":"CRK3664"},{"n":"Misbah-ul-Haq","c":"PAK","fmt":"odi","d":"2010s","rt":94,"cid":"CRK2630"},{"n":"AG Steel","c":"ENG","fmt":"test","d":"1880s","rt":94,"cid":"CRK0858"},{"n":"Alastair Cook","c":"ENG","fmt":"odi","d":"2010s","rt":94,"cid":"CRK0876"},{"n":"Bill Woodfull","c":"AUS","fmt":"test","d":"1930s","rt":94,"cid":"CRK0630"},{"n":"Eoin Morgan","c":"ENG","fmt":"t20","d":"2010s","rt":94,"cid":"CRK1027"},{"n":"CB Fry","c":"ENG","fmt":"test","d":"1910s","rt":94,"cid":"CRK0929"},{"n":"Arthur Carr","c":"ENG","fmt":"test","d":"1920s","rt":94,"cid":"CRK0895"},{"n":"Geoff Howarth","c":"NZ","fmt":"odi","d":"1980s","rt":94,"cid":"CRK2223"},{"n":"Percy Sherwell","c":"SA","fmt":"test","d":"1900s","rt":94,"cid":"CRK3173"},{"n":"Mark Taylor","c":"AUS","fmt":"test","d":"1990s","rt":94,"cid":"CRK0427"},{"n":"Hansie Cronje","c":"SA","fmt":"test","d":"1990s","rt":94,"cid":"CRK3258"},{"n":"Michael Vaughan","c":"ENG","fmt":"test","d":"2000s","rt":94,"cid":"CRK1348"},{"n":"Michael Clarke","c":"AUS","fmt":"test","d":"2010s","rt":94,"cid":"CRK0440"},{"n":"Courtney Walsh","c":"WI","fmt":"odi","d":"1990s","rt":94,"cid":"CRK3574"},{"n":"Daniel Vettori","c":"NZ","fmt":"odi","d":"2000s","rt":94,"cid":"CRK2185"},{"n":"Graham Gooch","c":"ENG","fmt":"odi","d":"1990s","rt":94,"cid":"CRK1079"},{"n":"Steve Smith","c":"AUS","fmt":"odi","d":"2010s","rt":94,"cid":"CRK0570"},{"n":"Lindsay Hassett","c":"AUS","fmt":"test","d":"1950s","rt":94,"cid":"CRK0121"},{"n":"Nasser Hussain","c":"ENG","fmt":"odi","d":"2000s","rt":94,"cid":"CRK1362"},{"n":"Angelo Mathews","c":"SL","fmt":"odi","d":"2010s","rt":94,"cid":"CRK3272"},{"n":"Monty Noble","c":"AUS","fmt":"test","d":"1900s","rt":94,"cid":"CRK0425"},{"n":"Aaron Finch","c":"AUS","fmt":"t20","d":"2020s","rt":92,"cid":"CRK0113"},{"n":"Stephen Fleming","c":"NZ","fmt":"odi","d":"1990s","rt":92,"cid":"CRK2416"},{"n":"Brian Lara","c":"WI","fmt":"odi","d":"2000s","rt":92,"cid":"CRK3559"},{"n":"Brian Lara","c":"WI","fmt":"odi","d":"1990s","rt":92,"cid":"CRK3559"},{"n":"Martin Crowe","c":"NZ","fmt":"odi","d":"1990s","rt":92,"cid":"CRK2318"},{"n":"William Porterfield","c":"IRE","fmt":"odi","d":"2010s","rt":92,"cid":"CRK2093"},{"n":"Stephen Fleming","c":"NZ","fmt":"odi","d":"2000s","rt":92,"cid":"CRK2416"},{"n":"Carl Hooper","c":"WI","fmt":"odi","d":"2000s","rt":92,"cid":"CRK3597"},{"n":"Allan Border","c":"AUS","fmt":"test","d":"1990s","rt":92,"cid":"CRK0130"},{"n":"Misbah-ul-Haq","c":"PAK","fmt":"test","d":"2010s","rt":92,"cid":"CRK2630"},{"n":"William Porterfield","c":"IRE","fmt":"t20","d":"2010s","rt":92,"cid":"CRK2093"},{"n":"Bill Lawry","c":"AUS","fmt":"test","d":"1960s","rt":92,"cid":"CRK0629"},{"n":"JWHT Douglas","c":"ENG","fmt":"test","d":"1910s","rt":92,"cid":"CRK1266"},{"n":"Len Hutton","c":"ENG","fmt":"test","d":"1950s","rt":92,"cid":"CRK1288"},{"n":"Clem Hill","c":"AUS","fmt":"test","d":"1910s","rt":92,"cid":"CRK0167"},{"n":"Imran Khan","c":"PAK","fmt":"odi","d":"1990s","rt":92,"cid":"CRK2577"},{"n":"Dasun Shanaka","c":"SL","fmt":"t20","d":"2020s","rt":92,"cid":"CRK3406"},{"n":"Gubby Allen","c":"ENG","fmt":"test","d":"1930s","rt":92,"cid":"CRK1111"},{"n":"Jack Cheetham","c":"SA","fmt":"test","d":"1950s","rt":92,"cid":"CRK3047"},{"n":"Kim Hughes","c":"AUS","fmt":"odi","d":"1980s","rt":92,"cid":"CRK0397"},{"n":"WG Grace","c":"ENG","fmt":"test","d":"1890s","rt":92,"cid":"CRK1567"},{"n":"Habibul Bashar","c":"BAN","fmt":"odi","d":"2000s","rt":92,"cid":"CRK0677"},{"n":"Javed Miandad","c":"PAK","fmt":"odi","d":"1980s","rt":92,"cid":"CRK2593"},{"n":"Sourav Ganguly","c":"IND","fmt":"test","d":"2000s","rt":92,"cid":"CRK1920"},{"n":"Joe Darling","c":"AUS","fmt":"test","d":"1900s","rt":92,"cid":"CRK0321"},{"n":"Alastair Cook","c":"ENG","fmt":"test","d":"2010s","rt":92,"cid":"CRK0876"},{"n":"MS Dhoni","c":"IND","fmt":"test","d":"2010s","rt":92,"cid":"CRK1795"},{"n":"Hon.Ivo Bligh","c":"ENG","fmt":"test","d":"1880s","rt":92,"cid":"CRK1151"},{"n":"Herbie Collins","c":"AUS","fmt":"test","d":"1920s","rt":92,"cid":"CRK0304"},{"n":"James Lillywhite jnr","c":"ENG","fmt":"test","d":"1870s","rt":90,"cid":"CRK1269"},{"n":"Arthur Gilligan","c":"ENG","fmt":"test","d":"1920s","rt":90,"cid":"CRK0854"},{"n":"John Goddard","c":"WI","fmt":"test","d":"1940s","rt":90,"cid":"CRK3715"},{"n":"Bob Simpson","c":"AUS","fmt":"test","d":"1960s","rt":90,"cid":"CRK0515"},{"n":"Stephen Fleming","c":"NZ","fmt":"test","d":"2000s","rt":90,"cid":"CRK2416"},{"n":"Ian Johnson","c":"AUS","fmt":"test","d":"1950s","rt":90,"cid":"CRK0318"},{"n":"Kepler Wessels","c":"SA","fmt":"odi","d":"1990s","rt":90,"cid":"CRK0390"},{"n":"Andy Balbirnie","c":"IRE","fmt":"t20","d":"2020s","rt":90,"cid":"CRK2007"},{"n":"Jeff Crowe","c":"NZ","fmt":"odi","d":"1980s","rt":90,"cid":"CRK2272"},{"n":"Hon.FS Jackson","c":"ENG","fmt":"test","d":"1890s","rt":90,"cid":"CRK1149"},{"n":"Hugh Trumble","c":"AUS","fmt":"test","d":"1900s","rt":90,"cid":"CRK0295"},{"n":"Hon.FS Jackson","c":"ENG","fmt":"test","d":"1900s","rt":90,"cid":"CRK1149"},{"n":"FL Fane","c":"ENG","fmt":"test","d":"1900s","rt":90,"cid":"CRK1056"},{"n":"Percy Sherwell","c":"SA","fmt":"test","d":"1910s","rt":90,"cid":"CRK3173"},{"n":"Frank Mann","c":"ENG","fmt":"test","d":"1920s","rt":90,"cid":"CRK1060"},{"n":"Darren Sammy","c":"WI","fmt":"odi","d":"2010s","rt":90,"cid":"CRK3623"},{"n":"Clive Lloyd","c":"WI","fmt":"test","d":"1970s","rt":90,"cid":"CRK3594"},{"n":"Gerry Alexander","c":"WI","fmt":"test","d":"1950s","rt":90,"cid":"CRK3658"},{"n":"Alec Stewart","c":"ENG","fmt":"odi","d":"1990s","rt":90,"cid":"CRK0867"},{"n":"Alistair Campbell","c":"ZIM","fmt":"odi","d":"1990s","rt":90,"cid":"CRK3937"},{"n":"JM Blackham","c":"AUS","fmt":"test","d":"1890s","rt":90,"cid":"CRK0356"},{"n":"Andrew Stoddart","c":"ENG","fmt":"test","d":"1890s","rt":90,"cid":"CRK0852"},{"n":"Dave Gregory","c":"AUS","fmt":"test","d":"1870s","rt":90,"cid":"CRK0224"},{"n":"Syd Gregory","c":"AUS","fmt":"test","d":"1910s","rt":90,"cid":"CRK0549"},{"n":"Percy Chapman","c":"ENG","fmt":"test","d":"1930s","rt":90,"cid":"CRK0885"},{"n":"Plum Warner","c":"ENG","fmt":"test","d":"1900s","rt":90,"cid":"CRK1399"},{"n":"WL Murdoch","c":"AUS","fmt":"test","d":"1880s","rt":90,"cid":"CRK0626"},{"n":"Andy Balbirnie","c":"IRE","fmt":"odi","d":"2020s","rt":90,"cid":"CRK2007"},{"n":"Sachin Tendulkar","c":"IND","fmt":"odi","d":"1990s","rt":85,"cid":"CRK1936"},{"n":"Chris Gayle","c":"WI","fmt":"odi","d":"2000s","rt":85,"cid":"CRK3593"},{"n":"MJK Smith","c":"ENG","fmt":"test","d":"1960s","rt":85,"cid":"CRK1340"},{"n":"Imran Khan","c":"PAK","fmt":"test","d":"1980s","rt":85,"cid":"CRK2577"},{"n":"John Goddard","c":"WI","fmt":"test","d":"1950s","rt":85,"cid":"CRK3715"},{"n":"Trevor Goddard","c":"SA","fmt":"test","d":"1960s","rt":85,"cid":"CRK3242"},{"n":"George Giffen","c":"AUS","fmt":"test","d":"1890s","rt":85,"cid":"CRK0251"},{"n":"FG Mann","c":"ENG","fmt":"test","d":"1940s","rt":85,"cid":"CRK1050"},{"n":"Mohammad Azharuddin","c":"IND","fmt":"test","d":"1990s","rt":85,"cid":"CRK1769"},{"n":"Ted Dexter","c":"ENG","fmt":"test","d":"1960s","rt":85,"cid":"CRK1030"},{"n":"Elton Chigumbura","c":"ZIM","fmt":"odi","d":"2010s","rt":85,"cid":"CRK3982"},{"n":"Norman Yardley","c":"ENG","fmt":"test","d":"1940s","rt":85,"cid":"CRK1381"},{"n":"Jason Holder","c":"WI","fmt":"odi","d":"2010s","rt":85,"cid":"CRK3730"},{"n":"Colin Cowdrey","c":"ENG","fmt":"test","d":"1960s","rt":85,"cid":"CRK1319"},{"n":"Joe Darling","c":"AUS","fmt":"test","d":"1890s","rt":85,"cid":"CRK0321"},{"n":"Jack Ryder","c":"AUS","fmt":"test","d":"1920s","rt":85,"cid":"CRK0328"},{"n":"Herbie Wade","c":"SA","fmt":"test","d":"1930s","rt":85,"cid":"CRK3010"},{"n":"Heath Streak","c":"ZIM","fmt":"odi","d":"2000s","rt":85,"cid":"CRK4005"},{"n":"Richie Benaud","c":"AUS","fmt":"test","d":"1960s","rt":85,"cid":"CRK0505"},{"n":"Nummy Deane","c":"SA","fmt":"test","d":"1920s","rt":85,"cid":"CRK3011"},{"n":"Jackie Grant","c":"WI","fmt":"test","d":"1930s","rt":85,"cid":"CRK3671"},{"n":"Abdul Hafeez Kardar","c":"PAK","fmt":"test","d":"1950s","rt":85,"cid":"CRK2455"},{"n":"Wally Hammond","c":"ENG","fmt":"test","d":"1930s","rt":85,"cid":"CRK1582"},{"n":"Graham Dowling","c":"NZ","fmt":"test","d":"1960s","rt":85,"cid":"CRK2229"},{"n":"Arjuna Ranatunga","c":"SL","fmt":"test","d":"1990s","rt":85,"cid":"CRK3270"},{"n":"Allan Border","c":"AUS","fmt":"test","d":"1980s","rt":80,"cid":"CRK0130"},{"n":"Archie MacLaren","c":"ENG","fmt":"test","d":"1900s","rt":80,"cid":"CRK0838"},{"n":"Mike Atherton","c":"ENG","fmt":"test","d":"1990s","rt":80,"cid":"CRK1311"},{"n":"PS McDonnell","c":"AUS","fmt":"test","d":"1880s","rt":80,"cid":"CRK0503"},{"n":"Garry Sobers","c":"WI","fmt":"test","d":"1960s","rt":80,"cid":"CRK3683"},{"n":"Dudley Nourse","c":"SA","fmt":"test","d":"1940s","rt":80,"cid":"CRK2837"},{"n":"Mansur Ali Khan Pataudi","c":"IND","fmt":"test","d":"1960s","rt":80,"cid":"CRK1781"},{"n":"Freddie Brown","c":"ENG","fmt":"test","d":"1950s","rt":80,"cid":"CRK1057"},{"n":"Jock Cameron","c":"SA","fmt":"test","d":"1930s","rt":80,"cid":"CRK3006"},{"n":"Bob Wyatt","c":"ENG","fmt":"test","d":"1930s","rt":80,"cid":"CRK1440"},{"n":"Nari Contractor","c":"IND","fmt":"test","d":"1960s","rt":80,"cid":"CRK1811"},{"n":"Walter Hadlee","c":"NZ","fmt":"test","d":"1940s","rt":80,"cid":"CRK2443"},{"n":"Jeffrey Stollmeyer","c":"WI","fmt":"test","d":"1950s","rt":80,"cid":"CRK3712"},{"n":"Duleep Mendis","c":"SL","fmt":"odi","d":"1980s","rt":75,"cid":"CRK3391"},{"n":"Lala Amarnath","c":"IND","fmt":"test","d":"1940s","rt":75,"cid":"CRK1760"},{"n":"Herbie Taylor","c":"SA","fmt":"test","d":"1910s","rt":75,"cid":"CRK3026"},{"n":"Alan Melville","c":"SA","fmt":"test","d":"1930s","rt":75,"cid":"CRK2824"},{"n":"Alan Melville","c":"SA","fmt":"test","d":"1940s","rt":75,"cid":"CRK2824"},{"n":"Herbie Taylor","c":"SA","fmt":"test","d":"1920s","rt":75,"cid":"CRK3026"},{"n":"Tom Lowry","c":"NZ","fmt":"test","d":"1930s","rt":75,"cid":"CRK2425"},{"n":"Curly Page","c":"NZ","fmt":"test","d":"1930s","rt":75,"cid":"CRK2339"},{"n":"Vijay Hazare","c":"IND","fmt":"test","d":"1950s","rt":75,"cid":"CRK1989"},{"n":"John Reid","c":"NZ","fmt":"test","d":"1960s","rt":75,"cid":"CRK2278"}];
 function isEliteCaptain(p, fmtKey){
   if(!p) return null;
   /* Matched on Cricketer ID, not name — names in the player database
@@ -998,12 +1002,18 @@ async function startDraft(){
    well outside it and he pays a small penalty \u2014 a top-order star
    shoved down to No.10 won't perform like he does at No.3. */
 const BP_NATURAL = { O:[1,2], T:[1,2,3,4], M:[3,4,5,6,7], L:[6,7,8,9], X:[8,9,10,11], TM:[1,2,3,4,5,6,7], ML:[3,4,5,6,7,8,9], LX:[6,7,8,9,10,11] };
+/* Extra flat penalty on top of the distance-based one, once a player is out
+   of position at all -- makes sloppy placement cost real strength instead
+   of being nearly free, so "draft the highest rating, place wherever"
+   stops being a dominant strategy. Tuned per format since each format's
+   real-data pool responds very differently to the same penalty size. */
+const POSITION_PENALTY_ADD = {test:0.9, odi:4, t20:4.5};
 function positionPenalty(p, slotNo){
   const range = BP_NATURAL[p.bp];
   if(!range || !range.length) return 0;
   if(range.includes(slotNo)) return 0;
   const dist = Math.min(...range.map(s=>Math.abs(s-slotNo)));
-  return Math.min(8, dist*1.5);
+  return Math.min(8, dist*1.5) + (POSITION_PENALTY_ADD[FMTKEY] || 0);
 }
 function isOutOfPosition(p, slotNo){ return positionPenalty(p, slotNo) > 0; }
 
@@ -1331,12 +1341,13 @@ function decideNeutral(oppA, oppB){
 
 /* ---- scorecard generation ---- */
 function genTestMatch(code, nat){
-  let score, margin, pts;
+  let score, margin, pts, yourTotal, yourWkts, oppTotal, oppWkts;
   if(code==='D'){
     const a1=rand(300,540), b1=rand(280,520), a2=rand(150,330), a2w=rand(4,8), b2=rand(90,260), b2w=rand(4,9);
     score=`You ${b1} & ${b2}/${b2w} \u00b7 ${nat.id} ${a1} & ${a2}/${a2w}d`;
     margin=pickOne(['drawn \u2014 last pair survive','drawn \u2014 flat pitch wins','drawn \u2014 nine down at stumps']);
     pts = 35;
+    yourTotal = b1+b2; yourWkts = b2w; oppTotal = a1+a2; oppWkts = a2w;
   } else {
     const weWin = code==='W';
     const style = Math.random()<0.18?'inn':(Math.random()<0.5?'runs':'wkts');
@@ -1346,6 +1357,8 @@ function genTestMatch(code, nat){
       score = weWin ? `You ${big}d \u00b7 ${nat.id} ${x1} & ${x2}` : `${nat.id} ${big}d \u00b7 You ${x1} & ${x2}`;
       margin = `${weWin?'won':'lost'} by an innings & ${gap} runs`;
       pts = weWin ? 190 : -160;
+      if(weWin){ yourTotal=big; yourWkts=9; oppTotal=x1+x2; oppWkts=10; }
+      else { oppTotal=big; oppWkts=9; yourTotal=x1+x2; yourWkts=10; }
     } else if(style==='runs'){
       const f1=rand(260,500), f2=rand(140,330), R=rand(25,260);
       const c1=rand(120,Math.max(140,Math.min(360,f1+f2-R-60))), c2=Math.max(40,f1+f2-c1-R);
@@ -1353,6 +1366,8 @@ function genTestMatch(code, nat){
                     : `${nat.id} ${f1} & ${f2}d \u00b7 You ${c1} & ${c2}`;
       margin = `${weWin?'won':'lost'} by ${R} runs`;
       pts = weWin ? 100 + clamp(R/3, 5, 85) : -(70 + clamp(R/4, 5, 60));
+      if(weWin){ yourTotal=f1+f2; yourWkts=9; oppTotal=c1+c2; oppWkts=10; }
+      else { oppTotal=f1+f2; oppWkts=9; yourTotal=c1+c2; yourWkts=10; }
     } else {
       const a1=rand(180,400), b1=rand(150,420), a2=rand(140,360);
       const chase=Math.max(30,a1+a2-b1+1), w=rand(2,8);
@@ -1360,9 +1375,11 @@ function genTestMatch(code, nat){
                     : `You ${a1} & ${a2} \u00b7 ${nat.id} ${b1} & ${chase}/${10-w}`;
       margin = `${weWin?'won':'lost'} by ${w} wickets`;
       pts = weWin ? 100 + clamp(w*10, 20, 80) : -(70 + clamp(w*8, 15, 60));
+      if(weWin){ yourTotal=b1+chase; yourWkts=10-w; oppTotal=a1+a2; oppWkts=10; }
+      else { oppTotal=b1+chase; oppWkts=10-w; yourTotal=a1+a2; yourWkts=10; }
     }
   }
-  return {score, margin, pts: Math.round(pts)};
+  return {score, margin, pts: Math.round(pts), yourTotal, yourWkts, oppTotal, oppWkts};
 }
 function genWhiteBallMatch(code, nat, superOver){
   const t20 = FMTKEY==='t20';
@@ -1374,23 +1391,100 @@ function genWhiteBallMatch(code, nat, superOver){
     const mine=rand(9, t20?24:20), theirs= weWin? rand(Math.max(3,mine-9),mine-1) : rand(mine+1,mine+9);
     const line = weWin ? `Super Over: You ${mine}/${rand(0,2)} beat ${nat.id} ${theirs}/${rand(0,2)}`
                         : `Super Over: ${nat.id} ${mine}/${rand(0,2)} beat You ${theirs}/${rand(0,2)}`;
-    return {score:`You ${x}/${w1} (${ov}) \u00b7 ${nat.id} ${x}/${w2} (${ov})`, margin:line, pts: weWin?115:-75};
+    return {score:`You ${x}/${w1} (${ov}) \u00b7 ${nat.id} ${x}/${w2} (${ov})`, margin:line, pts: weWin?115:-75,
+            yourTotal:x, yourWkts:w1, oppTotal:x, oppWkts:w2};
   }
   if(Math.random()<0.5){
     const first=rand(lo+30,hi), R=rand(t20?4:8, t20?60:130), chase=Math.max(40,first-R);
     const bonus = clamp(R*runMult, 5, 85);
-    return {score: weWin?`You ${first}/${rand(3,8)} (${ov}) \u00b7 ${nat.id} ${chase} all out`
-                        :`${nat.id} ${first}/${rand(3,8)} (${ov}) \u00b7 You ${chase} all out`,
+    const firstWkts = rand(3,8);
+    const fielded = weWin ? {yourTotal:first, yourWkts:firstWkts, oppTotal:chase, oppWkts:10}
+                          : {oppTotal:first, oppWkts:firstWkts, yourTotal:chase, yourWkts:10};
+    return {score: weWin?`You ${first}/${firstWkts} (${ov}) \u00b7 ${nat.id} ${chase} all out`
+                        :`${nat.id} ${first}/${firstWkts} (${ov}) \u00b7 You ${chase} all out`,
             margin:`${weWin?'won':'lost'} by ${first-chase} runs`,
-            pts: Math.round(weWin ? 100+bonus : -(65+bonus*0.7))};
+            pts: Math.round(weWin ? 100+bonus : -(65+bonus*0.7)), ...fielded};
   } else {
     const first=rand(lo,hi-25), w=rand(1,8);
     const bonus = clamp(w*11, 15, 85);
-    return {score: weWin?`${nat.id} ${first}/${rand(5,10)} (${ov}) \u00b7 You ${first+rand(1,6)}/${10-w}`
-                        :`You ${first}/${rand(5,10)} (${ov}) \u00b7 ${nat.id} ${first+rand(1,6)}/${10-w}`,
+    const firstWkts = rand(5,10), chase=first+rand(1,6);
+    const fielded = weWin ? {oppTotal:first, oppWkts:firstWkts, yourTotal:chase, yourWkts:10-w}
+                          : {yourTotal:first, yourWkts:firstWkts, oppTotal:chase, oppWkts:10-w};
+    return {score: weWin?`${nat.id} ${first}/${firstWkts} (${ov}) \u00b7 You ${chase}/${10-w}`
+                        :`You ${first}/${firstWkts} (${ov}) \u00b7 ${nat.id} ${chase}/${10-w}`,
             margin:`${weWin?'won':'lost'} by ${w} wickets`,
-            pts: Math.round(weWin ? 100+bonus : -(65+bonus*0.6))};
+            pts: Math.round(weWin ? 100+bonus : -(65+bonus*0.6)), ...fielded};
   }
+}
+
+/* ---- full per-match scorecard --------------------------------------
+   Distributes the ALREADY-DECIDED totals from genTestMatch/genWhiteBallMatch
+   (yourTotal/yourWkts/oppTotal/oppWkts -- the same numbers baked into the
+   score/margin/pts above) across the drafted XI, batter by batter and
+   bowler by bowler. Built from those exact totals rather than a separate
+   random draw, so a match's detailed card and its collapsed score line can
+   never disagree -- and since the end-of-tour squad stats are now SUMMED
+   from these per-match cards (see computeSquadStats), the season totals
+   trace back to real per-match figures instead of an independent model. */
+const DISMISSAL_TYPES = ['b','c','lbw','st','run out','c&b'];
+function buildMatchScorecard(xi, yourTotal, yourWkts, oppTotal, oppWkts, oppLabel){
+  const test = FMTKEY==='test', t20 = FMTKEY==='t20';
+  const battersUsed = Math.min(11, yourWkts+1);
+  const weights = [];
+  for(let i=0;i<battersUsed;i++){
+    const p = xi[i], pos = i+1;
+    const pureBowler = p.roles.includes('bowl') && !p.roles.includes('ar');
+    let w;
+    if(pureBowler) w = 0.15 + Math.random()*0.15;
+    else {
+      const effR = Math.max(1, p.r - positionPenalty(p, pos));
+      const posMult = pos<=3?1.15:pos<=6?1.0:pos<=8?0.55:0.3;
+      w = Math.max(0.05, (effR/90)*posMult) * (0.5+Math.random());
+    }
+    weights.push(w);
+  }
+  const wsum = weights.reduce((a,b)=>a+b,0) || 1;
+  const scores = weights.map(w=>Math.max(0, Math.round(yourTotal*w/wsum)));
+  let drift = yourTotal - scores.reduce((a,b)=>a+b,0);
+  if(scores.length){ scores[0] = Math.max(0, scores[0]+drift); drift = yourTotal - scores.reduce((a,b)=>a+b,0); if(drift) scores[scores.length-1] = Math.max(0, scores[scores.length-1]+drift); }
+
+  const yourInnings = xi.map((p,i)=>{
+    if(i>=battersUsed) return {n:p.n, runs:null, out:null, notOut:false, dnb:true};
+    const isLast = i===battersUsed-1;
+    const notOut = isLast && yourWkts<10;
+    return {n:p.n, runs:scores[i], out: notOut?null:pickOne(DISMISSAL_TYPES), notOut, dnb:false};
+  });
+
+  const {unit:bowlUnit, partTimer} = getBowlingUnit(xi);
+  const bowlWeights = bowlUnit.map(p=>{
+    const isAR = p.roles.includes('ar') && !p.roles.includes('bowl');
+    const partTime = !!(partTimer && p.n===partTimer.n);
+    const base = Math.max(0.1, (p.r-70)/30) * (isAR?0.6:1) * (partTime?0.3:1);
+    return base * (0.5+Math.random());
+  });
+  const bwsum = bowlWeights.reduce((a,b)=>a+b,0) || 1;
+  const wktsDist = bowlWeights.map(w=>Math.max(0, Math.round(oppWkts*w/bwsum)));
+  let wDrift = oppWkts - wktsDist.reduce((a,b)=>a+b,0);
+  let guard = 0;
+  while(wDrift!==0 && wktsDist.length && guard<200){
+    const i = guard % wktsDist.length;
+    if(wDrift>0){ wktsDist[i]++; wDrift--; }
+    else if(wktsDist[i]>0){ wktsDist[i]--; wDrift++; }
+    guard++;
+  }
+  const runsDist = bowlWeights.map(w=>Math.max(0, Math.round(oppTotal*w/bwsum)));
+  let rDrift = oppTotal - runsDist.reduce((a,b)=>a+b,0);
+  if(runsDist.length) runsDist[0] = Math.max(0, runsDist[0]+rDrift);
+  const totalOvers = t20?20:50;
+  const oversDist = bowlUnit.map(p=>{
+    const partTime = !!(partTimer && p.n===partTimer.n);
+    if(test) return Math.max(2, Math.round(3+Math.random()*20));
+    const cap = t20?4:10;
+    return Math.min(cap, Math.max(1, Math.round((totalOvers/bowlUnit.length)*(partTime?0.4:1)*(0.7+Math.random()*0.6))));
+  });
+  const yourBowling = bowlUnit.map((p,i)=>({n:p.n, overs:oversDist[i], runs:runsDist[i], wkts:wktsDist[i]}));
+
+  return { yourInnings, yourTotal, yourWkts, oppTotal, oppWkts, oppLabel, yourBowling };
 }
 
 /* ---- player of the match ---- */
@@ -1429,6 +1523,72 @@ function mulberry32(seed){
     return ((t ^ t >>> 14) >>> 0) / 4294967296;
   };
 }
+/* ================= IMMORTAL XI: conditions, stats bonus, streak boost =================
+   Three mechanics that only ever matter for a genuinely elite, well-built
+   XI -- an average team's strength never gets near the thresholds where
+   these kick in, so this doesn't change ordinary gameplay:
+
+   1. Regional bowling conditions -- touring Asia without a genuine spinner,
+      or West Indies/Australia without a genuine pace bowler, costs you.
+   2. Batting/bowling stats bonus -- real career numbers (runs, average,
+      strike rate, high score / wickets, average, economy, strike rate),
+      ranked against same-format same-decade peers so eras stay comparable,
+      reward players who were statistically exceptional even if that's not
+      fully captured by their single overall rating.
+   3. Streak-conditional boost -- an extra strength bump that only applies
+      while you're still undefeated this tour. One loss or draw and it's
+      off for the rest of the tour. This is what makes a genuine unbeaten
+      run rare-but-achievable without inflating an otherwise-average tour. */
+const ASIA_NATIONS = new Set(['IND','PAK','SL','BAN','AFG']);
+const PACE_NATIONS = new Set(['AUS','SA','WI']);
+const WORLDCLASS_THRESHOLD = {test:75, odi:85, t20:78};
+const CONDITIONS_PENALTY = {test:0, odi:15, t20:9};
+const STATS_BONUS_WEIGHT = {test:1.75, odi:0.1, t20:0.1};
+/* Format-specific, not a single global value -- ODI's much deeper player
+   pool (3,422 players across 6 decades vs Test's 4,734/16 and T20's
+   1,744/3) lets a near-ceiling draft shrug off the same boost far more
+   easily, so it needs a noticeably smaller number to land on the same
+   rarity target as Test/T20. */
+const IMMORTAL_STREAK_BOOST = {test:8, odi:8, t20:8};
+/* Unconditional per-match malus -- unlike CONDITIONS_PENALTY/
+   POSITION_PENALTY_ADD (both avoidable by a good-enough draft, which is
+   exactly why they plateau against ODI's deep pool), this always applies
+   regardless of team composition. Needed only for ODI: its baseline
+   strength (before any boost) is already strong enough that the boost had
+   to be cut well below Test/T20's to keep P(50+) on target, which then
+   made the 55+/58+/60-0 tail collapse far below target since those
+   thresholds depend on the boost surviving a near-full unbeaten run. This
+   malus lets the boost sit back at Test/T20's level (restoring the tail)
+   while still holding the baseline win rate in place. */
+const BASE_DIFFICULTY_PENALTY = {test:0, odi:1.2, t20:0};
+
+function computeConditionsPenalty(nat, hasSpin, hasPace){
+  const pen = CONDITIONS_PENALTY[FMTKEY] || 0;
+  if(!pen) return 0;
+  let total = 0;
+  if(ASIA_NATIONS.has(nat.id) && !hasSpin) total += pen;
+  if(PACE_NATIONS.has(nat.id) && !hasPace) total += pen;
+  return total;
+}
+function hasWorldClassBowlingType(xiList, kind){
+  const threshold = WORLDCLASS_THRESHOLD[FMTKEY] || 999;
+  const types = kind==='spin' ? ['Right-arm spin','Left-arm spin'] : ['Right-arm pace','Left-arm pace'];
+  return xiList.some(p => types.includes(p.bt) && p.r>=threshold && (p.roles.includes('bowl')||p.roles.includes('ar')));
+}
+/* battingBonus/bowlingBonus are precomputed per-player data fields (real
+   career stats ranked against same-format same-decade peers) -- default to
+   0 for any player/format where that data hasn't been generated yet, so
+   this degrades gracefully rather than breaking. */
+function computeStatsBonus(xiList){
+  const weight = STATS_BONUS_WEIGHT[FMTKEY] || 0;
+  if(!weight) return 0;
+  const batters = xiList.filter(p=>p.roles.includes('bat')||p.roles.includes('wk')||p.roles.includes('ar'));
+  const bowlers = xiList.filter(p=>p.roles.includes('bowl')||p.roles.includes('ar'));
+  const battingAvg = batters.length ? batters.reduce((a,p)=>a+(p.battingBonus||0),0)/batters.length : 0;
+  const bowlingAvg = bowlers.length ? bowlers.reduce((a,p)=>a+(p.bowlingBonus||0),0)/bowlers.length : 0;
+  return (battingAvg + bowlingAvg) * weight;
+}
+
 let runSeed = null;
 const __nativeRandom = Math.random.bind(Math);
 function beginTour(){
@@ -1449,6 +1609,11 @@ function startSeason(){
   const st = teamStrengths();
   const stops = shuffle(NATIONS.slice());
 
+  const hasSpin = hasWorldClassBowlingType(xi, 'spin');
+  const hasPace = hasWorldClassBowlingType(xi, 'pace');
+  const statsBonus = computeStatsBonus(xi);
+  let streakAlive = true;   // Immortal-XI boost: on while still undefeated, off for good after any non-win
+
   tourStops = []; revealRows = [];
   let w=0,d=0,l=0;
   let totalSeriesWon=0, totalSweeps=0, marginSum=0, marginCount=0;
@@ -1458,9 +1623,13 @@ function startSeason(){
     const matches=[];
     for(let m=0;m<5;m++){
       const venue = nat.venues[m % nat.venues.length];
-      const res = decideMatch(st.strength, nat.opp+4);
+      const conditionsPenalty = computeConditionsPenalty(nat, hasSpin, hasPace);
+      const effStrength = st.strength + statsBonus - conditionsPenalty - (BASE_DIFFICULTY_PENALTY[FMTKEY]||0) + (streakAlive ? IMMORTAL_STREAK_BOOST[FMTKEY] : 0);
+      const res = decideMatch(effStrength, nat.opp+4);
       const code = res.code;
+      if(code!=='W') streakAlive = false;
       const gen = FMTKEY==='test' ? genTestMatch(code, nat) : genWhiteBallMatch(code, nat, res.superOver);
+      const scorecard = buildMatchScorecard(xi, gen.yourTotal, gen.yourWkts, gen.oppTotal, gen.oppWkts, nat.id);
       const potm = pickPOTM(code, nat);
       if(code==='W'){
         w++;
@@ -1469,9 +1638,10 @@ function startSeason(){
         marginSum += clamp((gen.pts-100)/(190-100), 0, 1);
         marginCount++;
       } else if(code==='D')d++; else l++;
-      matches.push({code, ...gen, potm, venue});
-      revealRows.push({kind:'match', code, num:si*5+m+1,
-        html:`<span class="tno">M${String(si*5+m+1).padStart(2,'0')}</span>
+      const matchNum = si*5+m+1;
+      matches.push({code, ...gen, potm, venue, scorecard, matchNum});
+      revealRows.push({kind:'match', code, num:matchNum, matchNum,
+        html:`<span class="tno">M${String(matchNum).padStart(2,'0')}</span>
         <span class="op">vs ${nat.name} \u2014 ${venue}<span class="score">${gen.score}</span><span class="score" style="color:var(--cream-dim)">${gen.margin}</span><span class="potm">POTM: ${potm}</span></span>
         <span class="badge ${code}">${code==='W'?'WON':code==='D'?'DRAW':'LOST'}</span>`,
         tally:`${w}\u2013${d}\u2013${l}`, stop:si+1});
@@ -1519,6 +1689,10 @@ function appendRow(row){
   const cls = row.kind==='stop' ? 'tour-stop' : row.kind==='table' ? 'table-card' : row.kind==='announce' ? 'tour-announce' : row.kind==='series' ? 'fixture series-row' : 'fixture';
   el.className = cls+' shown';
   el.innerHTML=row.html;
+  if(row.kind==='match' && row.matchNum!=null){
+    el.classList.add('clickable-match');
+    el.onclick=()=>showMatchScorecard(row.matchNum);
+  }
   document.getElementById('fixtures').appendChild(el);
   return el;
 }
@@ -1546,71 +1720,60 @@ function finishSeason(delay){
 }
 
 /* ---- tour-long squad statistics, consistent with the tour result ---- */
+/* Tour-long squad stats are now SUMMED directly from the per-match
+   scorecards stored on tourStops (see buildMatchScorecard) rather than
+   simulated independently -- so a player's season tally always traces
+   back to real per-match figures a user can click through and check. */
 function computeSquadStats(){
-  const M = Math.max(1, tourTotals.w+tourTotals.d+tourTotals.l);
-  const winRate = tourTotals.w/M;
   const test=FMTKEY==='test', odi=FMTKEY==='odi', t20=FMTKEY==='t20';
-  const battingMult = 0.85 + 0.45*winRate;      /* good tours = bigger averages */
-  const bowlingMult = 1.15 - 0.35*winRate;      /* good tours = cheaper wickets */
 
-  /* Individual innings scores, simulated one by one (exponential-shaped:
-     mostly small scores, occasional big ones, matching how batting really
-     distributes) so that High Score, 100s and 50s are read directly off
-     the same underlying innings — they can never contradict each other,
-     unlike deriving them from separate unrelated formulas. */
-  function genInningsScores(inns, mean, cap){
-    const scores = [];
-    for(let i=0;i<inns;i++){
-      let sc = Math.round(-mean * Math.log(1 - Math.random()*0.995));
-      if(sc<0) sc=0;
-      if(sc>cap) sc=cap;
-      scores.push(sc);
-    }
-    return scores;
-  }
+  /* World Tour stores its matches grouped by tour stop; Represent Your
+     Nation stores a flat list plus a separate Lord's final -- flatten
+     both into one list of scorecards so the rest of this function doesn't
+     need to care which mode produced them. */
+  const scorecards = represMode
+    ? representMatches.map(m=>m.scorecard).concat(representFinal && representFinal.scorecard ? [representFinal.scorecard] : [])
+    : tourStops.flatMap(stop=>stop.matches.map(m=>m.scorecard));
+
+  const battingAgg = xi.map(p=>({n:p.n, inns:0, no:0, runs:0, hs:0, h:0, f:0}));
+  scorecards.forEach(sc=>{
+    sc.yourInnings.forEach((b,i)=>{
+      if(b.dnb) return;
+      const agg = battingAgg[i];
+      agg.inns++;
+      if(b.notOut) agg.no++;
+      agg.runs += b.runs;
+      if(b.runs>agg.hs) agg.hs = b.runs;
+      if(b.runs>=100) agg.h++;
+      else if(b.runs>=50) agg.f++;
+    });
+  });
   const batting = xi.map((p,i)=>{
-    const pos=i+1;
-    const pureBowler = p.roles.includes('bowl') && !p.roles.includes('ar');
-    const isAR = p.roles.includes('ar');
-    /* position sets opportunity (innings, not-outs); the PLAYER sets quality */
-    let inns = test ? Math.round(M*(pos<=7?rand(165,185):rand(110,145))/100)
-                    : Math.round(M*(pos<=4?rand(94,100):pos<=7?rand(78,92):isAR?rand(55,72):rand(28,55))/100);
-    const no = Math.max(0, Math.round(inns*(pos>=8?rand(20,32):pos>=6?rand(12,18):rand(5,11))/100));
-    let base;
-    if(pureBowler){
-      base = pos<=7 ? rand(14,26) : rand(9,20);          /* bowlers bat like bowlers, wherever they are */
-    } else {
-      const effR = p.r - positionPenalty(p, pos);         /* small hit for batting out of position */
-      base = test ? 38 + (effR-81)*1.35 : odi ? 34 + (effR-80)*1.15 : 22 + (effR-80)*0.75;
-      if(isAR) base *= 0.88;                              /* genuine AR batting, reflective of the player */
-      if(pos>=8) base *= 0.92;                            /* slightly fewer chances down at 8/9 */
-    }
-    const mean = Math.max(4, base*battingMult*(0.92+Math.random()*0.16));
-    const cap = test?294:odi?189:121;
-    const scores = genInningsScores(Math.max(inns,1), mean, cap);
-    const runs = scores.reduce((a,b)=>a+b,0);
-    const hs = scores.length ? Math.max(...scores) : 0;
-    const h = scores.filter(sc=>sc>=100).length;
-    const f = scores.filter(sc=>sc>=50 && sc<100).length;
+    const agg = battingAgg[i];
+    /* Strike rate isn't tracked ball-by-ball in the per-match scorecard, so
+       it stays a flavour figure derived from rating, same as before. */
     const sr = t20 ? Math.round(105 + (p.r-80)*2.2 + Math.random()*12)
              : odi ? Math.round(72 + (p.r-80)*1.4 + Math.random()*8) : null;
-    return {n:p.n, pos, inns, no, runs, hs, ave: runs/(Math.max(1,inns-no)), h, f, sr};
+    return {n:p.n, pos:i+1, inns:agg.inns, no:agg.no, runs:agg.runs, hs:agg.hs,
+            ave: agg.runs/(Math.max(1,agg.inns-agg.no)), h:agg.h, f:agg.f, sr};
   }).sort((a,b)=>b.runs-a.runs);
 
   const {unit:bowlUnit, partTimer} = getBowlingUnit(xi);
-  const bowlers = bowlUnit.map(p=>({p, pos: xi.findIndex(x=>x.n===p.n&&x.d===p.d)+1, partTime: !!(partTimer && p.n===partTimer.n)}));
-  const bowling = bowlers.map(({p,pos,partTime})=>{
-    const isAR = p.roles.includes('ar') && !p.roles.includes('bowl');
-    const ptMult = partTime ? 0.22 : 1;      /* occasional overs only, not a frontline workload */
-    const perMatch = (test ? 2.0+(p.r-80)*0.14 : odi ? 1.15+(p.r-80)*0.055 : 1.05+(p.r-80)*0.05) * (isAR?0.55:1) * ptMult;
-    const wkts = Math.max(partTime?2:isAR?8:20, Math.round(M*perMatch*(0.9+Math.random()*0.2)/bowlingMult));
-    const ave = Math.max(11, (test?30-(p.r-80)*0.55 : odi?31-(p.r-80)*0.5 : 23-(p.r-80)*0.35)*bowlingMult*(0.92+Math.random()*0.16)*(partTime?1.4:1));
-    const bbw = Math.min(test?9:6, (test?4:3)+Math.floor((p.r-80)/5)+rand(0,1));
-    const bbr = rand(test?18:8, test?70:isAR?38:30);
-    const five = partTime ? 0 : test ? Math.max(0,Math.round(wkts/rand(42,60))) : Math.max(0,Math.round(wkts/rand(60,90)));
-    const econ = t20 ? (8.7-(p.r-80)*0.085)*(0.95+Math.random()*0.1)*(partTime?1.3:1)
-               : odi ? (5.5-(p.r-80)*0.05)*(0.95+Math.random()*0.1)*(partTime?1.3:1) : null;
-    return {n:p.n+(partTime?' (pt)':''), wkts, ave, bb:`${bbw}-${bbr}`, five, econ};
+  const bowlAgg = bowlUnit.map(p=>({n:p.n, wkts:0, runs:0, overs:0, bbw:0, bbr:0, five:0}));
+  scorecards.forEach(sc=>{
+    sc.yourBowling.forEach((b,i)=>{
+      const agg = bowlAgg[i];
+      agg.wkts += b.wkts; agg.runs += b.runs; agg.overs += b.overs;
+      if(b.wkts>=5) agg.five++;
+      if(b.wkts>agg.bbw || (b.wkts===agg.bbw && b.runs<agg.bbr)){ agg.bbw=b.wkts; agg.bbr=b.runs; }
+    });
+  });
+  const bowling = bowlUnit.map((p,i)=>{
+    const agg = bowlAgg[i];
+    const partTime = !!(partTimer && p.n===partTimer.n);
+    const ave = agg.wkts>0 ? agg.runs/agg.wkts : 0;
+    const econ = (test) ? null : (agg.overs>0 ? agg.runs/agg.overs : 0);
+    return {n:p.n+(partTime?' (pt)':''), wkts:agg.wkts, ave, bb:`${agg.bbw}-${agg.bbr}`, five:agg.five, econ, overs:agg.overs};
   }).sort((a,b)=>b.wkts-a.wkts);
 
   return {batting, bowling};
@@ -1626,11 +1789,12 @@ function renderSquadStats(){
                        : [b.inns,b.runs,b.hs,b.ave.toFixed(1),b.sr, t20?b.f:`${b.h}/${b.f}`];
     return `<tr><td>${b.n}</td>${cells.map(c=>`<td>${c}</td>`).join('')}</tr>`;
   }).join('');
-  const bowlHead = test ? ['Player','Wkts','Ave','BBI','5WI']
-                        : ['Player','Wkts','Ave','Econ','BBI'];
+  const bowlHead = test ? ['Player','Ov','Wkts','Ave','BBI','5WI']
+                        : ['Player','Ov','Wkts','Ave','Econ','BBI'];
   const bowlRows = bowling.map(b=>{
-    const cells = test ? [b.wkts,b.ave.toFixed(1),b.bb,b.five]
-                       : [b.wkts,b.ave.toFixed(1),b.econ.toFixed(2),b.bb];
+    const aveStr = b.wkts>0 ? b.ave.toFixed(1) : '-';
+    const cells = test ? [b.overs,b.wkts,aveStr,b.bb,b.five]
+                       : [b.overs,b.wkts,aveStr,b.econ.toFixed(2),b.bb];
     return `<tr><td>${b.n}</td>${cells.map(c=>`<td>${c}</td>`).join('')}</tr>`;
   }).join('');
   document.getElementById('squadStats').innerHTML =
@@ -1638,6 +1802,54 @@ function renderSquadStats(){
      <table class="stat-table"><tr>${batHead.map(h=>`<th>${h}</th>`).join('')}</tr>${batRows}</table>
      <h3>Tour bowling</h3>
      <table class="stat-table"><tr>${bowlHead.map(h=>`<th>${h}</th>`).join('')}</tr>${bowlRows}</table>`;
+}
+
+function showMatchScorecard(matchNum){
+  let sc, title;
+  if(represMode){
+    if(matchNum==='final'){
+      if(!representFinal || !representFinal.scorecard) return;
+      sc = representFinal.scorecard;
+      title = `FINAL vs ${representFinal.oppNat.name} — Lord's`;
+    } else {
+      const m = representMatches.find(x=>x.matchNum===matchNum);
+      if(!m || !m.scorecard) return;
+      sc = m.scorecard;
+      title = `M${matchNum} vs ${m.opp.name} (${m.isHome?'H':'A'})`;
+    }
+  } else {
+    const si = Math.floor((matchNum-1)/5), mi = (matchNum-1)%5;
+    const stop = tourStops[si];
+    if(!stop) return;
+    const m = stop.matches[mi];
+    if(!m || !m.scorecard) return;
+    sc = m.scorecard;
+    title = `M${String(matchNum).padStart(2,'0')} vs ${stop.nat.name}`;
+  }
+
+  const battingRows = sc.yourInnings.map(b=>{
+    if(b.dnb) return `<tr style="opacity:.45"><td>${b.n}</td><td colspan="2">did not bat</td></tr>`;
+    const howOut = b.notOut ? 'not out' : b.out;
+    return `<tr><td>${b.n}</td><td>${b.runs}</td><td>${howOut}</td></tr>`;
+  }).join('');
+  const bowlingRows = sc.yourBowling.map(b=>
+    `<tr><td>${b.n}</td><td>${b.overs}</td><td>${b.runs}</td><td>${b.wkts}</td></tr>`
+  ).join('');
+  const yourLine = `You ${sc.yourTotal}${sc.yourWkts<10?`/${sc.yourWkts}`:''}`;
+  const oppLine = `${sc.oppLabel} ${sc.oppTotal}${sc.oppWkts<10?`/${sc.oppWkts}`:''}`;
+
+  document.getElementById('scorecardModalTitle').textContent = title;
+  document.getElementById('scorecardModalSub').textContent = `${yourLine} · ${oppLine}`;
+  document.getElementById('scorecardModalBody').innerHTML =
+    `<h3 style="margin-top:2px">Your innings</h3>
+     <table class="stat-table"><tr><th>Player</th><th>Runs</th><th>How out</th></tr>${battingRows}</table>
+     <h3>Your bowling</h3>
+     <table class="stat-table"><tr><th>Player</th><th>Ov</th><th>Runs</th><th>Wkts</th></tr>${bowlingRows}</table>
+     <p style="font-size:11px;color:var(--cream-dim);text-align:center;margin-top:10px">${sc.oppLabel}'s individual batting isn't tracked — only their team total and the wickets your bowlers took.</p>`;
+  document.getElementById('scorecardModal').style.display = 'flex';
+}
+function closeScorecardModal(){
+  document.getElementById('scorecardModal').style.display = 'none';
 }
 
 /* ================= LEADERBOARD =================
@@ -2144,7 +2356,8 @@ function genTieMatch(nat){
   const lo = t20?130:220, hi = t20?225:380, ov = t20?'20 ov':'50 ov';
   const score = rand(lo+20, hi-10);
   const w1 = rand(4,9), w2 = rand(4,9);
-  return { score:`You ${score}/${w1} (${ov}) \u00b7 ${nat.id} ${score}/${w2} (${ov})`, margin:'scores level \u2014 match tied' };
+  return { score:`You ${score}/${w1} (${ov}) \u00b7 ${nat.id} ${score}/${w2} (${ov})`, margin:'scores level \u2014 match tied',
+           yourTotal:score, yourWkts:w1, oppTotal:score, oppWkts:w2 };
 }
 
 function buildRepresentTable(yourNat, opponents, yourMatches){
@@ -2170,8 +2383,10 @@ function buildRepresentTable(yourNat, opponents, yourMatches){
   for(let i=0;i<opponents.length;i++){
     for(let j=i+1;j<opponents.length;j++){
       const A=opponents[i], B=opponents[j];
-      applyResult(A, B, decideRepresentNeutral(A.opp, B.opp, HOME_BONUS));   // leg 1: A hosts
-      applyResult(A, B, decideRepresentNeutral(A.opp, B.opp, -HOME_BONUS));  // leg 2: B hosts
+      for(let leg=0; leg<5; leg++){   // 5-match series, alternating: A hosts 3, B hosts 2
+        const homeBonus = leg%2===0 ? HOME_BONUS : -HOME_BONUS;
+        applyResult(A, B, decideRepresentNeutral(A.opp, B.opp, homeBonus));
+      }
     }
   }
 
@@ -2187,32 +2402,41 @@ function buildRepresentTable(yourNat, opponents, yourMatches){
 function startRepresentLeague(){
   switchScreen('scr-season');
   const yourNat = NATIONS.find(n=>n.id===represCountry);
-  document.getElementById('seasonEyebrow').textContent = `Represent ${yourNat.name} \u00b7 League \u00b7 22 Matches`;
-  revealTotalStops = 22; revealStopWord = 'Match'; revealOnFinish = (delay)=>finishRepresentLeague(delay);
+  document.getElementById('seasonEyebrow').textContent = `Represent ${yourNat.name} \u00b7 League \u00b7 55 Matches`;
+  revealTotalStops = 55; revealStopWord = 'Match'; revealOnFinish = (delay)=>finishRepresentLeague(delay);
 
   const st = teamStrengths();
   const opponents = shuffle(NATIONS.filter(n=>n.id!==represCountry));
 
+  const hasSpin = hasWorldClassBowlingType(xi, 'spin');
+  const hasPace = hasWorldClassBowlingType(xi, 'pace');
+  const statsBonus = computeStatsBonus(xi);
+  let streakAlive = true;   // Immortal-XI boost: on while still undefeated (league + final), off for good after any non-win
+
   representMatches = []; revealRows = [];
   let w=0,d=0,t=0,l=0;
   opponents.forEach((opp,oi)=>{
-    for(let leg=0; leg<2; leg++){
-      const matchNum = oi*2+leg+1;
-      const isHome = leg===0;
+    const conditionsPenalty = computeConditionsPenalty(opp, hasSpin, hasPace);
+    for(let leg=0; leg<5; leg++){
+      const matchNum = oi*5+leg+1;
+      const isHome = leg%2===0;   // 5-match series, alternating: 3 home, 2 away
       const homeBonus = isHome ? HOME_BONUS : -HOME_BONUS;
       const venue = isHome ? (yourNat.venues ? yourNat.venues[0] : yourNat.name) : (opp.venues ? opp.venues[0] : opp.name);
-      revealRows.push({kind:'stop', html:`<span class="st-flag">${opp.flag}</span><span class="st-name">${opp.name} \u00b7 ${isHome?'Home':'Away'}</span><span class="st-venue">Match ${matchNum} of 22 \u00b7 ${venue}</span>`,
+      revealRows.push({kind:'stop', html:`<span class="st-flag">${opp.flag}</span><span class="st-name">${opp.name} \u00b7 ${isHome?'Home':'Away'}</span><span class="st-venue">Match ${matchNum} of 55 \u00b7 ${venue}</span>`,
                        tally:null, stop:matchNum});
-      const code = decideRepresentMatch(st.strength, opp.opp, homeBonus);
+      const effStrength = st.strength + statsBonus - conditionsPenalty - (BASE_DIFFICULTY_PENALTY[FMTKEY]||0) + (streakAlive ? IMMORTAL_STREAK_BOOST[FMTKEY] : 0);
+      const code = decideRepresentMatch(effStrength, opp.opp, homeBonus);
       let gen;
       if(code==='T') gen = genTieMatch(opp);
       else if(FMTKEY==='test') gen = genTestMatch(code, opp);
       else gen = genWhiteBallMatch(code, opp, false);
+      const scorecard = buildMatchScorecard(xi, gen.yourTotal, gen.yourWkts, gen.oppTotal, gen.oppWkts, opp.id);
       const potm = pickPOTM(code, opp);
       if(code==='W'){w++;} else if(code==='D'){d++;} else if(code==='T'){t++;} else {l++;}
-      representMatches.push({opp, code, isHome, ...gen, potm});
+      if(code!=='W') streakAlive = false;
+      representMatches.push({opp, code, isHome, ...gen, potm, scorecard, matchNum});
       const resultLabel = code==='W'?'WON':code==='D'?'DRAWN':code==='T'?'TIED':'LOST';
-      revealRows.push({kind:'match', code,
+      revealRows.push({kind:'match', code, matchNum,
         html:`<span class="tno">M${matchNum}</span>
         <span class="op">vs ${opp.name} (${isHome?'H':'A'})<span class="score">${gen.score}</span><span class="score" style="color:var(--cream-dim)">${gen.margin}</span><span class="potm">POTM: ${potm}</span></span>
         <span class="badge ${code==='T'?'D':code}">${resultLabel}</span>`,
@@ -2230,17 +2454,20 @@ function startRepresentLeague(){
   const finalistA = representTable[0], finalistB = representTable[1];
   const aNat = NATIONS.find(n=>n.id===finalistA.id), bNat = NATIONS.find(n=>n.id===finalistB.id);
   const youAreFinalist = finalistA.isYou || finalistB.isYou;
-  let finalGen=null, finalPotm=null, finalOppNat=null, finalCode;
+  let finalGen=null, finalScorecard=null, finalPotm=null, finalOppNat=null, finalCode;
   if(youAreFinalist){
     finalOppNat = finalistA.isYou ? bNat : aNat;
-    const res = decideRepresentFinal(st.strength, finalOppNat.opp);
+    const finalConditionsPenalty = computeConditionsPenalty(finalOppNat, hasSpin, hasPace);
+    const finalEffStrength = st.strength + statsBonus - finalConditionsPenalty - (BASE_DIFFICULTY_PENALTY[FMTKEY]||0) + (streakAlive ? IMMORTAL_STREAK_BOOST[FMTKEY] : 0);
+    const res = decideRepresentFinal(finalEffStrength, finalOppNat.opp);
     finalCode = res.code;
     finalGen = FMTKEY==='test' ? genTestMatch(finalCode, finalOppNat) : genWhiteBallMatch(finalCode, finalOppNat, res.superOver);
+    finalScorecard = buildMatchScorecard(xi, finalGen.yourTotal, finalGen.yourWkts, finalGen.oppTotal, finalGen.oppWkts, finalOppNat.id);
     finalPotm = pickPOTM(finalCode, finalOppNat);
   } else {
     finalCode = decideRepresentFinal(aNat.opp, bNat.opp).code; // relative to A; no gen/potm \u2014 you're not involved
   }
-  representFinal = {youAreFinalist, finalistA, finalistB, aNat, bNat, code:finalCode, oppNat:finalOppNat, gen:finalGen, potm:finalPotm};
+  representFinal = {youAreFinalist, finalistA, finalistB, aNat, bNat, code:finalCode, oppNat:finalOppNat, gen:finalGen, potm:finalPotm, scorecard:finalScorecard};
   representFinalBonus = 0; representFinalSuffix = '';
   if(youAreFinalist){
     if(finalCode==='D'){ representFinalBonus=REPRESENT_FINAL_BONUS.draw; representFinalSuffix=', Final D'; }
@@ -2252,14 +2479,14 @@ function startRepresentLeague(){
   box.innerHTML='';
   document.getElementById('verdict').classList.remove('show');
   document.getElementById('seasonTally').textContent='0\u20130\u20130\u20130';
-  document.getElementById('testTally').textContent='Match 0 of 22';
+  document.getElementById('testTally').textContent='Match 0 of 55';
   showSkipBtn();
   revealIdx=0;
   revealTimers=revealRows.map((_,i)=>setTimeout(()=>revealOne(i), 340*(i+1)));
 }
 
 function representTableHTML(){
-  const rows = representTable.map((r,i)=>`<tr${r.isYou?' style="color:var(--brass);font-weight:700"':''}><td>${i+1}</td><td>${r.flag} ${r.name}${r.isYou?' (YOU)':''}</td><td>22</td><td>${r.w}</td><td>${r.d}</td><td>${r.t}</td><td>${r.l}</td><td>${r.pts}</td></tr>`).join('');
+  const rows = representTable.map((r,i)=>`<tr${r.isYou?' style="color:var(--brass);font-weight:700"':''}><td>${i+1}</td><td>${r.flag} ${r.name}${r.isYou?' (YOU)':''}</td><td>55</td><td>${r.w}</td><td>${r.d}</td><td>${r.t}</td><td>${r.l}</td><td>${r.pts}</td></tr>`).join('');
   return `<h3 style="margin-top:2px">Final League Table</h3>
     <table class="stat-table"><tr><th>Pos</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>T</th><th>L</th><th>Pts</th></tr>${rows}</table>`;
 }
@@ -2268,7 +2495,7 @@ function representFinalResultRow(){
   if(F.youAreFinalist){
     const badge = F.code==='W' ? 'W' : F.code==='D' ? 'G' : 'L';
     const label = F.code==='W' ? 'CHAMPIONS' : F.code==='D' ? 'JOINT CHAMPIONS' : 'RUNNERS-UP';
-    return {kind:'match', code:F.code, html:`<span class="tno">FINAL</span>
+    return {kind:'match', code:F.code, matchNum:'final', html:`<span class="tno">FINAL</span>
       <span class="op">vs ${F.oppNat.name} \u2014 Lord's<span class="score">${F.gen.score}</span><span class="score" style="color:var(--cream-dim)">${F.gen.margin}</span><span class="potm">POTM: ${F.potm}</span></span>
       <span class="badge ${badge}">${label}</span>`};
   }
@@ -2309,9 +2536,9 @@ function representVerdict(){
     else if(representFinal.code==='D'){ title='JOINT CHAMPIONS OF THE WORLD'; body=`${yourNat.name} drew with ${oppName} at Lord's \u2014 a genuine Test draw, so the title is shared, WTC-style.`; }
     else { title='RUNNERS-UP'; body=`${yourNat.name} reached the Lord's final but came up short against ${oppName} \u2014 a fine season all the same.`; }
   }
-  else if(rank<=3){ title=`FINISHED P${rank}`; body=`A genuine podium finish for ${yourNat.name} \u2014 ${yourRow.pts} points from 22 matches, right up with the very best sides in the world.`; }
+  else if(rank<=3){ title=`FINISHED P${rank}`; body=`A genuine podium finish for ${yourNat.name} \u2014 ${yourRow.pts} points from 55 matches, right up with the very best sides in the world.`; }
   else if(rank<=6){ title=`FINISHED P${rank}`; body=`A solid mid-table campaign for ${yourNat.name} with ${yourRow.pts} points \u2014 competitive, but the top sides in the world edged it this time.`; }
-  else { title=`FINISHED P${rank}`; body=`A tough league campaign for ${yourNat.name} \u2014 ${yourRow.pts} points from 22 matches. The rest of the cricketing world proved too strong on this occasion.`; }
+  else { title=`FINISHED P${rank}`; body=`A tough league campaign for ${yourNat.name} \u2014 ${yourRow.pts} points from 55 matches. The rest of the cricketing world proved too strong on this occasion.`; }
   document.getElementById('verdictRec').textContent = rec;
   document.getElementById('verdictTitle').textContent = title;
   document.getElementById('verdictBody').textContent = body;
@@ -2396,7 +2623,7 @@ function buildShareTextRepresent(){
               : representFinal.code==='D' ? `\n\ud83c\udfc6 JOINT CHAMPIONS \u2014 drew with ${representFinal.oppNat.name} at Lord's`
               : `\n\ud83e\udd48 RUNNERS-UP \u2014 lost the Lord's final to ${representFinal.oppNat.name}`;
   }
-  return `NOT OUT* \u2014 Represent Your Nation \u00b7 ${yourNat.flag} ${yourNat.name} \u00b7 ${FMT.label}\n22-match home & away league \u00b7 Finished P${rank} of 12 \u00b7 ${rec} \u2014 ${points} pts${finalLine}\n\n${dots}\n\n${SHARE_CTA}`;
+  return `NOT OUT* \u2014 Represent Your Nation \u00b7 ${yourNat.flag} ${yourNat.name} \u00b7 ${FMT.label}\n55-match home & away league \u00b7 Finished P${rank} of 12 \u00b7 ${rec} \u2014 ${points} pts${finalLine}\n\n${dots}\n\n${SHARE_CTA}`;
 }
 
 
@@ -2563,6 +2790,15 @@ if(typeof twemoji !== 'undefined'){
         <p>Once the tour is under way, your team's overall strength is measured against each opponent to decide who wins. Your final score rewards <b>winning matches</b>, <b>winning series</b>, <b>whitewashing a series 5-0</b>, and <b>winning convincingly</b> rather than just scraping through — so a genuinely dominant, well-built XI scores far better than one that just gets over the line.</p>
       </div>
       <button class="btn" style="margin-top:16px" onclick="closeInfoModal()">Got it</button>
+    </div>
+  </div>
+
+  <div class="name-modal" id="scorecardModal" style="display:none" onclick="if(event.target===this) closeScorecardModal()">
+    <div class="name-modal-card scorecard-modal-card">
+      <div class="name-modal-title" id="scorecardModalTitle">Match</div>
+      <p class="name-modal-sub" id="scorecardModalSub"></p>
+      <div class="info-modal-body" id="scorecardModalBody"></div>
+      <button class="btn" style="margin-top:16px" onclick="closeScorecardModal()">Close</button>
     </div>
   </div>
 </body>
