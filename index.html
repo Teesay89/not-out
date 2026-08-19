@@ -408,6 +408,7 @@ body.sim-active .masthead{
     <div class="intro-card">
       <h2>Choose your format</h2>
       <button class="fmt-hero represent-hero" id="fmt-represent-hero" onclick="showRepresentSetup()"><span class="newtag">NEW</span>REPRESENT YOUR NATION<small>One country only · face the rest of the world in a league table</small></button>
+      <button class="fmt-hero represent-hero" id="fmt-showdown-hero" onclick="showSeriesShowdownSetup()"><span class="newtag">NEW</span>SERIES SHOWDOWN<small>Pick a side in a real series currently being played</small></button>
       <p id="dataStatus" class="data-status" style="display:none"></p>
       <div class="fmt-row">
         <button class="fmt-btn selected" id="fmt-test" onclick="selectFormat('test')">Test<small>4,734 players · 16 decades</small></button>
@@ -446,6 +447,38 @@ body.sim-active .masthead{
     <div class="represent-country-grid" id="representCountryGrid"></div>
     <button class="btn" id="representStartBtn" disabled onclick="startRepresentDraft()">Start the draft</button>
     <a href="javascript:void(0)" class="back-link" style="margin-top:10px" onclick="exitRepresentSetup()">← Back</a>
+  </section>
+
+  <!-- SERIES SHOWDOWN: SETUP -->
+  <section class="screen" id="scr-showdown-setup">
+    <div class="slot-callout">
+      <div class="eyebrow">Series Showdown</div>
+      <h2>Pick a series</h2>
+      <p>One squad, every decade — draft the best of one nation and take on the other, across Test, ODI and T20.</p>
+    </div>
+    <div class="represent-country-grid" id="showdownSeriesGrid"></div>
+    <div id="showdownSideStep" style="display:none">
+      <div class="slot-callout" style="margin-top:16px">
+        <div class="eyebrow">Now pick your side</div>
+        <h2 id="showdownSeriesLabel"></h2>
+      </div>
+      <div class="represent-country-grid" id="showdownSideGrid"></div>
+      <button class="btn secondary" style="margin-top:10px" onclick="selectSeriesShowdownCombinedMode()">Combined XI vs the rest of the world</button>
+    </div>
+    <div id="showdownCombinedStep" style="display:none">
+      <div class="slot-callout" style="margin-top:16px">
+        <div class="eyebrow">Combined XI</div>
+        <h2>Choose a format</h2>
+        <p>Draft the best of both nations, across every decade, then take on the other ten sides.</p>
+      </div>
+      <div class="fmt-row" id="showdownCombinedFmtRow">
+        <button class="fmt-btn selected" data-fmt="test" onclick="selectSeriesShowdownCombinedFormat('test')">Test<small>16 decades</small></button>
+        <button class="fmt-btn" data-fmt="odi" onclick="selectSeriesShowdownCombinedFormat('odi')">ODI<small>6 decades</small></button>
+        <button class="fmt-btn" data-fmt="t20" onclick="selectSeriesShowdownCombinedFormat('t20')">T20<small>3 decades</small></button>
+      </div>
+      <button class="btn" onclick="startSeriesShowdownCombinedDraft()">Start the draft</button>
+    </div>
+    <a href="javascript:void(0)" class="back-link" style="margin-top:10px" onclick="exitSeriesShowdownSetup()">← Back</a>
   </section>
 
   <!-- DRAFT -->
@@ -552,6 +585,7 @@ body.sim-active .masthead{
       <button class="lb-pill" data-mode="odi" onclick="setLbFilter('odi')">ODI</button>
       <button class="lb-pill" data-mode="t20" onclick="setLbFilter('t20')">T20</button>
       <button class="lb-pill" data-mode="represent" onclick="setLbFilter('represent')">Represent</button>
+      <button class="lb-pill" data-mode="showdown" onclick="setLbFilter('showdown')">Showdown</button>
     </div>
     <div id="lbBody"></div>
     <button class="btn secondary" style="margin-top:14px" onclick="closeLeaderboard()">← Back</button>
@@ -592,12 +626,24 @@ const NATIONS = [
   {id:'IRE', name:'Ireland',      flag:'🇮🇪', opp:83,  venues:['Malahide','the Village','Civil Service Cricket Club']},
 ];
 
+/* ================= CURRENT SERIES (Series Showdown) ================
+   A small, manually-maintained list of currently-live real
+   international series — updated by hand as real fixtures change,
+   there's no live API integration. `a`/`b` are NATIONS ids. */
+const CURRENT_SERIES = [
+  {id:'eng-pak', a:'ENG', b:'PAK', label:'England v Pakistan'},
+  {id:'aus-ban', a:'AUS', b:'BAN', label:'Australia v Bangladesh'},
+  {id:'ind-sl',  a:'IND', b:'SL',  label:'India v Sri Lanka'},
+];
+
 /* =================================================================
    PLAYER DATABASES — three formats; each player rated for his
    standing within his own decade. d: decade · roles: bat/bowl/ar/wk
    ================================================================= */
 /* Player databases now live in separate JSON files (data/test.json,
-   data/odi.json, data/t20.json, data/hundred.json) and are fetched on
+   data/odi.json, data/t20.json, data/best.json — the last one is a
+   format-agnostic all-time/all-decade "best players" compilation, used
+   by multi-format modes like Series Showdown) and are fetched on
    demand instead of being inlined here — keeps the page itself small
    and only downloads the format someone actually plays. Each is cached
    in DB[key] the first time it loads. */
@@ -669,6 +715,11 @@ const FORMATS = {
   test:{label:'Test Match', noun:'Test',  decades:['1870s','1880s','1890s','1900s','1910s','1920s','1930s','1940s','1950s','1960s','1970s','1980s','1990s','2000s','2010s','2020s']},
   odi: {label:'ODI',        noun:'ODI',   decades:['1970s','1980s','1990s','2000s','2010s','2020s']},
   t20: {label:'T20',        noun:'T20',   decades:['2000s','2010s','2020s']},
+  // Not a playable format on its own — FMTKEY is never set to 'best', it
+  // always stays test/odi/t20. This entry exists only so ensureFormatLoaded()/
+  // setDataStatus() (both generic over any DB[k] key) don't crash on
+  // FORMATS['best'] while Series Showdown lazy-loads the all-time pool.
+  best:{label:'All-Time Best', noun:'match', decades:['1870s','1880s','1890s','1900s','1910s','1920s','1930s','1940s','1950s','1960s','1970s','1980s','1990s','2000s','2010s','2020s']},
 };
 let FMT = FORMATS.test, FMTKEY = 'test';
 /* Era filter: narrows which decades are eligible to be drawn, from a
@@ -750,7 +801,9 @@ function selectablePool(natId, decade){
 }
 function eligiblePairs(){
   const pairs = [];
-  const natList = represMode ? NATIONS.filter(n=>n.id===represCountry) : NATIONS;
+  const natList = represMode ? NATIONS.filter(n=>n.id===represCountry)
+    : (curSeriesMode && csCombined) ? NATIONS.filter(n=>n.id===csSeries.a || n.id===csSeries.b)
+    : curSeriesMode ? NATIONS.filter(n=>n.id===csYourNat) : NATIONS;
   const decList = eraFilteredDecades();
   for(const nat of natList){
     for(const dec of decList){
@@ -1004,7 +1057,7 @@ function selectEraFilter(tierId){
    mode already restricts to one country and keeps the full decade
    range within it, rather than stacking two restrictions at once). */
 function eraFilteredDecades(){
-  if(represMode) return DECADES;
+  if(represMode || curSeriesMode) return DECADES;
   const tiers = ERA_TIERS[FMTKEY] || [];
   const tier = tiers.find(t=>t.id===eraFilter);
   if(!tier || tier.minYear==null) return DECADES;
@@ -1503,19 +1556,31 @@ function genWhiteBallMatch(code, nat, superOver){
    data (no randomness), client and server always compute the identical
    XI for a given (nation, format) with zero lockstep risk -- only the
    runs/wickets DISTRIBUTED across it (buildMatchScorecard) needs RNG. */
-function buildOppositionXI(natId){
-  const pool0 = DB[FMTKEY].filter(p=>p.c===natId && p.d==='2020s' && !p.retired);
+function buildOppositionXI(natId, poolKey){
+  poolKey = poolKey || FMTKEY;
+  const src = DB[poolKey];
+  const pool0 = src.filter(p=>p.c===natId && p.d==='2020s' && !p.retired);
   const keeperOk = pool0.some(p=>p.roles.includes('wk'));
   const bowlArOk = pool0.filter(p=>p.roles.includes('bowl')||p.roles.includes('ar')).length>=5;
   const pool = (pool0.length>=11 && keeperOk && bowlArOk) ? pool0
-    : DB[FMTKEY].filter(p=>p.c===natId && p.d==='2020s'); // fallback: drop the retired filter
+    : src.filter(p=>p.c===natId && p.d==='2020s'); // fallback: drop the retired filter
 
   const byMat = pool.slice().sort((a,b)=>b.mat-a.mat);
   const drafted = [], used = new Set();
   const keeper = byMat.find(p=>p.roles.includes('wk'));
   if(keeper){ drafted.push(keeper); used.add(keeper.n); }
   const bowlArCandidates = byMat.filter(p=>!used.has(p.n) && (p.roles.includes('bowl')||p.roles.includes('ar')));
-  bowlArCandidates.slice(0,5).forEach(p=>{ drafted.push(p); used.add(p.n); });
+  // A player can appear more than once in the pool under the same name
+  // (e.g. the all-time "best" dataset rates one legendary career across
+  // multiple decade-peaks) -- bowlArCandidates is computed once up front,
+  // so `used` must be re-checked INSIDE this loop, not just at filter
+  // time, or the same real person can be drafted twice.
+  let bowlArTaken = 0;
+  for(const p of bowlArCandidates){
+    if(bowlArTaken>=5) break;
+    if(used.has(p.n)) continue;
+    drafted.push(p); used.add(p.n); bowlArTaken++;
+  }
   for(const p of byMat){
     if(drafted.length>=11) break;
     if(used.has(p.n)) continue;
@@ -1535,11 +1600,65 @@ function buildOppositionXI(natId){
   });
   return xiSlots.filter(Boolean);
 }
-const oppositionXICache = new Map();  // one XI per (opponent, format, tour) -- a real squad doesn't reshuffle match to match
-function getOppositionXI(natId){
-  const key = FMTKEY+'|'+natId;
-  if(!oppositionXICache.has(key)) oppositionXICache.set(key, buildOppositionXI(natId));
+const oppositionXICache = new Map();  // one XI per (opponent, pool, tour) -- a real squad doesn't reshuffle match to match
+function getOppositionXI(natId, poolKey){
+  poolKey = poolKey || FMTKEY;
+  const key = poolKey+'|'+natId;
+  if(!oppositionXICache.has(key)) oppositionXICache.set(key, buildOppositionXI(natId, poolKey));
   return oppositionXICache.get(key);
+}
+
+/* ---- all-star XI (Series Showdown bonus round) ------------------------
+   Same slot-fill/keeper/5-bowl-AR engine as buildOppositionXI, but true
+   all-time: no decade filter, no !retired filter, ranked by rating (r)
+   instead of matches played. Deterministic (no RNG), so — like
+   buildOppositionXI — client/server always agree with zero lockstep
+   risk; only needs to stay byte-identical between the two files. */
+function buildAllStarXI(natId, poolKey){
+  poolKey = poolKey || FMTKEY;
+  const pool = DB[poolKey].filter(p=>p.c===natId);
+
+  const byRating = pool.slice().sort((a,b)=>b.r-a.r);
+  const drafted = [], used = new Set();
+  const keeper = byRating.find(p=>p.roles.includes('wk'));
+  if(keeper){ drafted.push(keeper); used.add(keeper.n); }
+  const bowlArCandidates = byRating.filter(p=>!used.has(p.n) && (p.roles.includes('bowl')||p.roles.includes('ar')));
+  // A player can appear more than once in the pool under the same name
+  // (e.g. the all-time "best" dataset rates one legendary career across
+  // multiple decade-peaks) -- bowlArCandidates is computed once up front,
+  // so `used` must be re-checked INSIDE this loop, not just at filter
+  // time, or the same real person can be drafted twice.
+  let bowlArTaken = 0;
+  for(const p of bowlArCandidates){
+    if(bowlArTaken>=5) break;
+    if(used.has(p.n)) continue;
+    drafted.push(p); used.add(p.n); bowlArTaken++;
+  }
+  for(const p of byRating){
+    if(drafted.length>=11) break;
+    if(used.has(p.n)) continue;
+    drafted.push(p); used.add(p.n);
+  }
+
+  const xiSlots = new Array(11).fill(null);
+  drafted.forEach(p=>{
+    let bestSlot=-1, bestPen=Infinity;
+    for(let i=0;i<11;i++){
+      if(xiSlots[i] || !SLOTS[i].fits(p)) continue;
+      const pen = positionPenalty(p, i+1);
+      if(pen<bestPen){ bestPen=pen; bestSlot=i; }
+    }
+    if(bestSlot===-1) bestSlot = xiSlots.findIndex(s=>!s);
+    if(bestSlot>=0) xiSlots[bestSlot] = p;
+  });
+  return xiSlots.filter(Boolean);
+}
+const allStarXICache = new Map();
+function getAllStarXI(natId, poolKey){
+  poolKey = poolKey || FMTKEY;
+  const key = poolKey+'|'+natId;
+  if(!allStarXICache.has(key)) allStarXICache.set(key, buildAllStarXI(natId, poolKey));
+  return allStarXICache.get(key);
 }
 
 /* ---- full per-match scorecard --------------------------------------
@@ -1791,6 +1910,8 @@ function beginTour(){
   runSeed = Math.floor(__nativeRandom() * 2**31);
   Math.random = mulberry32(runSeed);
   if(represMode) startRepresentLeague();
+  else if(curSeriesMode && csCombined) startSeriesShowdownCombined();
+  else if(curSeriesMode) startSeriesShowdown();
   else startSeason();
 }
 
@@ -1924,12 +2045,16 @@ function finishSeason(delay){
 function computeSquadStats(){
   const test=FMTKEY==='test', odi=FMTKEY==='odi', t20=FMTKEY==='t20';
 
-  /* World Tour stores its matches grouped by tour stop; Represent Your
-     Nation stores a flat list plus a separate Lord's final -- flatten
-     both into one list of scorecards so the rest of this function doesn't
-     need to care which mode produced them. */
+  /* World Tour/Series Showdown store their matches grouped by stop;
+     Represent Your Nation stores a flat list plus a separate Lord's
+     final -- flatten all three into one list of scorecards so the rest
+     of this function doesn't need to care which mode produced them. */
   const scorecards = represMode
     ? representMatches.map(m=>m.scorecard).concat(representFinal && representFinal.scorecard ? [representFinal.scorecard] : [])
+    : (curSeriesMode && csCombined)
+    ? csCombinedStops.flatMap(stop=>stop.matches.map(m=>m.scorecard))
+    : curSeriesMode
+    ? csStops.flatMap(stop=>stop.matches.map(m=>m.scorecard))
     : tourStops.flatMap(stop=>stop.matches.map(m=>m.scorecard));
 
   const battingAgg = xi.map(p=>({n:p.n, inns:0, no:0, runs:0, hs:0, h:0, f:0}));
@@ -2019,6 +2144,22 @@ function showMatchScorecard(matchNum){
       sc = m.scorecard;
       title = `M${matchNum} vs ${m.opp.name} (${m.isHome?'H':'A'})`;
     }
+  } else if(curSeriesMode && csCombined){
+    const si = Math.floor((matchNum-1)/5), mi = (matchNum-1)%5;
+    const stop = csCombinedStops[si];
+    if(!stop) return;
+    const m = stop.matches[mi];
+    if(!m || !m.scorecard) return;
+    sc = m.scorecard;
+    title = `M${String(matchNum).padStart(2,'0')} vs ${stop.nat.name}`;
+  } else if(curSeriesMode){
+    const si = Math.floor((matchNum-1)/5), mi = (matchNum-1)%5;
+    const stop = csStops[si];
+    if(!stop) return;
+    const m = stop.matches[mi];
+    if(!m || !m.scorecard) return;
+    sc = m.scorecard;
+    title = `M${String(matchNum).padStart(2,'0')} ${stop.label}`;
   } else {
     const si = Math.floor((matchNum-1)/5), mi = (matchNum-1)%5;
     const stop = tourStops[si];
@@ -2188,6 +2329,8 @@ async function lbLoad(filterFmt){
       let query = fbDB.collection('leaderboard');
       if(filterFmt === 'represent'){
         query = query.where('mode','==','represent').orderBy('score','desc').limit(50);
+      } else if(filterFmt === 'showdown'){
+        query = query.where('mode','==','showdown').orderBy('score','desc').limit(50);
       } else if(filterFmt && filterFmt!=='all'){
         query = query.where('format','==',filterFmt).orderBy('score','desc').limit(50);
       } else {
@@ -2195,12 +2338,12 @@ async function lbLoad(filterFmt){
       }
       const snap = await query.get();
       let docs = snap.docs.map(d=>d.data());
-      // Represent Your Nation points (max ~132) are a different scale
-      // entirely from the weighted-composite Test/ODI/T20/Hundred score
-      // (thousands) — mixed into "All" they'd always sink to the
-      // bottom looking like bad runs rather than a different metric,
-      // so they're excluded here and shown only under their own tab.
-      if(!filterFmt || filterFmt==='all') docs = docs.filter(e => e.mode!=='represent');
+      // Represent Your Nation points (max ~132) and Series Showdown's own
+      // composite (out of ~10,000 over 30 matches, not 60) are different
+      // scales from the weighted-composite Test/ODI/T20 score — mixed
+      // into "All" they'd read as a different metric, so both are
+      // excluded here and shown only under their own tab.
+      if(!filterFmt || filterFmt==='all') docs = docs.filter(e => e.mode!=='represent' && e.mode!=='showdown');
       return docs;
     }catch(e){ console.warn('Firestore read failed, showing device-only scores.', e); }
   }
@@ -2216,10 +2359,12 @@ async function lbLoad(filterFmt){
   }catch(e){}
   if(filterFmt === 'represent'){
     arr = arr.filter(e => e.mode==='represent');
+  } else if(filterFmt === 'showdown'){
+    arr = arr.filter(e => e.mode==='showdown');
   } else if(filterFmt && filterFmt!=='all'){
-    arr = arr.filter(e => e.mode!=='represent' && (e.format ? e.format===filterFmt : e.label===LB_FILTER_LABEL[filterFmt]));
+    arr = arr.filter(e => e.mode!=='represent' && e.mode!=='showdown' && (e.format ? e.format===filterFmt : e.label===LB_FILTER_LABEL[filterFmt]));
   } else {
-    arr = arr.filter(e => e.mode!=='represent');
+    arr = arr.filter(e => e.mode!=='represent' && e.mode!=='showdown');
   }
   return arr;
 }
@@ -2278,6 +2423,82 @@ async function showRepresentScoreAndSave(){
   const entry = {name:playerName, score:localPoints, record:localRecord, label:FMT.label, mode:'represent', country:represCountry, countryName:yourNat.name, rank:localRank, points:localPoints, date:new Date().toISOString()};
   await recordScore(entry);
   rankEl.innerHTML = `<div class="review-sub">Saved to this device \u2014 finished P${localRank} with ${localPoints} points.</div>`;
+}
+
+const SERIES_SHOWDOWN_FUNCTION_URL = 'https://us-central1-not-out-186a9.cloudfunctions.net/submitSeriesShowdownScore';
+async function submitVerifiedSeriesShowdownResult(playerName){
+  const xiPayload = xi.map(p=>({n:p.n, d:p.d, c:p.c}));
+  const res = await fetch(SERIES_SHOWDOWN_FUNCTION_URL, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({seed:runSeed, xi:xiPayload, captainIdx, name:playerName, yourNation:csYourNat, opponentNation:csOppNat})
+  });
+  const data = await res.json();
+  if(!res.ok || !data.ok) throw new Error(data.error || ('HTTP '+res.status));
+  return data; // {ok, score, record}
+}
+async function showSeriesShowdownScoreAndSave(){
+  const yourNat = NATIONS.find(n=>n.id===csYourNat), oppNat = NATIONS.find(n=>n.id===csOppNat);
+  const {w,d,l} = tourTotals;
+  const localRecord = `${w}-${d}-${l}`;
+  const functionConfigured = SERIES_SHOWDOWN_FUNCTION_URL && !SERIES_SHOWDOWN_FUNCTION_URL.includes('PASTE_YOUR');
+  const playerName = await getPlayerName();
+  const rankEl = document.getElementById('scoreRank');
+
+  if(fbDB && functionConfigured){
+    try{
+      const data = await submitVerifiedSeriesShowdownResult(playerName);
+      document.getElementById('scoreValue').textContent = data.score.toLocaleString();
+      rankEl.innerHTML = `<div class="review-badge review-good">${pickOne(NOT_OUT_REVIEWS)}</div><div class="review-sub">Saved to the leaderboard \u2014 ${data.score.toLocaleString()} points as ${yourNat.name} vs ${oppNat.name}.</div>`;
+      return;
+    }catch(e){
+      console.warn('Server verification failed for Series Showdown, saving to this device instead.', e);
+      const entry = {name:playerName, score:csScore, record:localRecord, label:'Series Showdown', mode:'showdown', yourNation:csYourNat, opponentNation:csOppNat, date:new Date().toISOString()};
+      await recordScore(entry);
+      rankEl.innerHTML = `<div class="review-badge review-bad">${pickOne(OUT_REVIEWS)}</div><div class="review-sub">Saved to this device instead \u2014 ${csScore.toLocaleString()} points.</div>`;
+      return;
+    }
+  }
+  const entry = {name:playerName, score:csScore, record:localRecord, label:'Series Showdown', mode:'showdown', yourNation:csYourNat, opponentNation:csOppNat, date:new Date().toISOString()};
+  await recordScore(entry);
+  rankEl.innerHTML = `<div class="review-sub">Saved to this device \u2014 ${csScore.toLocaleString()} points.</div>`;
+}
+
+const SERIES_SHOWDOWN_COMBINED_FUNCTION_URL = 'https://us-central1-not-out-186a9.cloudfunctions.net/submitSeriesShowdownCombinedScore';
+async function submitVerifiedSeriesShowdownCombinedResult(playerName){
+  const xiPayload = xi.map(p=>({n:p.n, d:p.d, c:p.c}));
+  const res = await fetch(SERIES_SHOWDOWN_COMBINED_FUNCTION_URL, {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({format:FMTKEY, seed:runSeed, xi:xiPayload, captainIdx, name:playerName, natA:csSeries.a, natB:csSeries.b})
+  });
+  const data = await res.json();
+  if(!res.ok || !data.ok) throw new Error(data.error || ('HTTP '+res.status));
+  return data; // {ok, score, record}
+}
+async function showSeriesShowdownCombinedScoreAndSave(){
+  const aNat = NATIONS.find(n=>n.id===csSeries.a), bNat = NATIONS.find(n=>n.id===csSeries.b);
+  const {w,d,l} = tourTotals;
+  const localRecord = `${w}-${d}-${l}`;
+  const functionConfigured = SERIES_SHOWDOWN_COMBINED_FUNCTION_URL && !SERIES_SHOWDOWN_COMBINED_FUNCTION_URL.includes('PASTE_YOUR');
+  const playerName = await getPlayerName();
+  const rankEl = document.getElementById('scoreRank');
+
+  if(fbDB && functionConfigured){
+    try{
+      const data = await submitVerifiedSeriesShowdownCombinedResult(playerName);
+      document.getElementById('scoreValue').textContent = data.score.toLocaleString();
+      rankEl.innerHTML = `<div class="review-badge review-good">${pickOne(NOT_OUT_REVIEWS)}</div><div class="review-sub">Saved to the leaderboard \u2014 ${data.score.toLocaleString()} points with a combined ${aNat.name}/${bNat.name} XI.</div>`;
+      return;
+    }catch(e){
+      console.warn('Server verification failed for Series Showdown (Combined), saving to this device instead.', e);
+      const entry = {name:playerName, score:csCombinedScore, record:localRecord, label:'Series Showdown', mode:'showdown', showdownFormat:FMTKEY, natA:csSeries.a, natB:csSeries.b, date:new Date().toISOString()};
+      await recordScore(entry);
+      rankEl.innerHTML = `<div class="review-badge review-bad">${pickOne(OUT_REVIEWS)}</div><div class="review-sub">Saved to this device instead \u2014 ${csCombinedScore.toLocaleString()} points.</div>`;
+      return;
+    }
+  }
+  const entry = {name:playerName, score:csCombinedScore, record:localRecord, label:'Series Showdown', mode:'showdown', showdownFormat:FMTKEY, natA:csSeries.a, natB:csSeries.b, date:new Date().toISOString()};
+  await recordScore(entry);
+  rankEl.innerHTML = `<div class="review-sub">Saved to this device \u2014 ${csCombinedScore.toLocaleString()} points.</div>`;
 }
 
 async function lbLoadRawLocal(){
@@ -2390,12 +2611,13 @@ async function showScoreAndSave(record){
   rankEl.innerHTML = `<div class="review-sub">${extra} (saved to device)</div>`;
 }
 let lbFilter = 'all';
-const LB_FILTER_LABEL = {test:'Test Match', odi:'ODI', t20:'T20', hundred:'The Hundred'};
+const LB_FILTER_LABEL = {test:'Test Match', odi:'ODI', t20:'T20'};
 
 function lbFilteredEntries(){
   if(lbFilter==='all') return leaderboard;
   if(lbFilter==='represent') return leaderboard.filter(e => e.mode==='represent');
-  return leaderboard.filter(e => e.mode!=='represent' && (e.format ? e.format===lbFilter : e.label===LB_FILTER_LABEL[lbFilter]));
+  if(lbFilter==='showdown') return leaderboard.filter(e => e.mode==='showdown');
+  return leaderboard.filter(e => e.mode!=='represent' && e.mode!=='showdown' && (e.format ? e.format===lbFilter : e.label===LB_FILTER_LABEL[lbFilter]));
 }
 function renderLbBody(){
   const body = document.getElementById('lbBody');
@@ -2417,6 +2639,27 @@ function renderLbBody(){
         <span class="lb-fmt">Represent</span>
       </div>`;
     }
+    if(e.mode==='showdown' && e.natA){
+      const aNat = NATIONS.find(n=>n.id===e.natA), bNat = NATIONS.find(n=>n.id===e.natB);
+      const aFlag = aNat ? aNat.flag : '', bFlag = bNat ? bNat.flag : '';
+      const aName = aNat ? aNat.name : e.natA, bName = bNat ? bNat.name : e.natB;
+      const fmtLabel = e.showdownFormat ? (FORMATS[e.showdownFormat] ? FORMATS[e.showdownFormat].label : e.showdownFormat) : '';
+      return `<div class="lb-row ${i===0?'top1':''}">
+        <span class="lb-rank">${i+1}</span>
+        <div class="lb-mid"><div class="lb-score">Combined ${aFlag}${bFlag} ${aName}/${bName} XI \u00b7 ${e.score.toLocaleString()} pts <span style="font-weight:400;color:var(--cream-dim);font-size:12px">\u2014 ${escHtml(e.name||'Anonymous')}</span></div><div class="lb-meta">${escHtml(e.record)}${fmtLabel?' \u00b7 '+fmtLabel:''} \u00b7 ${when}</div></div>
+        <span class="lb-fmt">Showdown</span>
+      </div>`;
+    }
+    if(e.mode==='showdown'){
+      const yourNat = NATIONS.find(n=>n.id===e.yourNation), oppNat = NATIONS.find(n=>n.id===e.opponentNation);
+      const yourFlag = yourNat ? yourNat.flag : '', oppFlag = oppNat ? oppNat.flag : '';
+      const yourName = yourNat ? yourNat.name : e.yourNation, oppName = oppNat ? oppNat.name : e.opponentNation;
+      return `<div class="lb-row ${i===0?'top1':''}">
+        <span class="lb-rank">${i+1}</span>
+        <div class="lb-mid"><div class="lb-score">${yourFlag} ${yourName} vs ${oppFlag} ${oppName} \u00b7 ${e.score.toLocaleString()} pts <span style="font-weight:400;color:var(--cream-dim);font-size:12px">\u2014 ${escHtml(e.name||'Anonymous')}</span></div><div class="lb-meta">${escHtml(e.record)} \u00b7 ${when}</div></div>
+        <span class="lb-fmt">Showdown</span>
+      </div>`;
+    }
     return `<div class="lb-row ${i===0?'top1':''}">
       <span class="lb-rank">${i+1}</span>
       <div class="lb-mid"><div class="lb-score">${e.score.toLocaleString()} pts <span style="font-weight:400;color:var(--cream-dim);font-size:12px">\u2014 ${escHtml(e.name||'Anonymous')}</span></div><div class="lb-meta">${escHtml(e.record)} \u00b7 ${when}</div></div>
@@ -2436,11 +2679,11 @@ async function setLbFilter(mode){
 }
 async function openLeaderboard(){
   lbReturnScreen = document.getElementById('verdict').classList.contains('show') ? 'scr-season' : 'scr-intro';
-  // Represent Your Nation entries never appear under "All" (different scoring
-  // scale — see lbLoad), so opening the leaderboard straight after a Represent
-  // run defaults to that tab instead, otherwise your own just-completed score
-  // looks like it's missing.
-  lbFilter = represMode ? 'represent' : 'all';
+  // Represent Your Nation / Series Showdown entries never appear under "All"
+  // (different scoring scales — see lbLoad), so opening the leaderboard
+  // straight after one of those runs defaults to its own tab instead,
+  // otherwise your own just-completed score looks like it's missing.
+  lbFilter = represMode ? 'represent' : curSeriesMode ? 'showdown' : 'all';
   document.querySelectorAll('.lb-pill').forEach(b=>b.classList.remove('selected'));
   const activeBtn = document.querySelector(`.lb-pill[data-mode="${lbFilter}"]`);
   if(activeBtn) activeBtn.classList.add('selected');
@@ -2468,6 +2711,115 @@ let representFinal = null;
 let representFinalBonus = 0;
 let representFinalSuffix = '';
 const REPRESENT_MIN_PLAYERS = 11;
+
+/* ===================== SERIES SHOWDOWN ===================== */
+/* One nation from a currently-live real series, drafted from the
+   format-agnostic DB.best pool (one XI covers all three formats).
+   30-match campaign: a 5-Test/5-ODI/5-T20 series against the
+   opponent's current real squad, then a second 5/5/5 series against
+   their all-time All-Star XI. Modelled on startSeason()'s tourStops
+   loop — same reveal/scoring machinery, six fixed stops instead of a
+   shuffled twelve. Self-contained: does not submit to the World
+   Tour leaderboard, has its own 'showdown' mode tab instead. */
+let curSeriesMode = false;
+let csSeries = null;      // the chosen CURRENT_SERIES entry
+let csYourNat = null;     // nation id you're playing as (Mode 1/2)
+let csOppNat = null;      // nation id you're facing (Mode 1/2)
+let csStops = [];         // six {label, fmtkey, oppXi, matches:[]} entries (Mode 1/2)
+let csScore = 0;
+const SERIES_SHOWDOWN_MIN_PLAYERS = 11;
+// Mode 3: combined XI from both series nations vs the other 10. Single
+// format (chosen up front, like World Tour), reuses World Tour's exact
+// engine/difficulty unchanged -- the only difference is a 10-nation
+// opponent pool instead of 12, so it needs no separate calibration.
+let csCombined = false;
+let csCombinedFmt = 'test';
+let csCombinedStops = [];
+let csCombinedScore = 0;
+// Monte-Carlo calibrated so a genuinely optimal draft's flawless 30-0 run
+// averages 1-in-10,000 across England v Pakistan / Pakistan v England (the
+// real-squad tier plays at the nation's plain rating, no added difficulty —
+// this is the ONLY bonus in the whole mode, deliberately small).
+const ALLSTAR_OPP_BONUS = 6.05;
+
+async function showSeriesShowdownSetup(){
+  curSeriesMode = true;
+  csSeries = null; csYourNat = null; csOppNat = null;
+  document.getElementById('showdownSideStep').style.display = 'none';
+  const grid = document.getElementById('showdownSeriesGrid');
+  grid.innerHTML = CURRENT_SERIES.map(s=>{
+    const a = NATIONS.find(n=>n.id===s.a), b = NATIONS.find(n=>n.id===s.b);
+    return `<button class="represent-country-btn" onclick="selectSeriesShowdownSeries('${s.id}')">
+      <span class="flag">${a.flag}${b.flag}</span><span class="nm">${s.label}</span>
+    </button>`;
+  }).join('');
+  switchScreen('scr-showdown-setup');
+  await ensureFormatLoaded('best');
+}
+function exitSeriesShowdownSetup(){
+  curSeriesMode = false;
+  switchScreen('scr-intro');
+}
+function selectSeriesShowdownSeries(seriesId){
+  csSeries = CURRENT_SERIES.find(s=>s.id===seriesId);
+  if(!csSeries) return;
+  csCombined = false;
+  document.getElementById('showdownCombinedStep').style.display = 'none';
+  document.getElementById('showdownSeriesLabel').textContent = csSeries.label;
+  const a = NATIONS.find(n=>n.id===csSeries.a), b = NATIONS.find(n=>n.id===csSeries.b);
+  const sideGrid = document.getElementById('showdownSideGrid');
+  sideGrid.innerHTML = [a,b].map(n=>`<button class="represent-country-btn" onclick="selectSeriesShowdownSide('${n.id}')">
+      <span class="flag">${n.flag}</span><span class="nm">Play as ${n.name}</span>
+    </button>`).join('');
+  document.getElementById('showdownSideStep').style.display = '';
+}
+function selectSeriesShowdownSide(natId){
+  if(!csSeries) return;
+  csCombined = false;
+  csYourNat = natId;
+  csOppNat = csSeries.a===natId ? csSeries.b : csSeries.a;
+  startSeriesShowdownDraft();
+}
+async function startSeriesShowdownDraft(){
+  if(!csYourNat || !csOppNat) return;
+  represMode = false;
+  FMTKEY = 'test'; FMT = FORMATS.test; DECADES = FMT.decades;   // representative preview format for the review screen; the campaign itself cycles all three
+  if(!DB.best){
+    const ok = await ensureFormatLoaded('best');
+    if(!ok) return;
+  }
+  PLAYERS = DB.best;
+  buildPlayerIndex();
+  const nat = NATIONS.find(n=>n.id===csYourNat), oppNat = NATIONS.find(n=>n.id===csOppNat);
+  document.getElementById('mastSub').textContent = `Series Showdown · ${nat.name} v ${oppNat.name} · Test, ODI & T20`;
+  switchScreen('scr-draft');
+  renderBoard();
+}
+
+function selectSeriesShowdownCombinedMode(){
+  if(!csSeries) return;
+  document.getElementById('showdownCombinedStep').style.display = '';
+  csCombinedFmt = 'test';
+  document.querySelectorAll('#showdownCombinedFmtRow .fmt-btn').forEach(b=>b.classList.remove('selected'));
+  const testBtn = document.querySelector('#showdownCombinedFmtRow .fmt-btn[data-fmt="test"]');
+  if(testBtn) testBtn.classList.add('selected');
+}
+function selectSeriesShowdownCombinedFormat(fmt){
+  csCombinedFmt = fmt;
+  document.querySelectorAll('#showdownCombinedFmtRow .fmt-btn').forEach(b=>b.classList.remove('selected'));
+  const btn = document.querySelector(`#showdownCombinedFmtRow .fmt-btn[data-fmt="${fmt}"]`);
+  if(btn) btn.classList.add('selected');
+}
+async function startSeriesShowdownCombinedDraft(){
+  if(!csSeries) return;
+  curSeriesMode = true; csCombined = true; represMode = false;
+  FMTKEY = csCombinedFmt; FMT = FORMATS[csCombinedFmt]; DECADES = FMT.decades;
+  await ensureFormatLoaded(csCombinedFmt);
+  const aNat = NATIONS.find(n=>n.id===csSeries.a), bNat = NATIONS.find(n=>n.id===csSeries.b);
+  document.getElementById('mastSub').textContent = `Series Showdown · Combined ${aNat.name}/${bNat.name} XI · ${FMT.label}`;
+  switchScreen('scr-draft');
+  renderBoard();
+}
 
 async function showRepresentSetup(){
   represMode = true;
@@ -2783,6 +3135,281 @@ function representVerdict(){
   });
 }
 
+/* Six fixed stops: a 5-match series per format against the opponent's
+   current real squad, then a second 5-match series per format against
+   their all-time All-Star XI. Modelled directly on startSeason()'s
+   tourStops loop (same reveal/composite-scoring machinery), except
+   FMTKEY switches mid-campaign — so unlike World Tour/Represent (one
+   fixed format for the whole run), teamStrengths()/hasWorldClassBowlingType/
+   computeStatsBonus (all FMTKEY-dependent) must be recomputed fresh at
+   the start of EVERY stop, not once upfront. */
+const SS_STOPS_DEF = [
+  {fmtkey:'test', tier:'real'},    {fmtkey:'odi', tier:'real'},    {fmtkey:'t20', tier:'real'},
+  {fmtkey:'test', tier:'allstar'}, {fmtkey:'odi', tier:'allstar'}, {fmtkey:'t20', tier:'allstar'},
+];
+function startSeriesShowdown(){
+  switchScreen('scr-season');
+  const yourNat = NATIONS.find(n=>n.id===csYourNat), oppNat = NATIONS.find(n=>n.id===csOppNat);
+  document.getElementById('seasonEyebrow').textContent = `Series Showdown · ${yourNat.name} v ${oppNat.name} · 30 Matches`;
+  revealTotalStops = 6; revealStopWord = 'Series'; revealOnFinish = (delay)=>finishSeriesShowdown(delay);
+
+  // Both opponent XIs are pure functions of the fixed DB.best pool, not of
+  // which format is currently active, so they're built once and reused
+  // across all six stops rather than rebuilt per format.
+  const realOppXI = getOppositionXI(csOppNat, 'best');
+  const allStarOppXI = getAllStarXI(csOppNat, 'best');
+
+  let streakAlive = true;   // Immortal-XI boost: on while undefeated across the WHOLE 30-match campaign, off for good after any non-win
+  csStops = []; revealRows = [];
+  let w=0,d=0,l=0;
+  let totalSeriesWon=0, totalSweeps=0, marginSum=0, marginCount=0;
+
+  SS_STOPS_DEF.forEach((def, si)=>{
+    FMTKEY = def.fmtkey; FMT = FORMATS[def.fmtkey];
+    const oppXi = def.tier==='real' ? realOppXI : allStarOppXI;
+    // All-Star stops use a materially tougher effective opponent rating on
+    // top of the same NATIONS.opp baseline — see ALLSTAR_OPP_BONUS.
+    const oppRating = oppNat.opp + (def.tier==='allstar' ? ALLSTAR_OPP_BONUS : 0);
+    const stopLabel = def.tier==='real' ? `${FMT.label} vs ${oppNat.name} (Current Squad)` : `${FMT.label} vs ${oppNat.name} All-Stars`;
+
+    const st = teamStrengths();
+    const hasSpin = hasWorldClassBowlingType(xi, 'spin');
+    const hasPace = hasWorldClassBowlingType(xi, 'pace');
+    const statsBonus = computeStatsBonus(xi);
+
+    revealRows.push({kind:'stop', html:`<span class="st-flag">${oppNat.flag}</span><span class="st-name">${stopLabel}</span><span class="st-venue">Five ${FMT.noun}${def.fmtkey==='test'?'es':'s'}</span>`,
+                     tally:null, stop:si+1});
+    const matches=[];
+    for(let m=0;m<5;m++){
+      const venue = oppNat.venues[m % oppNat.venues.length];
+      const conditionsPenalty = computeConditionsPenalty(oppNat, hasSpin, hasPace);
+      const effStrength = st.strength + statsBonus - conditionsPenalty - (BASE_DIFFICULTY_PENALTY[FMTKEY]||0) + (streakAlive ? IMMORTAL_STREAK_BOOST[FMTKEY] : 0);
+      const res = decideMatch(effStrength, oppRating);
+      const code = res.code;
+      if(code!=='W') streakAlive = false;
+      const gen = FMTKEY==='test' ? genTestMatch(code, oppNat) : genWhiteBallMatch(code, oppNat, res.superOver);
+      const {yourInningsList, oppInningsList} = toInningsLists(gen);
+      const scorecard = buildMatchScorecard(xi, oppXi, yourInningsList, oppInningsList, oppNat.id);
+      const potm = pickPOTM(code, oppNat);
+      if(code==='W'){
+        w++;
+        marginSum += clamp((gen.pts-100)/(190-100), 0, 1);
+        marginCount++;
+      } else if(code==='D')d++; else l++;
+      const matchNum = si*5+m+1;
+      matches.push({code, ...gen, potm, venue, scorecard, matchNum});
+      revealRows.push({kind:'match', code, num:matchNum, matchNum,
+        html:`<span class="tno">M${String(matchNum).padStart(2,'0')}</span>
+        <span class="op">vs ${oppNat.name}${def.tier==='allstar'?' All-Stars':''} — ${venue}<span class="score">${gen.score}</span><span class="score" style="color:var(--cream-dim)">${gen.margin}</span><span class="potm">POTM: ${potm}</span></span>
+        <span class="badge ${code}">${code==='W'?'WON':code==='D'?'DRAW':'LOST'}</span>`,
+        tally:`${w}–${d}–${l}`, stop:si+1});
+    }
+    csStops.push({label:stopLabel, fmtkey:def.fmtkey, tier:def.tier, matches});
+
+    const sw=matches.filter(x=>x.code==='W').length, sd=matches.filter(x=>x.code==='D').length, sl=matches.filter(x=>x.code==='L').length;
+    const seriesCode = sw>sl ? 'W' : sw<sl ? 'L' : 'D';
+    const seriesLabel = seriesCode==='W' ? 'SERIES WON' : seriesCode==='L' ? 'SERIES LOST' : 'SERIES DRAWN';
+    const record = def.fmtkey==='test' ? `${sw}–${sd}–${sl}` : `${sw}–${sl}`;
+    if(sw>sl) totalSeriesWon++;
+    if(sw===5) totalSweeps++;
+    revealRows.push({kind:'series', code:seriesCode, num:si+1,
+      html:`<span class="tno">SERIES</span>
+      <span class="op">${stopLabel}<span class="score">Series score: ${record}</span></span>
+      <span class="badge ${seriesCode}">${seriesLabel}</span>`,
+      tally:`${w}–${d}–${l}`, stop:si+1});
+  });
+
+  tourTotals = {w,d,l};
+  /* Same weighted composite as World Tour (50% wins / 20% series won /
+     20% clean sweeps / 10% margin quality), just over 6 stops / 30
+     matches instead of 12 stops / 60. */
+  const SCORE_POOL = 10000;
+  const winsComponent   = (w/30) * SCORE_POOL * 0.50;
+  const seriesComponent = (totalSeriesWon/6) * SCORE_POOL * 0.20;
+  const sweepComponent  = (totalSweeps/6) * SCORE_POOL * 0.20;
+  const marginComponent = (marginCount>0 ? marginSum/marginCount : 0) * SCORE_POOL * 0.10;
+  csScore = Math.round(winsComponent + seriesComponent + sweepComponent + marginComponent);
+  runScore = csScore;
+  Math.random = __nativeRandom;
+
+  const box=document.getElementById('fixtures');
+  box.innerHTML='';
+  document.getElementById('verdict').classList.remove('show');
+  document.getElementById('seasonTally').textContent='0–0–0';
+  document.getElementById('testTally').textContent='Series 0 of 6';
+  showSkipBtn();
+  revealIdx=0;
+  revealTimers=revealRows.map((_,i)=>setTimeout(()=>revealOne(i), 340*(i+1)));
+}
+function finishSeriesShowdown(delay){
+  hideSkipBtn();
+  setTimeout(()=>seriesShowdownVerdict(), delay);
+}
+function seriesShowdownVerdict(){
+  const v=document.getElementById('verdict');
+  document.getElementById('scoreCard').style.display = '';
+  const yourNat = NATIONS.find(n=>n.id===csYourNat), oppNat = NATIONS.find(n=>n.id===csOppNat);
+  const {w,d,l}=tourTotals;
+  const realStops = csStops.filter(s=>s.tier==='real'), allStarStops = csStops.filter(s=>s.tier==='allstar');
+  const seriesResult = st=>{ const sw=st.matches.filter(m=>m.code==='W').length, sl=st.matches.filter(m=>m.code==='L').length; return sw>sl?'W':sw<sl?'L':'D'; };
+  const realWon = realStops.filter(s=>seriesResult(s)==='W').length;
+  const allStarWon = allStarStops.filter(s=>seriesResult(s)==='W').length;
+  const rec = `${w} WON · ${d} DRAWN · ${l} LOST — 30 MATCHES`;
+  let title, body;
+  if(w===30){ title=`THE IMMORTALS · 30–0`; body=`${oppNat.name}'s current side beaten in every format, then their all-time All-Star XI beaten in every format too. Nothing left to prove.`; }
+  else if(realWon===3 && allStarWon===3){ title='CLEAN SWEEP OF BOTH SERIES'; body=`Every series won — against ${oppNat.name}'s current squad and their all-time All-Stars alike.`; }
+  else if(allStarWon>=2){ title='BEAT THE ALL-STARS'; body=`${yourNat.name} took down ${oppNat.name}'s current side and then more than held their own against an all-time All-Star XI — ${w} wins from 30.`; }
+  else if(realWon>=2){ title='WON THE REAL SERIES'; body=`${yourNat.name} got the better of ${oppNat.name}'s current squad, though the All-Star XI proved a much tougher ask — ${w} wins from 30.`; }
+  else if(w>=15){ title='COMPETITIVE SHOWDOWN'; body=`A genuinely even contest with ${oppNat.name} across both series — ${w} wins from 30 matches.`; }
+  else { title='OUTCLASSED'; body=`${oppNat.name}'s current side and their All-Stars were both too strong this time — ${w} wins from 30 matches.`; }
+  document.getElementById('scoreValue').textContent = csScore.toLocaleString();
+  document.getElementById('verdictRec').textContent=rec;
+  document.getElementById('verdictTitle').textContent=title;
+  document.getElementById('verdictBody').textContent=body;
+  renderSquadStats();
+  showSeriesShowdownScoreAndSave().then(()=>{
+    v.classList.add('show');
+    v.scrollIntoView({behavior:'smooth'});
+  });
+}
+
+/* Mode 3: combined XI from both series nations vs the other 10. This is
+   World Tour's exact shape and difficulty (same decideMatch/nat.opp+4,
+   same composite scoring) with the two series nations excluded from the
+   opponent pool -- deliberately NOT a separate difficulty system, so no
+   new calibration is needed; it should feel exactly as hard as touring
+   with a World Tour XI, just two stops shorter. */
+function startSeriesShowdownCombined(){
+  switchScreen('scr-season');
+  const aNat = NATIONS.find(n=>n.id===csSeries.a), bNat = NATIONS.find(n=>n.id===csSeries.b);
+  const opponents = NATIONS.filter(n=>n.id!==csSeries.a && n.id!==csSeries.b);
+  document.getElementById('seasonEyebrow').textContent = `Series Showdown · Combined ${aNat.name}/${bNat.name} XI · ${opponents.length*5} Matches`;
+  revealTotalStops = opponents.length; revealStopWord = 'Tour stop'; revealOnFinish = (delay)=>finishSeriesShowdownCombined(delay);
+  const st = teamStrengths();
+  const stops = shuffle(opponents.slice());
+
+  const hasSpin = hasWorldClassBowlingType(xi, 'spin');
+  const hasPace = hasWorldClassBowlingType(xi, 'pace');
+  const statsBonus = computeStatsBonus(xi);
+  let streakAlive = true;
+
+  csCombinedStops = []; revealRows = [];
+  let w=0,d=0,l=0;
+  let totalSeriesWon=0, totalSweeps=0, marginSum=0, marginCount=0;
+  stops.forEach((nat,si)=>{
+    revealRows.push({kind:'stop', html:`<span class="st-flag">${nat.flag}</span><span class="st-name">${nat.name}</span><span class="st-venue">Five ${FMT.noun}${FMTKEY==='test'?'es':'s'} across the country · today's ${FMT.label} side</span>`,
+                     tally:null, stop:si+1});
+    const matches=[];
+    for(let m=0;m<5;m++){
+      const venue = nat.venues[m % nat.venues.length];
+      const conditionsPenalty = computeConditionsPenalty(nat, hasSpin, hasPace);
+      const effStrength = st.strength + statsBonus - conditionsPenalty - (BASE_DIFFICULTY_PENALTY[FMTKEY]||0) + (streakAlive ? IMMORTAL_STREAK_BOOST[FMTKEY] : 0);
+      const res = decideMatch(effStrength, nat.opp+4);
+      const code = res.code;
+      if(code!=='W') streakAlive = false;
+      const gen = FMTKEY==='test' ? genTestMatch(code, nat) : genWhiteBallMatch(code, nat, res.superOver);
+      const {yourInningsList, oppInningsList} = toInningsLists(gen);
+      const scorecard = buildMatchScorecard(xi, getOppositionXI(nat.id), yourInningsList, oppInningsList, nat.id);
+      const potm = pickPOTM(code, nat);
+      if(code==='W'){
+        w++;
+        marginSum += clamp((gen.pts-100)/(190-100), 0, 1);
+        marginCount++;
+      } else if(code==='D')d++; else l++;
+      const matchNum = si*5+m+1;
+      matches.push({code, ...gen, potm, venue, scorecard, matchNum});
+      revealRows.push({kind:'match', code, num:matchNum, matchNum,
+        html:`<span class="tno">M${String(matchNum).padStart(2,'0')}</span>
+        <span class="op">vs ${nat.name} — ${venue}<span class="score">${gen.score}</span><span class="score" style="color:var(--cream-dim)">${gen.margin}</span><span class="potm">POTM: ${potm}</span></span>
+        <span class="badge ${code}">${code==='W'?'WON':code==='D'?'DRAW':'LOST'}</span>`,
+        tally:`${w}–${d}–${l}`, stop:si+1});
+    }
+    csCombinedStops.push({nat, matches});
+
+    const sw=matches.filter(x=>x.code==='W').length, sd=matches.filter(x=>x.code==='D').length, sl=matches.filter(x=>x.code==='L').length;
+    const seriesCode = sw>sl ? 'W' : sw<sl ? 'L' : 'D';
+    const seriesLabel = seriesCode==='W' ? 'SERIES WON' : seriesCode==='L' ? 'SERIES LOST' : 'SERIES DRAWN';
+    const record = FMTKEY==='test' ? `${sw}–${sd}–${sl}` : `${sw}–${sl}`;
+    if(sw>sl) totalSeriesWon++;
+    if(sw===5) totalSweeps++;
+    revealRows.push({kind:'series', code:seriesCode, num:si+1,
+      html:`<span class="tno">SERIES</span>
+      <span class="op">vs ${nat.name}<span class="score">Series score: ${record}</span></span>
+      <span class="badge ${seriesCode}">${seriesLabel}</span>`,
+      tally:`${w}–${d}–${l}`, stop:si+1});
+  });
+  tourTotals={w,d,l};
+  const N_OPP = opponents.length;
+  const SCORE_POOL = 10000;
+  const winsComponent   = (w/(N_OPP*5)) * SCORE_POOL * 0.50;
+  const seriesComponent = (totalSeriesWon/N_OPP) * SCORE_POOL * 0.20;
+  const sweepComponent  = (totalSweeps/N_OPP) * SCORE_POOL * 0.20;
+  const marginComponent = (marginCount>0 ? marginSum/marginCount : 0) * SCORE_POOL * 0.10;
+  csCombinedScore = Math.round(winsComponent + seriesComponent + sweepComponent + marginComponent);
+  runScore = csCombinedScore;
+  Math.random = __nativeRandom;
+
+  const box=document.getElementById('fixtures');
+  box.innerHTML='';
+  document.getElementById('verdict').classList.remove('show');
+  document.getElementById('seasonTally').textContent='0–0–0';
+  document.getElementById('testTally').textContent=`Tour stop 0 of ${N_OPP}`;
+  showSkipBtn();
+  revealIdx=0;
+  revealTimers=revealRows.map((_,i)=>setTimeout(()=>revealOne(i), 340*(i+1)));
+}
+function finishSeriesShowdownCombined(delay){
+  hideSkipBtn();
+  setTimeout(()=>seriesShowdownCombinedVerdict(), delay);
+}
+function seriesShowdownCombinedVerdict(){
+  const v=document.getElementById('verdict');
+  document.getElementById('scoreCard').style.display = '';
+  const {w,d,l}=tourTotals;
+  const total=csCombinedStops.length*5;
+  const N_OPP=csCombinedStops.length;
+  const seriesWins = csCombinedStops.filter(st=>{
+    const sw=st.matches.filter(m=>m.code==='W').length;
+    const sl=st.matches.filter(m=>m.code==='L').length;
+    return sw>sl;
+  }).length;
+  const aNat = NATIONS.find(n=>n.id===csSeries.a), bNat = NATIONS.find(n=>n.id===csSeries.b);
+  const rec=`${w} WON · ${d} ${FMTKEY==='test'?'DRAWN':'TIED'} · ${l} LOST — ALL AWAY`;
+  let title, body;
+  if(w===total){ title=`THE IMMORTALS · ${total}–0`; body=`${total} matches against every side left in the world. ${total} wins, every one of them, by a combined XI of ${aNat.name} and ${bNat.name}'s greatest. It will never be done again — including by you.`; }
+  else if(l===0){ title='UNBEATEN ON THE ROAD'; body=`${total} away matches without defeat — but ${d} ${FMTKEY==='test'?'draw':'tie'}${d>1?'s':''} spoiled the perfect ${total}–0. Their crowds went home silent anyway.`; }
+  else if(w>=Math.round(total*0.867)){
+    title='WORLD DOMINATION';
+    const seriesNote = seriesWins===N_OPP ? 'You swept every single series along the way — an absolute masterclass.' : 'A dropped series along the way keeps it from true perfection.';
+    body=`${w} wins out of ${total}, all in their stadiums. The ${l} that got away will haunt you, but every side left knows who runs this sport. ${seriesNote}`;
+  }
+  else if(w>=Math.round(total*0.733)){
+    title='FEARED TOURISTS';
+    const seriesNote = seriesWins===N_OPP ? `Remarkably, you still claimed victory in all ${N_OPP} series!` : `You secured ${seriesWins} out of ${N_OPP} series wins on hostile ground.`;
+    body=`${w} away wins is a serious body of work. Fortress after fortress fell — just not all of them. ${seriesNote}`;
+  }
+  else if(w>=Math.round(total*0.517)){
+    title='WINNING RECORD';
+    const seriesNote = seriesWins>=Math.round(N_OPP*0.583) ? `You still came away with ${seriesWins} series victories out of ${N_OPP}.` : `Despite winning individual matches, you only claimed ${seriesWins} series win${seriesWins===1?'':'s'}.`;
+    body=`Won more than you lost in their backyards, which most touring sides never manage. ${seriesNote}`;
+  }
+  else if(w>=Math.round(total*0.367)){
+    title='TOUGH TOUR';
+    const seriesNote = seriesWins>0 ? `Silver linings are hard to find, though you did salvage ${seriesWins} series win${seriesWins===1?'':'s'}.` : 'You failed to win a single series on the road.';
+    body=`The stadiums were loud, the pitches were theirs, and the results show it. ${seriesNote}`;
+  }
+  else { title='SACK THE SELECTORS'; body='That was a long, painful lap of the world. On the bright side, the draft button still works.'; }
+  document.getElementById('scoreValue').textContent = csCombinedScore.toLocaleString();
+  document.getElementById('verdictRec').textContent=rec;
+  document.getElementById('verdictTitle').textContent=title;
+  document.getElementById('verdictBody').textContent=body;
+  renderSquadStats();
+  showSeriesShowdownCombinedScoreAndSave().then(()=>{
+    v.classList.add('show');
+    v.scrollIntoView({behavior:'smooth'});
+  });
+}
+
 function verdict(){
   const v=document.getElementById('verdict');
   document.getElementById('scoreCard').style.display = '';
@@ -2831,7 +3458,10 @@ function verdict(){
 const SITE_URL = 'https://www.not-out.co.uk';
 const SHARE_CTA = `Think you can beat this? Draft your own XI \u2192 ${SITE_URL}`;
 function buildShareText(){
-  return represMode ? buildShareTextRepresent() : buildShareTextWorldTour();
+  return represMode ? buildShareTextRepresent()
+    : (curSeriesMode && csCombined) ? buildShareTextSeriesShowdownCombined()
+    : curSeriesMode ? buildShareTextSeriesShowdown()
+    : buildShareTextWorldTour();
 }
 function buildShareTextWorldTour(){
   const {w,d,l}=tourTotals;
@@ -2857,6 +3487,29 @@ function buildShareTextRepresent(){
               : `\n\ud83e\udd48 RUNNERS-UP \u2014 lost the Lord's final to ${representFinal.oppNat.name}`;
   }
   return `NOT OUT* \u2014 Represent Your Nation \u00b7 ${yourNat.flag} ${yourNat.name} \u00b7 ${FMT.label}\n55-match home & away league \u00b7 Finished P${rank} of 12 \u00b7 ${rec} \u2014 ${points} pts${finalLine}\n\n${dots}\n\n${SHARE_CTA}`;
+}
+function buildShareTextSeriesShowdown(){
+  const yourNat = NATIONS.find(n=>n.id===csYourNat), oppNat = NATIONS.find(n=>n.id===csOppNat);
+  const {w,d,l} = tourTotals;
+  const lines = csStops.map(st=>{
+    const dots = st.matches.map(m=>m.code==='W'?'\ud83d\udfe2':m.code==='D'?'\ud83d\udfe1':'\ud83d\udd34').join('');
+    const sw=st.matches.filter(m=>m.code==='W').length, sd=st.matches.filter(m=>m.code==='D').length, sl=st.matches.filter(m=>m.code==='L').length;
+    const record = st.fmtkey==='test' ? `${sw}\u2013${sd}\u2013${sl}` : `${sw}\u2013${sl}`;
+    return `${st.label} ${dots} Series: ${record}${sw===5?' \ud83e\uddf9':''}`;
+  }).join('\n');
+  return `NOT OUT* \u2014 Series Showdown \u00b7 ${yourNat.flag} ${yourNat.name} vs ${oppNat.flag} ${oppNat.name}\n30 matches \u2014 current squad, then all-time All-Stars \u00b7 ${w}W ${d}D ${l}L\nScore: ${csScore.toLocaleString()} pts\n\n${lines}\n\n${SHARE_CTA}`;
+}
+function buildShareTextSeriesShowdownCombined(){
+  const aNat = NATIONS.find(n=>n.id===csSeries.a), bNat = NATIONS.find(n=>n.id===csSeries.b);
+  const {w,d,l} = tourTotals;
+  const total = csCombinedStops.length*5;
+  const lines = csCombinedStops.map(st=>{
+    const dots = st.matches.map(m=>m.code==='W'?'\ud83d\udfe2':m.code==='D'?'\ud83d\udfe1':'\ud83d\udd34').join('');
+    const sw=st.matches.filter(m=>m.code==='W').length, sd=st.matches.filter(m=>m.code==='D').length, sl=st.matches.filter(m=>m.code==='L').length;
+    const record = FMTKEY==='test' ? `${sw}\u2013${sd}\u2013${sl}` : `${sw}\u2013${sl}`;
+    return `${st.nat.id} ${dots} Series: ${record}${sw===5?' \ud83e\uddf9':''}`;
+  }).join('\n');
+  return `NOT OUT* \u2014 Series Showdown \u00b7 Combined ${aNat.flag}${bNat.flag} ${aNat.name}/${bNat.name} XI \u00b7 ${FMT.label}\n${total} matches, all away \u00b7 ${w}W ${d}${FMTKEY==='test'?'D':'T'} ${l}L\nScore: ${csCombinedScore.toLocaleString()} pts\n\n${lines}\n\n${SHARE_CTA}`;
 }
 
 
@@ -2919,6 +3572,11 @@ function draftAgain(){
   representFinal = null;
   representFinalBonus = 0;
   representFinalSuffix = '';
+  csStops = [];
+  csScore = 0;
+  csCombined = false;
+  csCombinedStops = [];
+  csCombinedScore = 0;
   tourTotals = null;
   runScore = 0;
 
@@ -2937,6 +3595,8 @@ function draftAgain(){
   if(represMode){
     switchScreen('scr-represent-setup');
     renderRepresentCountryGrid();
+  } else if(curSeriesMode){
+    switchScreen('scr-showdown-setup');
   } else {
     switchScreen('scr-intro');
   }

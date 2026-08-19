@@ -152,3 +152,142 @@ exports.submitRepresentScore = onRequest(async (req, res) => {
     });
   }
 });
+
+// Series Showdown — same trust model as submitScore/submitRepresentScore.
+// The client supplies only the seed, the drafted XI (from the
+// format-agnostic DB.best pool), and which two nations are involved. The
+// server re-simulates the entire 30-match campaign (5 Test/5 ODI/5 T20
+// against the opponent's current real squad, then the same again against
+// their all-time All-Star XI) from scratch and computes its own score,
+// never trusting whatever the client displayed.
+exports.submitSeriesShowdownScore = onRequest(async (req, res) => {
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    res.set("Access-Control-Allow-Methods", "POST");
+    res.status(204).send("");
+    return;
+  }
+
+  if (req.method !== "POST") {
+    res.status(405).json({ ok: false, error: "Method not allowed" });
+    return;
+  }
+
+  try {
+    const { seed, xi, captainIdx, name, yourNation, opponentNation } = req.body || {};
+
+    if (seed === undefined || !xi || !name || !yourNation || !opponentNation) {
+      res.status(400).json({ ok: false, error: "Missing required fields" });
+      return;
+    }
+
+    const result = gamelogic.calculateSeriesShowdownResult({ seed, xi, captainIdx, yourNation, opponentNation });
+
+    const db = admin.firestore();
+    const yourNat = gamelogic.NATIONS.find((n) => n.id === yourNation) || {};
+    const oppNat = gamelogic.NATIONS.find((n) => n.id === opponentNation) || {};
+    const safeName = String(name).replace(/[<>&"'`]/g, '').replace(/\s+/g, ' ').trim().slice(0, 20) || "Anonymous";
+
+    await db.collection("leaderboard").add({
+      name: safeName,
+      score: Number(result.score),
+      record: String(result.record),
+      label: "Series Showdown",
+      mode: "showdown",
+      yourNation: String(yourNation),
+      yourNationName: String(yourNat.name || yourNation),
+      opponentNation: String(opponentNation),
+      opponentNationName: String(oppNat.name || opponentNation),
+      date: new Date().toISOString()
+      // Deliberately no 'format' field, same reasoning as Represent Your
+      // Nation — a single draft spans Test/ODI/T20, so no single format
+      // value applies, and this keeps Series Showdown out of the
+      // format-specific tabs.
+    });
+
+    res.status(200).json({
+      ok: true,
+      score: Number(result.score),
+      record: String(result.record)
+    });
+
+  } catch (err) {
+    console.error("Series Showdown submission error:", err);
+    res.status(500).json({
+      ok: false,
+      error: err.message || "Internal server error"
+    });
+  }
+});
+
+// Series Showdown — Mode 3 (Combined XI vs the rest of the world). Same
+// trust model as the other endpoints. The client supplies the seed, the
+// drafted XI (from a single format's regular player pool, combining both
+// series nations), and which two nations were combined; the server
+// re-simulates the whole 10-opponent World-Tour-shaped campaign from
+// scratch and computes its own score.
+exports.submitSeriesShowdownCombinedScore = onRequest(async (req, res) => {
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Headers", "Content-Type");
+
+  if (req.method === "OPTIONS") {
+    res.set("Access-Control-Allow-Methods", "POST");
+    res.status(204).send("");
+    return;
+  }
+
+  if (req.method !== "POST") {
+    res.status(405).json({ ok: false, error: "Method not allowed" });
+    return;
+  }
+
+  try {
+    const { format, seed, xi, captainIdx, name, natA, natB } = req.body || {};
+
+    if (!format || seed === undefined || !xi || !name || !natA || !natB) {
+      res.status(400).json({ ok: false, error: "Missing required fields" });
+      return;
+    }
+
+    const result = gamelogic.calculateSeriesShowdownCombinedResult({ format, seed, xi, captainIdx, natA, natB });
+
+    const db = admin.firestore();
+    const aNat = gamelogic.NATIONS.find((n) => n.id === natA) || {};
+    const bNat = gamelogic.NATIONS.find((n) => n.id === natB) || {};
+    const safeName = String(name).replace(/[<>&"'`]/g, '').replace(/\s+/g, ' ').trim().slice(0, 20) || "Anonymous";
+
+    await db.collection("leaderboard").add({
+      name: safeName,
+      score: Number(result.score),
+      record: String(result.record),
+      label: "Series Showdown",
+      mode: "showdown",
+      natA: String(natA),
+      natAName: String(aNat.name || natA),
+      natB: String(natB),
+      natBName: String(bNat.name || natB),
+      showdownFormat: String(format),
+      date: new Date().toISOString()
+      // Deliberately no 'format' field (note the distinct 'showdownFormat'
+      // name) -- Firestore's where('format','==',...) equality filter would
+      // otherwise pull these into the regular Test/ODI/T20 tabs alongside
+      // World Tour scores, same reasoning as Represent Your Nation and
+      // Series Showdown Mode 1/2.
+    });
+
+    res.status(200).json({
+      ok: true,
+      score: Number(result.score),
+      record: String(result.record)
+    });
+
+  } catch (err) {
+    console.error("Series Showdown (Combined) submission error:", err);
+    res.status(500).json({
+      ok: false,
+      error: err.message || "Internal server error"
+    });
+  }
+});

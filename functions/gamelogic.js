@@ -27,9 +27,15 @@ const db = admin.firestore();
 
 /* ---------- real player data, bundled with the function ---------- */
 const DB = {};
-for (const key of ['test','odi','t20','hundred']) {
+for (const key of ['test','odi','t20','best']) {
   DB[key] = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', key + '.json'), 'utf8'));
 }
+/* 'hundred' was this same all-time/format-agnostic dataset's old filename,
+   left over from a decommissioned "Hundred" format mode. The legacy
+   calculateScore(format:'hundred') branch below still reads DB['hundred']
+   via PLAYERS/__setFMTKEY — alias it so that dead-but-intact code path
+   keeps working unchanged after the rename. */
+DB.hundred = DB.best;
 
 /* ---------- seeded RNG, used in place of Math.random for the whole
    re-simulation so it reproduces the client's exact run ---------- */
@@ -393,19 +399,31 @@ function genWhiteBallMatch(code, nat, superOver){
 /* Mirrors index.html's buildOppositionXI exactly -- pure/deterministic
    (no RNG), so client and server always compute the identical XI for a
    given (nation, format) with zero lockstep risk. */
-function buildOppositionXI(natId){
-  const pool0 = DB[FMTKEY].filter(p=>p.c===natId && p.d==='2020s' && !p.retired);
+function buildOppositionXI(natId, poolKey){
+  poolKey = poolKey || FMTKEY;
+  const src = DB[poolKey];
+  const pool0 = src.filter(p=>p.c===natId && p.d==='2020s' && !p.retired);
   const keeperOk = pool0.some(p=>p.roles.includes('wk'));
   const bowlArOk = pool0.filter(p=>p.roles.includes('bowl')||p.roles.includes('ar')).length>=5;
   const pool = (pool0.length>=11 && keeperOk && bowlArOk) ? pool0
-    : DB[FMTKEY].filter(p=>p.c===natId && p.d==='2020s'); // fallback: drop the retired filter
+    : src.filter(p=>p.c===natId && p.d==='2020s'); // fallback: drop the retired filter
 
   const byMat = pool.slice().sort((a,b)=>b.mat-a.mat);
   const drafted = [], used = new Set();
   const keeper = byMat.find(p=>p.roles.includes('wk'));
   if(keeper){ drafted.push(keeper); used.add(keeper.n); }
   const bowlArCandidates = byMat.filter(p=>!used.has(p.n) && (p.roles.includes('bowl')||p.roles.includes('ar')));
-  bowlArCandidates.slice(0,5).forEach(p=>{ drafted.push(p); used.add(p.n); });
+  // A player can appear more than once in the pool under the same name
+  // (e.g. the all-time "best" dataset rates one legendary career across
+  // multiple decade-peaks) -- bowlArCandidates is computed once up front,
+  // so `used` must be re-checked INSIDE this loop, not just at filter
+  // time, or the same real person can be drafted twice.
+  let bowlArTaken = 0;
+  for(const p of bowlArCandidates){
+    if(bowlArTaken>=5) break;
+    if(used.has(p.n)) continue;
+    drafted.push(p); used.add(p.n); bowlArTaken++;
+  }
   for(const p of byMat){
     if(drafted.length>=11) break;
     if(used.has(p.n)) continue;
@@ -426,10 +444,58 @@ function buildOppositionXI(natId){
   return xiSlots.filter(Boolean);
 }
 const oppositionXICache = new Map();
-function getOppositionXI(natId){
-  const key = FMTKEY+'|'+natId;
-  if(!oppositionXICache.has(key)) oppositionXICache.set(key, buildOppositionXI(natId));
+function getOppositionXI(natId, poolKey){
+  poolKey = poolKey || FMTKEY;
+  const key = poolKey+'|'+natId;
+  if(!oppositionXICache.has(key)) oppositionXICache.set(key, buildOppositionXI(natId, poolKey));
   return oppositionXICache.get(key);
+}
+
+function buildAllStarXI(natId, poolKey){
+  poolKey = poolKey || FMTKEY;
+  const pool = DB[poolKey].filter(p=>p.c===natId);
+
+  const byRating = pool.slice().sort((a,b)=>b.r-a.r);
+  const drafted = [], used = new Set();
+  const keeper = byRating.find(p=>p.roles.includes('wk'));
+  if(keeper){ drafted.push(keeper); used.add(keeper.n); }
+  const bowlArCandidates = byRating.filter(p=>!used.has(p.n) && (p.roles.includes('bowl')||p.roles.includes('ar')));
+  // A player can appear more than once in the pool under the same name
+  // (e.g. the all-time "best" dataset rates one legendary career across
+  // multiple decade-peaks) -- bowlArCandidates is computed once up front,
+  // so `used` must be re-checked INSIDE this loop, not just at filter
+  // time, or the same real person can be drafted twice.
+  let bowlArTaken = 0;
+  for(const p of bowlArCandidates){
+    if(bowlArTaken>=5) break;
+    if(used.has(p.n)) continue;
+    drafted.push(p); used.add(p.n); bowlArTaken++;
+  }
+  for(const p of byRating){
+    if(drafted.length>=11) break;
+    if(used.has(p.n)) continue;
+    drafted.push(p); used.add(p.n);
+  }
+
+  const xiSlots = new Array(11).fill(null);
+  drafted.forEach(p=>{
+    let bestSlot=-1, bestPen=Infinity;
+    for(let i=0;i<11;i++){
+      if(xiSlots[i] || !SLOTS[i].fits(p)) continue;
+      const pen = positionPenalty(p, i+1);
+      if(pen<bestPen){ bestPen=pen; bestSlot=i; }
+    }
+    if(bestSlot===-1) bestSlot = xiSlots.findIndex(s=>!s);
+    if(bestSlot>=0) xiSlots[bestSlot] = p;
+  });
+  return xiSlots.filter(Boolean);
+}
+const allStarXICache = new Map();
+function getAllStarXI(natId, poolKey){
+  poolKey = poolKey || FMTKEY;
+  const key = poolKey+'|'+natId;
+  if(!allStarXICache.has(key)) allStarXICache.set(key, buildAllStarXI(natId, poolKey));
+  return allStarXICache.get(key);
 }
 
 /* Batting and bowling for one innings are built TOGETHER, not
@@ -848,6 +914,197 @@ function calculateRepresentResult({ format, country, seed, xi: clientXi, captain
   }
 }
 
+/* ===================== SERIES SHOWDOWN =====================
+   Mirrors index.html's startSeriesShowdown()/SS_STOPS_DEF exactly. Six
+   fixed stops: a 5-match series per format against the opponent's
+   current real squad, then a second 5-match series per format against
+   their all-time All-Star XI (DB.best-sourced, format-agnostic single
+   draft). Unlike calculateScore/calculateRepresentResult (one fixed
+   format for the whole run), FMTKEY changes mid-campaign here, so
+   teamStrengths()/hasWorldClassBowlingType/computeStatsBonus (all
+   FMTKEY-dependent) are recomputed fresh at the start of every stop via
+   __setFMTKEY, exactly matching the client. */
+const SS_STOPS_DEF = [
+  {fmtkey:'test', tier:'real'},    {fmtkey:'odi', tier:'real'},    {fmtkey:'t20', tier:'real'},
+  {fmtkey:'test', tier:'allstar'}, {fmtkey:'odi', tier:'allstar'}, {fmtkey:'t20', tier:'allstar'},
+];
+// Monte-Carlo calibrated so a genuinely optimal draft's flawless 30-0 run
+// averages 1-in-10,000 across England v Pakistan / Pakistan v England (the
+// real-squad tier plays at the nation's plain rating, no added difficulty —
+// this is the ONLY bonus in the whole mode, deliberately small).
+const ALLSTAR_OPP_BONUS = 6.05;
+
+function calculateSeriesShowdownResult({ seed, xi: clientXi, captainIdx, yourNation, opponentNation }) {
+  if (!NATIONS.some((n) => n.id === yourNation)) throw new Error('bad yourNation');
+  if (!NATIONS.some((n) => n.id === opponentNation)) throw new Error('bad opponentNation');
+  if (yourNation === opponentNation) throw new Error('yourNation and opponentNation must differ');
+  if (!Number.isInteger(seed)) throw new Error('bad seed');
+
+  const nativeRandom = Math.random;
+  Math.random = mulberry32(seed);
+
+  try {
+    if (!Array.isArray(clientXi) || clientXi.length !== 11) throw new Error('XI must have exactly 11 players');
+    const pool = DB.best;
+    const seen = new Set();
+    const fullXi = clientXi.map((p) => {
+      if (!p || typeof p.n !== 'string' || typeof p.d !== 'string' || typeof p.c !== 'string') throw new Error('bad player entry');
+      const found = pool.find((x) => x.n === p.n && x.d === p.d && x.c === p.c);
+      if (!found) throw new Error('player not found: ' + p.n + ' (' + p.c + ', ' + p.d + ')');
+      if (seen.has(found.n)) throw new Error('duplicate player: ' + found.n);
+      seen.add(found.n);
+      return found;
+    });
+    if (fullXi.some((p) => p.c !== yourNation)) throw new Error('every player must be from ' + yourNation + ' to play as that nation');
+    for (let i = 0; i < 11; i++) {
+      if (!SLOTS[i].fits(fullXi[i])) throw new Error(`player at slot ${i + 1} (${fullXi[i].n}) is not eligible for that slot`);
+    }
+    if (!fullXi.some((p) => p.roles.includes('wk'))) throw new Error('XI has no wicketkeeper');
+
+    __setXI(fullXi);
+    __setCaptainIdx(captainIdx);
+
+    const oppNat = NATIONS.find((n) => n.id === opponentNation);
+    const realOppXI = getOppositionXI(opponentNation, 'best');
+    const allStarOppXI = getAllStarXI(opponentNation, 'best');
+
+    let streakAlive = true; // Immortal-XI boost: on while undefeated across the WHOLE 30-match campaign
+    let w = 0, d = 0, l = 0;
+    let totalSeriesWon = 0, totalSweeps = 0, marginSum = 0, marginCount = 0;
+
+    SS_STOPS_DEF.forEach((def) => {
+      __setFMTKEY(def.fmtkey);
+      const oppXi = def.tier === 'real' ? realOppXI : allStarOppXI;
+      const oppRating = oppNat.opp + (def.tier === 'allstar' ? ALLSTAR_OPP_BONUS : 0);
+
+      const st = teamStrengths();
+      const hasSpin = hasWorldClassBowlingType(fullXi, 'spin');
+      const hasPace = hasWorldClassBowlingType(fullXi, 'pace');
+      const statsBonus = computeStatsBonus(fullXi);
+
+      const stopCodes = [];
+      for (let m = 0; m < 5; m++) {
+        const conditionsPenalty = computeConditionsPenalty(oppNat, hasSpin, hasPace);
+        const effStrength = st.strength + statsBonus - conditionsPenalty - (BASE_DIFFICULTY_PENALTY[def.fmtkey]||0) + (streakAlive ? IMMORTAL_STREAK_BOOST[def.fmtkey] : 0);
+        const res = decideMatch(effStrength, oppRating);
+        const code = res.code;
+        if (code !== 'W') streakAlive = false;
+        const gen = def.fmtkey === 'test' ? genTestMatch(code, oppNat) : genWhiteBallMatch(code, oppNat, res.superOver);
+        const genLists = toInningsLists(gen);
+        buildMatchScorecard(fullXi, oppXi, genLists.yourInningsList, genLists.oppInningsList, oppNat.id); // consumes RNG in lockstep with client; output unused server-side
+        pickPOTM(code, oppNat); // consumes RNG in lockstep with client; output unused server-side
+        if (code === 'W') { w++; marginSum += clamp((gen.pts-100)/(190-100), 0, 1); marginCount++; }
+        else if (code === 'D') d++; else l++;
+        stopCodes.push(code);
+      }
+      const sw = stopCodes.filter((c) => c==='W').length, sl = stopCodes.filter((c) => c==='L').length;
+      if (sw > sl) totalSeriesWon++;
+      if (sw === 5) totalSweeps++;
+    });
+
+    const SCORE_POOL = 10000;
+    const winsComponent   = (w/30) * SCORE_POOL * 0.50;
+    const seriesComponent = (totalSeriesWon/6) * SCORE_POOL * 0.20;
+    const sweepComponent  = (totalSweeps/6) * SCORE_POOL * 0.20;
+    const marginComponent = (marginCount>0 ? marginSum/marginCount : 0) * SCORE_POOL * 0.10;
+    const score = Math.round(winsComponent + seriesComponent + sweepComponent + marginComponent);
+    const record = `${w}-${d}-${l}`;
+
+    return { score, record, yourNation, opponentNation };
+  } finally {
+    Math.random = nativeRandom;
+  }
+}
+
+/* Mode 3: combined XI from both series nations vs the other 10. This is
+   World Tour's exact engine and difficulty (same decideMatch/nat.opp+4,
+   same composite scoring formula) with the two series nations excluded
+   from the opponent pool -- mirrors calculateScore's Test/ODI/T20 branch,
+   just with a restricted, dynamically-sized nation list instead of the
+   fixed 60-match/12-nation constants. No separate difficulty calibration
+   needed since nothing about the per-match math changes. */
+function calculateSeriesShowdownCombinedResult({ format, seed, xi: clientXi, captainIdx, natA, natB }) {
+  if (!['test','odi','t20'].includes(format)) throw new Error('bad format');
+  if (!NATIONS.some((n) => n.id === natA)) throw new Error('bad natA');
+  if (!NATIONS.some((n) => n.id === natB)) throw new Error('bad natB');
+  if (natA === natB) throw new Error('natA and natB must differ');
+  if (!Number.isInteger(seed)) throw new Error('bad seed');
+
+  const nativeRandom = Math.random;
+  Math.random = mulberry32(seed);
+
+  try {
+    __setFMTKEY(format);
+
+    if (!Array.isArray(clientXi) || clientXi.length !== 11) throw new Error('XI must have exactly 11 players');
+    const pool = DB[format];
+    const seen = new Set();
+    const fullXi = clientXi.map((p) => {
+      if (!p || typeof p.n !== 'string' || typeof p.d !== 'string' || typeof p.c !== 'string') throw new Error('bad player entry');
+      const found = pool.find((x) => x.n === p.n && x.d === p.d && x.c === p.c);
+      if (!found) throw new Error('player not found: ' + p.n + ' (' + p.c + ', ' + p.d + ')');
+      if (seen.has(found.n)) throw new Error('duplicate player: ' + found.n);
+      seen.add(found.n);
+      return found;
+    });
+    // Every player must be from one of the two series nations -- the
+    // client-side draft restriction enforces this, the server re-checks it.
+    if (fullXi.some((p) => p.c !== natA && p.c !== natB)) throw new Error('every player must be from ' + natA + ' or ' + natB);
+    for (let i = 0; i < 11; i++) {
+      if (!SLOTS[i].fits(fullXi[i])) throw new Error(`player at slot ${i + 1} (${fullXi[i].n}) is not eligible for that slot`);
+    }
+    if (!fullXi.some((p) => p.roles.includes('wk'))) throw new Error('XI has no wicketkeeper');
+
+    __setXI(fullXi);
+    __setCaptainIdx(captainIdx);
+
+    const st = teamStrengths();
+    const opponents = shuffle(NATIONS.filter((n) => n.id !== natA && n.id !== natB));
+    const N_OPP = opponents.length;
+
+    const hasSpin = hasWorldClassBowlingType(fullXi, 'spin');
+    const hasPace = hasWorldClassBowlingType(fullXi, 'pace');
+    const statsBonus = computeStatsBonus(fullXi);
+    let streakAlive = true;
+
+    let w = 0, d = 0, l = 0;
+    let totalSeriesWon = 0, totalSweeps = 0, marginSum = 0, marginCount = 0;
+
+    opponents.forEach((nat) => {
+      const seriesCodes = [];
+      const conditionsPenalty = computeConditionsPenalty(nat, hasSpin, hasPace);
+      for (let m = 0; m < 5; m++) {
+        const effStrength = st.strength + statsBonus - conditionsPenalty - (BASE_DIFFICULTY_PENALTY[format]||0) + (streakAlive ? IMMORTAL_STREAK_BOOST[format] : 0);
+        const res = decideMatch(effStrength, nat.opp + 4);
+        const code = res.code;
+        const gen = format === 'test' ? genTestMatch(code, nat) : genWhiteBallMatch(code, nat, res.superOver);
+        const genLists = toInningsLists(gen);
+        buildMatchScorecard(fullXi, getOppositionXI(nat.id), genLists.yourInningsList, genLists.oppInningsList, nat.id); // consumes RNG in lockstep with client; output unused server-side
+        pickPOTM(code, nat); // consumes RNG in lockstep with client; output unused server-side
+        seriesCodes.push(code);
+        if (code !== 'W') streakAlive = false;
+        if (code === 'W') { w++; marginSum += clamp((gen.pts-100)/(190-100), 0, 1); marginCount++; }
+        else if (code === 'D') d++; else l++;
+      }
+      const sw = seriesCodes.filter((c) => c === 'W').length, sl = seriesCodes.filter((c) => c === 'L').length;
+      if (sw > sl) totalSeriesWon++;
+      if (sw === 5) totalSweeps++;
+    });
+
+    const SCORE_POOL = 10000;
+    const winsComponent   = (w/(N_OPP*5)) * SCORE_POOL * 0.50;
+    const seriesComponent = (totalSeriesWon/N_OPP) * SCORE_POOL * 0.20;
+    const sweepComponent  = (totalSweeps/N_OPP) * SCORE_POOL * 0.20;
+    const marginComponent = (marginCount>0 ? marginSum/marginCount : 0) * SCORE_POOL * 0.10;
+    const score = Math.round(winsComponent + seriesComponent + sweepComponent + marginComponent);
+    const record = `${w}-${d}-${l}`;
+
+    return { score, record, natA, natB };
+  } finally {
+    Math.random = nativeRandom;
+  }
+}
+
 function calculateScore({ format, seed, xi: clientXi, captainIdx }) {
   if (!['test','odi','t20','hundred'].includes(format)) throw new Error('bad format');
   if (!Number.isInteger(seed)) throw new Error('bad seed');
@@ -1027,4 +1284,4 @@ function calculateScore({ format, seed, xi: clientXi, captainIdx }) {
   }
 }
 
-module.exports = { calculateScore, calculateRepresentResult, DB, mulberry32, NATIONS, HUNDRED_TEAMS, FORMATS, SLOTS, teamStrengths, decideMatch, decideNeutral, genTestMatch, genWhiteBallMatch, genHundredMatch, pickPOTM, buildHundredTable, getBowlingUnit, shuffle, admin, db, __setFMTKEY, __setXI };
+module.exports = { calculateScore, calculateRepresentResult, calculateSeriesShowdownResult, calculateSeriesShowdownCombinedResult, DB, mulberry32, NATIONS, HUNDRED_TEAMS, FORMATS, SLOTS, teamStrengths, decideMatch, decideNeutral, genTestMatch, genWhiteBallMatch, genHundredMatch, pickPOTM, buildHundredTable, getBowlingUnit, shuffle, admin, db, __setFMTKEY, __setXI };
