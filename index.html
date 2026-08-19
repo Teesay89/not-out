@@ -52,6 +52,46 @@ body{
   *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
 }
 
+/* ---------- desktop layout ----------
+   Everything below only applies at 900px+ -- there were zero breakpoints
+   before this, so mobile (everything under 900px) is completely
+   unaffected. Two changes: (1) a wider, more generous content column
+   everywhere instead of the same 520px phone-width column stretched
+   across a huge desktop viewport, and (2) the draft screen specifically
+   gets a persistent side panel for "Your XI so far" (previously buried
+   below the pick cards, requiring a scroll) so you can watch your team
+   fill up while drafting. */
+@media (min-width:900px){
+  .wrap{max-width:680px}
+  body:has(#scr-draft.active) .wrap{max-width:960px}
+
+  #scr-draft.active{
+    display:grid;
+    grid-template-columns:1fr 320px;
+    grid-template-areas:
+      "strip  sheet"
+      "slot   sheet"
+      "stage  sheet"
+      "pick   sheet"
+      "restart sheet";
+    column-gap:24px;
+    align-items:start;
+  }
+  #scr-draft .order-strip{grid-area:strip}
+  #scr-draft .slot-callout{grid-area:slot}
+  #scr-draft .draw-stage{grid-area:stage}
+  #scr-draft .pick-grid{grid-area:pick}
+  #scr-draft .restart-link{grid-area:restart}
+  #scr-draft .mini-sheet{
+    grid-area:sheet;
+    position:sticky;
+    top:18px;
+    margin-top:0;
+    max-height:calc(100vh - 36px);
+    overflow-y:auto;
+  }
+}
+
 /* ---------- header ---------- */
 .masthead{text-align:center;padding:6px 0 14px;border-bottom:1px solid var(--line);margin-bottom:16px}
 .masthead h1{font-family:'Graduate',serif;font-size:38px;letter-spacing:.04em;line-height:1;color:var(--cream)}
