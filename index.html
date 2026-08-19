@@ -342,6 +342,11 @@ body.sim-active .masthead{
 .stat-table th:first-child,.stat-table td:first-child{text-align:left;width:31%}
 .stat-table td{padding:5px 3px;border-bottom:1px solid rgba(239,233,216,.07);color:var(--cream);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .stat-table td:first-child{font-family:'Archivo',sans-serif;font-weight:600;font-size:11px}
+/* League table's first column is a Pos number, not a name -- the name is
+   in column 2 (Team), so the generic 31%-wide first-child rule above (sized
+   for a Player/Team name in column 1) needs overriding here specifically. */
+.stat-table.league-table th:first-child,.stat-table.league-table td:first-child{width:24px;text-align:center;font-family:'IBM Plex Mono',monospace;font-weight:600;font-size:10px}
+.stat-table.league-table th:nth-child(2),.stat-table.league-table td:nth-child(2){width:34%;text-align:left;font-family:'Archivo',sans-serif;font-weight:600;font-size:11px}
 
 .data-note{font-size:10.5px;color:var(--cream-dim);text-align:center;line-height:1.6;margin-top:22px;opacity:.8}
 
@@ -2716,7 +2721,7 @@ function startRepresentLeague(){
 function representTableHTML(){
   const rows = representTable.map((r,i)=>`<tr${r.isYou?' style="color:var(--brass);font-weight:700"':''}><td>${i+1}</td><td>${r.flag} ${r.name}${r.isYou?' (YOU)':''}</td><td>55</td><td>${r.w}</td><td>${r.d}</td><td>${r.t}</td><td>${r.l}</td><td>${r.pts}</td></tr>`).join('');
   return `<h3 style="margin-top:2px">Final League Table</h3>
-    <table class="stat-table"><tr><th>Pos</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>T</th><th>L</th><th>Pts</th></tr>${rows}</table>`;
+    <table class="stat-table league-table"><tr><th>Pos</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>T</th><th>L</th><th>Pts</th></tr>${rows}</table>`;
 }
 function representFinalResultRow(){
   const F = representFinal;
