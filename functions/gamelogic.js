@@ -306,13 +306,14 @@ function decideNeutral(oppA, oppB){
 }
 
 function genTestMatch(code, nat){
-  let score, margin, pts, yourTotal, yourWkts, oppTotal, oppWkts;
+  let score, margin, pts, yourInningsList, oppInningsList;
   if(code==='D'){
     const a1=rand(300,540), b1=rand(280,520), a2=rand(150,330), a2w=rand(4,8), b2=rand(90,260), b2w=rand(4,9);
     score=`You ${b1} & ${b2}/${b2w} \u00b7 ${nat.id} ${a1} & ${a2}/${a2w}d`;
     margin=pickOne(['drawn \u2014 last pair survive','drawn \u2014 flat pitch wins','drawn \u2014 nine down at stumps']);
     pts = 35;
-    yourTotal = b1+b2; yourWkts = b2w; oppTotal = a1+a2; oppWkts = a2w;
+    yourInningsList = [{total:b1, wkts:10}, {total:b2, wkts:b2w}];
+    oppInningsList = [{total:a1, wkts:10}, {total:a2, wkts:a2w}];
   } else {
     const weWin = code==='W';
     const style = Math.random()<0.18?'inn':(Math.random()<0.5?'runs':'wkts');
@@ -322,8 +323,9 @@ function genTestMatch(code, nat){
       score = weWin ? `You ${big}d \u00b7 ${nat.id} ${x1} & ${x2}` : `${nat.id} ${big}d \u00b7 You ${x1} & ${x2}`;
       margin = `${weWin?'won':'lost'} by an innings & ${gap} runs`;
       pts = weWin ? 190 : -160;
-      if(weWin){ yourTotal=big; yourWkts=9; oppTotal=x1+x2; oppWkts=10; }
-      else { oppTotal=big; oppWkts=9; yourTotal=x1+x2; yourWkts=10; }
+      const winnerList = [{total:big, wkts:9}], loserList = [{total:x1, wkts:10}, {total:x2, wkts:10}];
+      if(weWin){ yourInningsList=winnerList; oppInningsList=loserList; }
+      else { oppInningsList=winnerList; yourInningsList=loserList; }
     } else if(style==='runs'){
       const f1=rand(260,500), f2=rand(140,330), R=rand(25,260);
       const c1=rand(120,Math.max(140,Math.min(360,f1+f2-R-60))), c2=Math.max(40,f1+f2-c1-R);
@@ -331,8 +333,9 @@ function genTestMatch(code, nat){
                     : `${nat.id} ${f1} & ${f2}d \u00b7 You ${c1} & ${c2}`;
       margin = `${weWin?'won':'lost'} by ${R} runs`;
       pts = weWin ? 100 + clamp(R/3, 5, 85) : -(70 + clamp(R/4, 5, 60));
-      if(weWin){ yourTotal=f1+f2; yourWkts=9; oppTotal=c1+c2; oppWkts=10; }
-      else { oppTotal=f1+f2; oppWkts=9; yourTotal=c1+c2; yourWkts=10; }
+      const winnerList = [{total:f1, wkts:10}, {total:f2, wkts:9}], loserList = [{total:c1, wkts:10}, {total:c2, wkts:10}];
+      if(weWin){ yourInningsList=winnerList; oppInningsList=loserList; }
+      else { oppInningsList=winnerList; yourInningsList=loserList; }
     } else {
       const a1=rand(180,400), b1=rand(150,420), a2=rand(140,360);
       const chase=Math.max(30,a1+a2-b1+1), w=rand(2,8);
@@ -340,11 +343,15 @@ function genTestMatch(code, nat){
                     : `You ${a1} & ${a2} \u00b7 ${nat.id} ${b1} & ${chase}/${10-w}`;
       margin = `${weWin?'won':'lost'} by ${w} wickets`;
       pts = weWin ? 100 + clamp(w*10, 20, 80) : -(70 + clamp(w*8, 15, 60));
-      if(weWin){ yourTotal=b1+chase; yourWkts=10-w; oppTotal=a1+a2; oppWkts=10; }
-      else { oppTotal=b1+chase; oppWkts=10-w; yourTotal=a1+a2; yourWkts=10; }
+      const fullList = [{total:a1, wkts:10}, {total:a2, wkts:10}], chaseList = [{total:b1, wkts:10}, {total:chase, wkts:10-w}];
+      if(weWin){ yourInningsList=chaseList; oppInningsList=fullList; }
+      else { oppInningsList=chaseList; yourInningsList=fullList; }
     }
   }
-  return {score, margin, pts: Math.round(pts), yourTotal, yourWkts, oppTotal, oppWkts};
+  const sum = (list)=>list.reduce((a,e)=>a+e.total,0);
+  const yourTotal = sum(yourInningsList), oppTotal = sum(oppInningsList);
+  const yourWkts = yourInningsList[yourInningsList.length-1].wkts, oppWkts = oppInningsList[oppInningsList.length-1].wkts;
+  return {score, margin, pts: Math.round(pts), yourTotal, yourWkts, oppTotal, oppWkts, yourInningsList, oppInningsList};
 }
 
 function genWhiteBallMatch(code, nat, superOver){
@@ -383,16 +390,57 @@ function genWhiteBallMatch(code, nat, superOver){
   }
 }
 
+/* Mirrors index.html's buildOppositionXI exactly -- pure/deterministic
+   (no RNG), so client and server always compute the identical XI for a
+   given (nation, format) with zero lockstep risk. */
+function buildOppositionXI(natId){
+  const pool0 = DB[FMTKEY].filter(p=>p.c===natId && p.d==='2020s' && !p.retired);
+  const keeperOk = pool0.some(p=>p.roles.includes('wk'));
+  const bowlArOk = pool0.filter(p=>p.roles.includes('bowl')||p.roles.includes('ar')).length>=5;
+  const pool = (pool0.length>=11 && keeperOk && bowlArOk) ? pool0
+    : DB[FMTKEY].filter(p=>p.c===natId && p.d==='2020s'); // fallback: drop the retired filter
+
+  const byMat = pool.slice().sort((a,b)=>b.mat-a.mat);
+  const drafted = [], used = new Set();
+  const keeper = byMat.find(p=>p.roles.includes('wk'));
+  if(keeper){ drafted.push(keeper); used.add(keeper.n); }
+  const bowlArCandidates = byMat.filter(p=>!used.has(p.n) && (p.roles.includes('bowl')||p.roles.includes('ar')));
+  bowlArCandidates.slice(0,5).forEach(p=>{ drafted.push(p); used.add(p.n); });
+  for(const p of byMat){
+    if(drafted.length>=11) break;
+    if(used.has(p.n)) continue;
+    drafted.push(p); used.add(p.n);
+  }
+
+  const xiSlots = new Array(11).fill(null);
+  drafted.forEach(p=>{
+    let bestSlot=-1, bestPen=Infinity;
+    for(let i=0;i<11;i++){
+      if(xiSlots[i] || !SLOTS[i].fits(p)) continue;
+      const pen = positionPenalty(p, i+1);
+      if(pen<bestPen){ bestPen=pen; bestSlot=i; }
+    }
+    if(bestSlot===-1) bestSlot = xiSlots.findIndex(s=>!s);
+    if(bestSlot>=0) xiSlots[bestSlot] = p;
+  });
+  return xiSlots.filter(Boolean);
+}
+const oppositionXICache = new Map();
+function getOppositionXI(natId){
+  const key = FMTKEY+'|'+natId;
+  if(!oppositionXICache.has(key)) oppositionXICache.set(key, buildOppositionXI(natId));
+  return oppositionXICache.get(key);
+}
+
 /* Mirrors index.html's buildMatchScorecard exactly -- the server never
    displays this, but must consume Math.random() in the identical sequence
    to stay in RNG lockstep for every match after this one. */
 const DISMISSAL_TYPES = ['b','c','lbw','st','run out','c&b'];
-function buildMatchScorecard(xiList, yourTotal, yourWkts, oppTotal, oppWkts, oppLabel){
-  const test = FMTKEY==='test', t20 = FMTKEY==='t20';
-  const battersUsed = Math.min(11, yourWkts+1);
+function distributeBattingCard(battingXi, total, wkts){
+  const battersUsed = Math.min(battingXi.length, wkts+1);
   const weights = [];
   for(let i=0;i<battersUsed;i++){
-    const p = xiList[i], pos = i+1;
+    const p = battingXi[i], pos = i+1;
     const pureBowler = p.roles.includes('bowl') && !p.roles.includes('ar');
     let w;
     if(pureBowler) w = 0.15 + Math.random()*0.15;
@@ -404,18 +452,20 @@ function buildMatchScorecard(xiList, yourTotal, yourWkts, oppTotal, oppWkts, opp
     weights.push(w);
   }
   const wsum = weights.reduce((a,b)=>a+b,0) || 1;
-  const scores = weights.map(w=>Math.max(0, Math.round(yourTotal*w/wsum)));
-  let drift = yourTotal - scores.reduce((a,b)=>a+b,0);
-  if(scores.length){ scores[0] = Math.max(0, scores[0]+drift); drift = yourTotal - scores.reduce((a,b)=>a+b,0); if(drift) scores[scores.length-1] = Math.max(0, scores[scores.length-1]+drift); }
+  const scores = weights.map(w=>Math.max(0, Math.round(total*w/wsum)));
+  let drift = total - scores.reduce((a,b)=>a+b,0);
+  if(scores.length){ scores[0] = Math.max(0, scores[0]+drift); drift = total - scores.reduce((a,b)=>a+b,0); if(drift) scores[scores.length-1] = Math.max(0, scores[scores.length-1]+drift); }
 
-  const yourInnings = xiList.map((p,i)=>{
+  return battingXi.map((p,i)=>{
     if(i>=battersUsed) return {n:p.n, runs:null, out:null, notOut:false, dnb:true};
     const isLast = i===battersUsed-1;
-    const notOut = isLast && yourWkts<10;
+    const notOut = isLast && wkts<10;
     return {n:p.n, runs:scores[i], out: notOut?null:pickOne(DISMISSAL_TYPES), notOut, dnb:false};
   });
-
-  const {unit:bowlUnit, partTimer} = getBowlingUnit(xiList);
+}
+function distributeBowlingCard(bowlingXi, oppTotal, oppWkts){
+  const test = FMTKEY==='test', t20 = FMTKEY==='t20';
+  const {unit:bowlUnit, partTimer} = getBowlingUnit(bowlingXi);
   const bowlWeights = bowlUnit.map(p=>{
     const isAR = p.roles.includes('ar') && !p.roles.includes('bowl');
     const partTime = !!(partTimer && p.n===partTimer.n);
@@ -442,9 +492,37 @@ function buildMatchScorecard(xiList, yourTotal, yourWkts, oppTotal, oppWkts, opp
     const cap = t20?4:10;
     return Math.min(cap, Math.max(1, Math.round((totalOvers/bowlUnit.length)*(partTime?0.4:1)*(0.7+Math.random()*0.6))));
   });
-  const yourBowling = bowlUnit.map((p,i)=>({n:p.n, overs:oversDist[i], runs:runsDist[i], wkts:wktsDist[i]}));
-
-  return { yourInnings, yourTotal, yourWkts, oppTotal, oppWkts, oppLabel, yourBowling };
+  return bowlUnit.map((p,i)=>({n:p.n, overs:oversDist[i], runs:runsDist[i], wkts:wktsDist[i]}));
+}
+function buildMatchScorecard(xiList, oppXi, yourInningsList, oppInningsList, oppLabel){
+  const innings = [];
+  const n = Math.max(yourInningsList.length, oppInningsList.length);
+  for(let i=0;i<n;i++){
+    if(yourInningsList[i]){
+      const {total, wkts} = yourInningsList[i];
+      innings.push({
+        battingTeam:'you', battingCard: distributeBattingCard(xiList, total, wkts),
+        bowlingTeam: oppLabel, bowlingCard: distributeBowlingCard(oppXi, total, wkts),
+        total, wkts,
+      });
+    }
+    if(oppInningsList[i]){
+      const {total, wkts} = oppInningsList[i];
+      innings.push({
+        battingTeam: oppLabel, battingCard: distributeBattingCard(oppXi, total, wkts),
+        bowlingTeam:'you', bowlingCard: distributeBowlingCard(xiList, total, wkts),
+        total, wkts,
+      });
+    }
+  }
+  return { innings, oppLabel };
+}
+function toInningsLists(gen){
+  if(gen.yourInningsList) return {yourInningsList: gen.yourInningsList, oppInningsList: gen.oppInningsList};
+  return {
+    yourInningsList: [{total:gen.yourTotal, wkts:gen.yourWkts}],
+    oppInningsList: [{total:gen.oppTotal, wkts:gen.oppWkts}],
+  };
 }
 
 function genHundredMatch(code, team, superOver){
@@ -686,7 +764,8 @@ function calculateRepresentResult({ format, country, seed, xi: clientXi, captain
         const gen = code === 'T' ? genTieMatch()
           : format === 'test' ? genTestMatch(code, opp)
           : genWhiteBallMatch(code, opp, false);
-        buildMatchScorecard(fullXi, gen.yourTotal, gen.yourWkts, gen.oppTotal, gen.oppWkts, opp.id); // consumes RNG in lockstep with client; output unused server-side
+        const genLists = toInningsLists(gen);
+        buildMatchScorecard(fullXi, getOppositionXI(opp.id), genLists.yourInningsList, genLists.oppInningsList, opp.id); // consumes RNG in lockstep with client; output unused server-side
         pickPOTM(code, opp); // consumes RNG in lockstep with client; output unused server-side
         if (code !== 'W') streakAlive = false;
         yourMatches.push({ opp, code });
@@ -713,7 +792,8 @@ function calculateRepresentResult({ format, country, seed, xi: clientXi, captain
       const res = decideRepresentFinal(finalEffStrength, finalOppNat.opp);
       finalCode = res.code;
       const finalGen = format === 'test' ? genTestMatch(finalCode, finalOppNat) : genWhiteBallMatch(finalCode, finalOppNat, res.superOver);
-      buildMatchScorecard(fullXi, finalGen.yourTotal, finalGen.yourWkts, finalGen.oppTotal, finalGen.oppWkts, finalOppNat.id); // consumes RNG in lockstep with client; output unused server-side
+      const finalLists = toInningsLists(finalGen);
+      buildMatchScorecard(fullXi, getOppositionXI(finalOppNat.id), finalLists.yourInningsList, finalLists.oppInningsList, finalOppNat.id); // consumes RNG in lockstep with client; output unused server-side
       pickPOTM(finalCode, finalOppNat); // consumes RNG in lockstep with client; output unused server-side
     } else {
       finalCode = decideRepresentFinal(aNat.opp, bNat.opp).code; // relative to A; no gen/potm — you're not involved
@@ -870,7 +950,8 @@ function calculateScore({ format, seed, xi: clientXi, captainIdx }) {
           ? genTestMatch(code, nat)
           : genWhiteBallMatch(code, nat, res.superOver);
 
-        buildMatchScorecard(fullXi, gen.yourTotal, gen.yourWkts, gen.oppTotal, gen.oppWkts, nat.id); // Consumes RNG state in lockstep with client; output unused server-side
+        const genLists = toInningsLists(gen);
+        buildMatchScorecard(fullXi, getOppositionXI(nat.id), genLists.yourInningsList, genLists.oppInningsList, nat.id); // Consumes RNG state in lockstep with client; output unused server-side
         pickPOTM(code, nat); // Consumes RNG state in lockstep with client
         seriesCodes.push(code);
         if (code !== 'W') streakAlive = false;
