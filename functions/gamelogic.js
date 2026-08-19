@@ -263,17 +263,17 @@ function teamStrengths(){
   let bonus = 0, notes=[];
   const arDeep = xi.slice(7).some(p=>p.roles.includes('ar'));
   const arTop = xi.slice(0,5).some(p=>p.roles.includes('ar'));
-  if(arDeep) notes.push('All-rounder in the lower order — the batting runs deep.');
-  if(arTop) notes.push('All-rounder in the top five — an extra bowling option up front.');
-  if(partTimer) notes.push(`Only 4 frontline bowlers — ${partTimer.n} (Bat) makes up the legal fifth option.`);
+  if(arDeep) notes.push('An all-rounder gives the lower order extra batting depth.');
+  if(arTop) notes.push('An all-rounder in the top five adds a bowling option up front.');
+  if(partTimer) notes.push(`${partTimer.n} rounds out the bowling as a part-timer.`);
   else notes.push(`${bowlUnit.length} bowling option${bowlUnit.length===1?'':'s'} in the XI.`);
-  if(misplaced>0) notes.push(`${misplaced} player${misplaced===1?' is':'s are'} batting out of position — a small hit to the batting number.`);
+  if(misplaced>0) notes.push(`${misplaced} player${misplaced===1?' is':'s are'} batting out of their natural position.`);
   if(decadesUsed>=4){bonus+=3; notes.push(`Time-travelling XI: ${decadesUsed} decades represented.`);}
   if(nationsUsed>=6){bonus+=3; notes.push(`World XI: ${nationsUsed} nations in one dressing room.`);}
   const capMatch = FMTKEY!=='hundred' ? isEliteCaptain(xi[captainIdx], FMTKEY) : null;
-  if(capMatch){ bonus += 0.25; notes.push(`🎖️ ${capMatch.n} led with a real ${DECADE_LABEL[capMatch.d]} ${FMT.label} captaincy record — +0.25 team boost.`); }
+  if(capMatch){ bonus += 0.25; notes.push(`🎖️ ${capMatch.n} captains, with a genuine ${DECADE_LABEL[capMatch.d]} ${FMT.label} leadership record.`); }
   const inPositionCount = xi.filter((p,i)=>positionPenalty(p, i+1)===0).length;
-  if(inPositionCount>0) notes.push(`${inPositionCount} player${inPositionCount===1?'':'s'} in their correct position — each gets a small individual rating boost.`);
+  if(inPositionCount>0) notes.push(`${inPositionCount} player${inPositionCount===1?'':'s'} in ${inPositionCount===1?'its':'their'} natural position.`);
   const strength = bat*0.5 + bowl*0.5 + bonus;
   // Display cap only — individual player ratings top out at 99, so the
   // shown team number should too. strength (used for match odds) is
@@ -432,12 +432,18 @@ function getOppositionXI(natId){
   return oppositionXICache.get(key);
 }
 
-/* Mirrors index.html's buildMatchScorecard exactly -- the server never
-   displays this, but must consume Math.random() in the identical sequence
-   to stay in RNG lockstep for every match after this one. */
+/* Batting and bowling for one innings are built TOGETHER, not
+   independently, so that "who dismissed this batter" and "how many
+   wickets that bowler shows in the bowling card" can never disagree.
+   Run outs are excluded from bowler credit (matching real scorecards --
+   a run out is a fielding dismissal, not a bowling one), so the
+   bowling card's wicket tally can be a little less than the innings'
+   total wickets whenever a run out occurred. */
 const DISMISSAL_TYPES = ['b','c','lbw','st','run out','c&b'];
-function distributeBattingCard(battingXi, total, wkts){
+function buildInningsPair(battingXi, bowlingXi, total, wkts){
+  const test = FMTKEY==='test', t20 = FMTKEY==='t20';
   const battersUsed = Math.min(battingXi.length, wkts+1);
+
   const weights = [];
   for(let i=0;i<battersUsed;i++){
     const p = battingXi[i], pos = i+1;
@@ -456,15 +462,17 @@ function distributeBattingCard(battingXi, total, wkts){
   let drift = total - scores.reduce((a,b)=>a+b,0);
   if(scores.length){ scores[0] = Math.max(0, scores[0]+drift); drift = total - scores.reduce((a,b)=>a+b,0); if(drift) scores[scores.length-1] = Math.max(0, scores[scores.length-1]+drift); }
 
-  return battingXi.map((p,i)=>{
-    if(i>=battersUsed) return {n:p.n, runs:null, out:null, notOut:false, dnb:true};
+  const outIdx = [];
+  const types = new Array(battersUsed).fill(null);
+  for(let i=0;i<battersUsed;i++){
     const isLast = i===battersUsed-1;
     const notOut = isLast && wkts<10;
-    return {n:p.n, runs:scores[i], out: notOut?null:pickOne(DISMISSAL_TYPES), notOut, dnb:false};
-  });
-}
-function distributeBowlingCard(bowlingXi, oppTotal, oppWkts){
-  const test = FMTKEY==='test', t20 = FMTKEY==='t20';
+    if(notOut) continue;
+    types[i] = pickOne(DISMISSAL_TYPES);
+    outIdx.push(i);
+  }
+  const creditableIdx = outIdx.filter(i=>types[i]!=='run out');
+
   const {unit:bowlUnit, partTimer} = getBowlingUnit(bowlingXi);
   const bowlWeights = bowlUnit.map(p=>{
     const isAR = p.roles.includes('ar') && !p.roles.includes('bowl');
@@ -473,8 +481,9 @@ function distributeBowlingCard(bowlingXi, oppTotal, oppWkts){
     return base * (0.5+Math.random());
   });
   const bwsum = bowlWeights.reduce((a,b)=>a+b,0) || 1;
-  const wktsDist = bowlWeights.map(w=>Math.max(0, Math.round(oppWkts*w/bwsum)));
-  let wDrift = oppWkts - wktsDist.reduce((a,b)=>a+b,0);
+  const creditableWkts = creditableIdx.length;
+  const wktsDist = bowlWeights.map(w=>Math.max(0, Math.round(creditableWkts*w/bwsum)));
+  let wDrift = creditableWkts - wktsDist.reduce((a,b)=>a+b,0);
   let guard = 0;
   while(wDrift!==0 && wktsDist.length && guard<200){
     const i = guard % wktsDist.length;
@@ -482,8 +491,36 @@ function distributeBowlingCard(bowlingXi, oppTotal, oppWkts){
     else if(wktsDist[i]>0){ wktsDist[i]--; wDrift++; }
     guard++;
   }
-  const runsDist = bowlWeights.map(w=>Math.max(0, Math.round(oppTotal*w/bwsum)));
-  let rDrift = oppTotal - runsDist.reduce((a,b)=>a+b,0);
+
+  let creditPool = [];
+  bowlUnit.forEach((p,i)=>{ for(let k=0;k<wktsDist[i];k++) creditPool.push(p); });
+  creditPool = shuffle(creditPool);
+  const bowlerFor = new Map();
+  creditableIdx.forEach((idx,k)=>{ bowlerFor.set(idx, creditPool[k]); });
+
+  const keeper = bowlingXi.find(p=>p.roles.includes('wk'));
+  const fielderFor = new Map();
+  outIdx.forEach(idx=>{
+    const t = types[idx];
+    if(t==='c') fielderFor.set(idx, pickOne(bowlingXi));
+    else if(t==='st' && keeper) fielderFor.set(idx, keeper);
+    else if(t==='run out') fielderFor.set(idx, pickOne(bowlingXi));
+    else if(t==='c&b') fielderFor.set(idx, bowlerFor.get(idx));
+  });
+
+  const battingCard = battingXi.map((p,i)=>{
+    if(i>=battersUsed) return {n:p.n, runs:null, out:null, bowler:null, fielder:null, notOut:false, dnb:true};
+    const isLast = i===battersUsed-1;
+    const notOut = isLast && wkts<10;
+    if(notOut) return {n:p.n, runs:scores[i], out:null, bowler:null, fielder:null, notOut:true, dnb:false};
+    const t = types[i];
+    const bowler = t==='run out' ? null : (bowlerFor.get(i) || null);
+    const fielder = fielderFor.get(i) || null;
+    return {n:p.n, runs:scores[i], out:t, bowler: bowler?bowler.n:null, fielder: fielder?fielder.n:null, notOut:false, dnb:false};
+  });
+
+  const runsDist = bowlWeights.map(w=>Math.max(0, Math.round(total*w/bwsum)));
+  let rDrift = total - runsDist.reduce((a,b)=>a+b,0);
   if(runsDist.length) runsDist[0] = Math.max(0, runsDist[0]+rDrift);
   const totalOvers = t20?20:50;
   const oversDist = bowlUnit.map(p=>{
@@ -492,7 +529,9 @@ function distributeBowlingCard(bowlingXi, oppTotal, oppWkts){
     const cap = t20?4:10;
     return Math.min(cap, Math.max(1, Math.round((totalOvers/bowlUnit.length)*(partTime?0.4:1)*(0.7+Math.random()*0.6))));
   });
-  return bowlUnit.map((p,i)=>({n:p.n, overs:oversDist[i], runs:runsDist[i], wkts:wktsDist[i]}));
+  const bowlingCard = bowlUnit.map((p,i)=>({n:p.n, overs:oversDist[i], runs:runsDist[i], wkts:wktsDist[i]}));
+
+  return { battingCard, bowlingCard };
 }
 function buildMatchScorecard(xiList, oppXi, yourInningsList, oppInningsList, oppLabel){
   const innings = [];
@@ -500,19 +539,13 @@ function buildMatchScorecard(xiList, oppXi, yourInningsList, oppInningsList, opp
   for(let i=0;i<n;i++){
     if(yourInningsList[i]){
       const {total, wkts} = yourInningsList[i];
-      innings.push({
-        battingTeam:'you', battingCard: distributeBattingCard(xiList, total, wkts),
-        bowlingTeam: oppLabel, bowlingCard: distributeBowlingCard(oppXi, total, wkts),
-        total, wkts,
-      });
+      const {battingCard, bowlingCard} = buildInningsPair(xiList, oppXi, total, wkts);
+      innings.push({ battingTeam:'you', battingCard, bowlingTeam: oppLabel, bowlingCard, total, wkts });
     }
     if(oppInningsList[i]){
       const {total, wkts} = oppInningsList[i];
-      innings.push({
-        battingTeam: oppLabel, battingCard: distributeBattingCard(oppXi, total, wkts),
-        bowlingTeam:'you', bowlingCard: distributeBowlingCard(xiList, total, wkts),
-        total, wkts,
-      });
+      const {battingCard, bowlingCard} = buildInningsPair(oppXi, xiList, total, wkts);
+      innings.push({ battingTeam: oppLabel, battingCard, bowlingTeam:'you', bowlingCard, total, wkts });
     }
   }
   return { innings, oppLabel };
