@@ -72,7 +72,6 @@ const NATIONS = [
   {id:'SL',  name:'Sri Lanka',    flag:'🇱🇰', opp:90,  venues:['Galle International Stadium','R. Premadasa Stadium','Pallekele International Stadium','Sinhalese Sports Club']},
   {id:'WI',  name:'West Indies',  flag:'🏝️', opp:88,  venues:['Kensington Oval','Sabina Park','Queen\u2019s Park Oval','Sir Vivian Richards Stadium','Warner Park']},
   {id:'BAN', name:'Bangladesh',   flag:'🇧🇩', opp:86,  venues:['Sher-e-Bangla National Stadium','Zahur Ahmed Chowdhury Stadium','Sylhet International Stadium']},
-  {id:'AFG', name:'Afghanistan',  flag:'🇦🇫', opp:85,  venues:['Sharjah Cricket Stadium','Zayed Cricket Stadium','Greater Noida Sports Complex']},
   {id:'ZIM', name:'Zimbabwe',     flag:'🇿🇼', opp:84,  venues:['Harare Sports Club','Queens Sports Club']},
   {id:'IRE', name:'Ireland',      flag:'🇮🇪', opp:83,  venues:['Malahide','the Village','Civil Service Cricket Club']},
 ];
@@ -107,8 +106,8 @@ const FORMATS = {
 };
 
 const SLOTS = [
- {no:1, title:'Opener',        short:'OP', desc:'Faces the new ball first. A batter, keeper, or an all-rounder who opens.', fits:p=>p.roles.includes('bat')||p.roles.includes('wk')||(p.roles.includes('ar')&&p.bp==='O')},
- {no:2, title:'Opener',        short:'OP', desc:'The other half of the opening stand. Same eligibility as slot 1.', fits:p=>p.roles.includes('bat')||p.roles.includes('wk')||(p.roles.includes('ar')&&p.bp==='O')},
+ {no:1, title:'Opener',        short:'OP', desc:'Faces the new ball first. A batter, keeper, or an all-rounder who opens.', fits:p=>p.roles.includes('bat')||p.roles.includes('wk')||(p.roles.includes('ar')&&arOpens(p))},
+ {no:2, title:'Opener',        short:'OP', desc:'The other half of the opening stand. Same eligibility as slot 1.', fits:p=>p.roles.includes('bat')||p.roles.includes('wk')||(p.roles.includes('ar')&&arOpens(p))},
  {no:3, title:'No.3',          short:'3',  desc:'First drop. A batter — or a batting/true all-rounder who bats big.',  fits:p=>p.roles.includes('bat')||p.roles.includes('wk')||(p.roles.includes('ar')&&arFitsSlot(p,3))},
  {no:4, title:'No.4',          short:'4',  desc:'The engine room. Batter or batting/true all-rounder.',    fits:p=>p.roles.includes('bat')||p.roles.includes('wk')||(p.roles.includes('ar')&&arFitsSlot(p,4))},
  {no:5, title:'No.5',          short:'5',  desc:'Builds or rebuilds. Batter, or a true/batting all-rounder.', fits:p=>p.roles.includes('bat')||p.roles.includes('wk')||(p.roles.includes('ar')&&arFitsSlot(p,5))},
@@ -133,6 +132,12 @@ function arFitsSlot(p, slotNo){
   const [lo,hi] = AR_RANGE[sub];
   return slotNo>=lo && slotNo<=hi;
 }
+/* opener eligibility (slots 1-2) for all-rounders: does this player's real
+   batting-position window reach into the top of the order? */
+function arOpens(p){
+  if(p.minBp!=null) return p.minBp<=2;
+  return p.bp==='O';
+}
 
 const BP_NATURAL = { O:[1,2], T:[1,2,3,4], M:[3,4,5,6,7], L:[6,7,8,9], X:[8,9,10,11], TM:[1,2,3,4,5,6,7], ML:[3,4,5,6,7,8,9], LX:[6,7,8,9,10,11] };
 
@@ -143,6 +148,11 @@ const BP_NATURAL = { O:[1,2], T:[1,2,3,4], M:[3,4,5,6,7], L:[6,7,8,9], X:[8,9,10
    real-data pool responds very differently to the same penalty size. */
 const POSITION_PENALTY_ADD = {test:0.9, odi:4, t20:4.5};
 function positionPenalty(p, slotNo){
+  if(p.minBp!=null && p.maxBp!=null){
+    if(slotNo>=p.minBp && slotNo<=p.maxBp) return 0;
+    const dist = slotNo<p.minBp ? p.minBp-slotNo : slotNo-p.maxBp;
+    return Math.min(8, dist*1.5) + (POSITION_PENALTY_ADD[FMTKEY] || 0);
+  }
   const range = BP_NATURAL[p.bp];
   if(!range || !range.length) return 0;
   if(range.includes(slotNo)) return 0;
@@ -312,10 +322,11 @@ function decideNeutral(oppA, oppB){
 }
 
 function genTestMatch(code, nat){
+  const oppLabel = nat.isAllStar ? 'All-Stars' : nat.id;
   let score, margin, pts, yourInningsList, oppInningsList;
   if(code==='D'){
     const a1=rand(300,540), b1=rand(280,520), a2=rand(150,330), a2w=rand(4,8), b2=rand(90,260), b2w=rand(4,9);
-    score=`You ${b1} & ${b2}/${b2w} \u00b7 ${nat.id} ${a1} & ${a2}/${a2w}d`;
+    score=`You ${b1} & ${b2}/${b2w} \u00b7 ${oppLabel} ${a1} & ${a2}/${a2w}d`;
     margin=pickOne(['drawn \u2014 last pair survive','drawn \u2014 flat pitch wins','drawn \u2014 nine down at stumps']);
     pts = 35;
     yourInningsList = [{total:b1, wkts:10}, {total:b2, wkts:b2w}];
@@ -326,7 +337,7 @@ function genTestMatch(code, nat){
     if(style==='inn'){
       const big=rand(440,660), x1=rand(120,300), x2=rand(80,Math.max(90,big-x1-15));
       const gap=Math.max(5,big-x1-x2);
-      score = weWin ? `You ${big}d \u00b7 ${nat.id} ${x1} & ${x2}` : `${nat.id} ${big}d \u00b7 You ${x1} & ${x2}`;
+      score = weWin ? `You ${big}d \u00b7 ${oppLabel} ${x1} & ${x2}` : `${oppLabel} ${big}d \u00b7 You ${x1} & ${x2}`;
       margin = `${weWin?'won':'lost'} by an innings & ${gap} runs`;
       pts = weWin ? 190 : -160;
       const winnerList = [{total:big, wkts:9}], loserList = [{total:x1, wkts:10}, {total:x2, wkts:10}];
@@ -335,8 +346,8 @@ function genTestMatch(code, nat){
     } else if(style==='runs'){
       const f1=rand(260,500), f2=rand(140,330), R=rand(25,260);
       const c1=rand(120,Math.max(140,Math.min(360,f1+f2-R-60))), c2=Math.max(40,f1+f2-c1-R);
-      score = weWin ? `You ${f1} & ${f2}d \u00b7 ${nat.id} ${c1} & ${c2}`
-                    : `${nat.id} ${f1} & ${f2}d \u00b7 You ${c1} & ${c2}`;
+      score = weWin ? `You ${f1} & ${f2}d \u00b7 ${oppLabel} ${c1} & ${c2}`
+                    : `${oppLabel} ${f1} & ${f2}d \u00b7 You ${c1} & ${c2}`;
       margin = `${weWin?'won':'lost'} by ${R} runs`;
       pts = weWin ? 100 + clamp(R/3, 5, 85) : -(70 + clamp(R/4, 5, 60));
       const winnerList = [{total:f1, wkts:10}, {total:f2, wkts:9}], loserList = [{total:c1, wkts:10}, {total:c2, wkts:10}];
@@ -345,8 +356,8 @@ function genTestMatch(code, nat){
     } else {
       const a1=rand(180,400), b1=rand(150,420), a2=rand(140,360);
       const chase=Math.max(30,a1+a2-b1+1), w=rand(2,8);
-      score = weWin ? `${nat.id} ${a1} & ${a2} \u00b7 You ${b1} & ${chase}/${10-w}`
-                    : `You ${a1} & ${a2} \u00b7 ${nat.id} ${b1} & ${chase}/${10-w}`;
+      score = weWin ? `${oppLabel} ${a1} & ${a2} \u00b7 You ${b1} & ${chase}/${10-w}`
+                    : `You ${a1} & ${a2} \u00b7 ${oppLabel} ${b1} & ${chase}/${10-w}`;
       margin = `${weWin?'won':'lost'} by ${w} wickets`;
       pts = weWin ? 100 + clamp(w*10, 20, 80) : -(70 + clamp(w*8, 15, 60));
       const fullList = [{total:a1, wkts:10}, {total:a2, wkts:10}], chaseList = [{total:b1, wkts:10}, {total:chase, wkts:10-w}];
@@ -361,6 +372,7 @@ function genTestMatch(code, nat){
 }
 
 function genWhiteBallMatch(code, nat, superOver){
+  const oppLabel = nat.isAllStar ? 'All-Stars' : nat.id;
   const t20 = FMTKEY==='t20';
   const lo=t20?130:220, hi=t20?225:380, ov=t20?'20 ov':'50 ov';
   const weWin = code==='W';
@@ -368,9 +380,9 @@ function genWhiteBallMatch(code, nat, superOver){
   if(superOver){
     const x=rand(lo+20,hi-10), w1=rand(4,9), w2=rand(4,9);
     const mine=rand(9, t20?24:20), theirs= weWin? rand(Math.max(3,mine-9),mine-1) : rand(mine+1,mine+9);
-    const line = weWin ? `Super Over: You ${mine}/${rand(0,2)} beat ${nat.id} ${theirs}/${rand(0,2)}`
-                        : `Super Over: ${nat.id} ${mine}/${rand(0,2)} beat You ${theirs}/${rand(0,2)}`;
-    return {score:`You ${x}/${w1} (${ov}) \u00b7 ${nat.id} ${x}/${w2} (${ov})`, margin:line, pts: weWin?115:-75,
+    const line = weWin ? `Super Over: You ${mine}/${rand(0,2)} beat ${oppLabel} ${theirs}/${rand(0,2)}`
+                        : `Super Over: ${oppLabel} ${mine}/${rand(0,2)} beat You ${theirs}/${rand(0,2)}`;
+    return {score:`You ${x}/${w1} (${ov}) \u00b7 ${oppLabel} ${x}/${w2} (${ov})`, margin:line, pts: weWin?115:-75,
             yourTotal:x, yourWkts:w1, oppTotal:x, oppWkts:w2};
   }
   if(Math.random()<0.5){
@@ -379,8 +391,8 @@ function genWhiteBallMatch(code, nat, superOver){
     const firstWkts = rand(3,8);
     const fielded = weWin ? {yourTotal:first, yourWkts:firstWkts, oppTotal:chase, oppWkts:10}
                           : {oppTotal:first, oppWkts:firstWkts, yourTotal:chase, yourWkts:10};
-    return {score: weWin?`You ${first}/${firstWkts} (${ov}) \u00b7 ${nat.id} ${chase} all out`
-                        :`${nat.id} ${first}/${firstWkts} (${ov}) \u00b7 You ${chase} all out`,
+    return {score: weWin?`You ${first}/${firstWkts} (${ov}) \u00b7 ${oppLabel} ${chase} all out`
+                        :`${oppLabel} ${first}/${firstWkts} (${ov}) \u00b7 You ${chase} all out`,
             margin:`${weWin?'won':'lost'} by ${first-chase} runs`,
             pts: Math.round(weWin ? 100+bonus : -(65+bonus*0.7)), ...fielded};
   } else {
@@ -389,8 +401,8 @@ function genWhiteBallMatch(code, nat, superOver){
     const firstWkts = rand(5,10), chase=first+rand(1,6);
     const fielded = weWin ? {oppTotal:first, oppWkts:firstWkts, yourTotal:chase, yourWkts:10-w}
                           : {yourTotal:first, yourWkts:firstWkts, oppTotal:chase, oppWkts:10-w};
-    return {score: weWin?`${nat.id} ${first}/${firstWkts} (${ov}) \u00b7 You ${chase}/${10-w}`
-                        :`You ${first}/${firstWkts} (${ov}) \u00b7 ${nat.id} ${chase}/${10-w}`,
+    return {score: weWin?`${oppLabel} ${first}/${firstWkts} (${ov}) \u00b7 You ${chase}/${10-w}`
+                        :`You ${first}/${firstWkts} (${ov}) \u00b7 ${oppLabel} ${chase}/${10-w}`,
             margin:`${weWin?'won':'lost'} by ${w} wickets`,
             pts: Math.round(weWin ? 100+bonus : -(65+bonus*0.6)), ...fielded};
   }
@@ -449,6 +461,88 @@ function getOppositionXI(natId, poolKey){
   const key = poolKey+'|'+natId;
   if(!oppositionXICache.has(key)) oppositionXICache.set(key, buildOppositionXI(natId, poolKey));
   return oppositionXICache.get(key);
+}
+
+/* ---- World Tour finale: World All-Star XI --------------------------
+   Ten pseudo-nations spanning a 90-99 difficulty band replace
+   Afghanistan's old slot as the tour's 12th/final stop -- one is drawn
+   at random each tour, always a 5-match series at Lord's (venues has
+   just the one entry, so the existing m%venues.length rotation already
+   lands on it every match with no special-casing). Like every real
+   NATIONS entry, `opp` alone drives match difficulty; the roster below
+   exists purely for the scorecard. */
+const ALLSTAR_TEAMS = [
+  {id:'WXI99', name:'World All-Stars (99 Rated)', flag:'🌍', opp:99, venues:["Lord's"], isAllStar:true},
+  {id:'WXI98', name:'World All-Stars (98 Rated)', flag:'🌍', opp:98, venues:["Lord's"], isAllStar:true},
+  {id:'WXI97', name:'World All-Stars (97 Rated)', flag:'🌍', opp:97, venues:["Lord's"], isAllStar:true},
+  {id:'WXI96', name:'World All-Stars (96 Rated)', flag:'🌍', opp:96, venues:["Lord's"], isAllStar:true},
+  {id:'WXI95', name:'World All-Stars (95 Rated)', flag:'🌍', opp:95, venues:["Lord's"], isAllStar:true},
+  {id:'WXI94', name:'World All-Stars (94 Rated)', flag:'🌍', opp:94, venues:["Lord's"], isAllStar:true},
+  {id:'WXI93', name:'World All-Stars (93 Rated)', flag:'🌍', opp:93, venues:["Lord's"], isAllStar:true},
+  {id:'WXI92', name:'World All-Stars (92 Rated)', flag:'🌍', opp:92, venues:["Lord's"], isAllStar:true},
+  {id:'WXI91', name:'World All-Stars (91 Rated)', flag:'🌍', opp:91, venues:["Lord's"], isAllStar:true},
+  {id:'WXI90', name:'World All-Stars (90 Rated)', flag:'🌍', opp:90, venues:["Lord's"], isAllStar:true},
+];
+/* Shared keeper/5-bowlAr/fill/slot-fit shape used by buildOppositionXI
+   and buildAllStarXI too, factored out here since this is the first
+   spot that needs to run it more than once in a row (all ten tiers,
+   see buildAllWorldAllStarXIs below). */
+function draftXIFromPool(candidates){
+  const drafted = [], used = new Set();
+  const keeper = candidates.find(p=>p.roles.includes('wk'));
+  if(keeper){ drafted.push(keeper); used.add(keeper.n); }
+  const bowlArCandidates = candidates.filter(p=>!used.has(p.n) && (p.roles.includes('bowl')||p.roles.includes('ar')));
+  let bowlArTaken = 0;
+  for(const p of bowlArCandidates){
+    if(bowlArTaken>=5) break;
+    if(used.has(p.n)) continue;
+    drafted.push(p); used.add(p.n); bowlArTaken++;
+  }
+  for(const p of candidates){
+    if(drafted.length>=11) break;
+    if(used.has(p.n)) continue;
+    drafted.push(p); used.add(p.n);
+  }
+  const xiSlots = new Array(11).fill(null);
+  drafted.forEach(p=>{
+    let bestSlot=-1, bestPen=Infinity;
+    for(let i=0;i<11;i++){
+      if(xiSlots[i] || !SLOTS[i].fits(p)) continue;
+      const pen = positionPenalty(p, i+1);
+      if(pen<bestPen){ bestPen=pen; bestSlot=i; }
+    }
+    if(bestSlot===-1) bestSlot = xiSlots.findIndex(s=>!s);
+    if(bestSlot>=0) xiSlots[bestSlot] = p;
+  });
+  return xiSlots.filter(Boolean);
+}
+/* All ten tiers are drafted together in ONE pass, strongest (99) first,
+   each subsequent tier excluding every player already taken by a
+   stronger tier -- so the ten rosters are genuinely distinct XIs
+   drawing from progressively deeper talent, not overlapping slices of
+   the same short list of legends. Sourced globally across every
+   nation in DB[FMTKEY] (not one country), matching the format the
+   whole tour is being played in. Deterministic, no RNG. */
+function buildAllWorldAllStarXIs(){
+  const pool = DB[FMTKEY];
+  const byName = new Map();
+  for(const p of pool) if(!byName.has(p.n) || p.r > byName.get(p.n).r) byName.set(p.n, p);
+  const ranked = [...byName.values()].sort((a,b)=>b.r-a.r);
+  const globallyUsed = new Set();
+  const tiers = [];
+  for(let i=0;i<ALLSTAR_TEAMS.length;i++){
+    const candidates = ranked.filter(p=>!globallyUsed.has(p.n));
+    const xi = draftXIFromPool(candidates);
+    xi.forEach(p=>globallyUsed.add(p.n));
+    tiers.push(xi);
+  }
+  return tiers;
+}
+const worldAllStarXICache = new Map();
+function getWorldAllStarXI(teamId){
+  if(!worldAllStarXICache.has(FMTKEY)) worldAllStarXICache.set(FMTKEY, buildAllWorldAllStarXIs());
+  const tiers = worldAllStarXICache.get(FMTKEY);
+  return tiers[ALLSTAR_TEAMS.findIndex(t=>t.id===teamId)];
 }
 
 function buildAllStarXI(natId, poolKey){
@@ -1220,7 +1314,13 @@ function calculateScore({ format, seed, xi: clientXi, captainIdx }) {
 
   } else {
     // --- TEST / ODI / T20 WORLD TOUR SIMULATION ---
+    // 11 real nations, shuffled, plus one randomly-drawn World All-Star
+    // team ALWAYS appended last -- the tour's finale at Lord's. Must be
+    // positioned right after the nations shuffle, same as the client, to
+    // stay in lockstep.
     const stops = shuffle(NATIONS.slice());
+    const allStarTeam = ALLSTAR_TEAMS[Math.floor(Math.random() * ALLSTAR_TEAMS.length)];
+    stops.push(allStarTeam);
     let w = 0, d = 0, l = 0;
     let totalSeriesWon = 0, totalSweeps = 0, marginSum = 0, marginCount = 0;
 
@@ -1241,7 +1341,8 @@ function calculateScore({ format, seed, xi: clientXi, captainIdx }) {
           : genWhiteBallMatch(code, nat, res.superOver);
 
         const genLists = toInningsLists(gen);
-        buildMatchScorecard(fullXi, getOppositionXI(nat.id), genLists.yourInningsList, genLists.oppInningsList, nat.id); // Consumes RNG state in lockstep with client; output unused server-side
+        const oppXi = nat.isAllStar ? getWorldAllStarXI(nat.id) : getOppositionXI(nat.id);
+        buildMatchScorecard(fullXi, oppXi, genLists.yourInningsList, genLists.oppInningsList, nat.isAllStar ? 'All-Stars' : nat.id); // Consumes RNG state in lockstep with client; output unused server-side
         pickPOTM(code, nat); // Consumes RNG state in lockstep with client
         seriesCodes.push(code);
         if (code !== 'W') streakAlive = false;

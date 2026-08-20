@@ -233,6 +233,7 @@ img.emoji{height:1em;width:1em;vertical-align:-0.1em;margin:0 .02em}
 .pcard .who .nm{font-weight:700;font-size:15.5px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .pcard .who .rl{font-size:11.5px;color:var(--cream-dim);letter-spacing:.05em;text-transform:uppercase;margin-top:2px}
 .pcard .who .bb{display:block;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--brass);letter-spacing:.04em;margin-top:3px}
+.pcard .who .stat-line{display:block;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--cream-dim);letter-spacing:.02em;margin-top:2px;opacity:.85}
 .pcard .rt{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:22px;color:var(--brass)}
 .pcard .rt small{display:block;font-size:9px;letter-spacing:.18em;color:var(--cream-dim);font-weight:400;text-align:right}
 .decade{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;color:var(--pitch);background:var(--brass);border-radius:4px;padding:2px 6px;font-weight:600}
@@ -268,13 +269,17 @@ img.emoji{height:1em;width:1em;vertical-align:-0.1em;margin:0 .02em}
 .sheet-head{padding:12px 16px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:baseline;font-family:'Graduate',serif;letter-spacing:.04em}
 .sheet-head .t{font-size:16px}
 .sheet-head .s{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--brass)}
-.sheet-row{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid rgba(239,233,216,.06);font-size:14px}
+.sheet-row{padding:9px 14px;border-bottom:1px solid rgba(239,233,216,.06);font-size:14px}
 .sheet-row:last-child{border-bottom:none}
+.sheet-row-top{display:flex;align-items:center;gap:10px}
 .sheet-row .no{font-family:'IBM Plex Mono',monospace;width:18px;color:var(--cream-dim);font-size:12px}
 .sheet-row .fl{width:24px}
 .sheet-row .nm{flex:1;font-weight:600;min-width:0}
 .sheet-row .dk{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--brass)}
 .sheet-row .rt{font-family:'IBM Plex Mono',monospace;color:var(--brass);width:28px;text-align:right}
+.sheet-row-detail{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--cream-dim);margin-top:4px;margin-left:52px;display:flex;gap:10px;flex-wrap:wrap}
+.sheet-row-detail .bb{color:var(--brass)}
+.sheet-row-detail .stat-line{color:var(--cream-dim);opacity:.8}
 
 .strength-bars{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
 .sbox{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
@@ -324,6 +329,7 @@ body.sim-active .masthead{
 .badge.D{background:#4A4531;color:var(--cream)}
 .badge.L{background:var(--ball-deep);color:var(--cream)}
 .badge.G{background:var(--brass);color:#0D120C}
+.fixture.clickable-match .view-sc{flex:0 0 auto;font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:var(--brass);text-align:center;white-space:nowrap;line-height:1.5}
 .tdots{display:flex;gap:4px;margin-top:6px}
 .tdot{width:15px;height:15px;border-radius:4px;display:inline-flex}
 .tdot.W{background:var(--grass-b)}
@@ -365,6 +371,9 @@ body.sim-active .masthead{
 .review-badge.review-good{background:rgba(62,107,58,.22);border:1px solid var(--grass-b);color:#7FE08A}
 .review-badge.review-bad{background:rgba(214,64,43,.16);border:1px solid var(--ball);color:#F28B7A}
 .review-sub{margin-top:6px;font-family:'Archivo',sans-serif;font-size:12.5px;color:var(--cream-dim)}
+.honours-tag{display:block;margin-top:8px;padding:10px 14px;border-radius:8px;font-family:'Archivo',sans-serif;font-size:13px;font-weight:700;line-height:1.4;background:rgba(201,162,75,.14);border:1px solid var(--brass);color:var(--brass)}
+.honours-aim{font-size:12.5px;color:var(--cream-dim);line-height:1.5;text-align:center;margin:0 0 12px}
+.honours-aim b{color:var(--brass)}
 
 .lb-row{display:flex;align-items:center;gap:10px;padding:11px 14px;background:var(--panel);border:1px solid var(--line);border-radius:10px;margin-bottom:8px}
 .lb-row.top1{border-color:var(--brass);box-shadow:0 0 0 1px var(--brass) inset}
@@ -411,13 +420,13 @@ body.sim-active .masthead{
       <button class="fmt-hero represent-hero" id="fmt-showdown-hero" onclick="showSeriesShowdownSetup()"><span class="newtag">NEW</span>SERIES SHOWDOWN<small>Pick a side in a real series currently being played</small></button>
       <p id="dataStatus" class="data-status" style="display:none"></p>
       <div class="fmt-row">
-        <button class="fmt-btn selected" id="fmt-test" onclick="selectFormat('test')">Test<small>4,734 players · 16 decades</small></button>
-        <button class="fmt-btn" id="fmt-odi" onclick="selectFormat('odi')">ODI<small>3,422 players · 6 decades</small></button>
-        <button class="fmt-btn" id="fmt-t20" onclick="selectFormat('t20')">T20<small>1,744 players · 3 decades</small></button>
+        <button class="fmt-btn selected" id="fmt-test" onclick="selectFormat('test')">Test<small>4,523 players · 16 decades</small></button>
+        <button class="fmt-btn" id="fmt-odi" onclick="selectFormat('odi')">ODI<small>3,198 players · 6 decades</small></button>
+        <button class="fmt-btn" id="fmt-t20" onclick="selectFormat('t20')">T20<small>1,640 players · 3 decades</small></button>
       </div>
       <div class="era-filter-row" id="eraFilterRow"></div>
       <button class="btn" onclick="startDraft()">Start the draft</button>
-      <button class="btn secondary" style="margin-top:10px" onclick="openLeaderboard()">🏆 View Leaderboard</button>
+      <button class="btn secondary" style="margin-top:10px" onclick="openLeaderboard()">🏆 View Honours Board</button>
       <h2 style="margin-top:20px">How it works</h2>
       <ul class="rule-list">
         <li><span class="dotball"></span><span><b>Press the ball.</b> Every press deals you a random nation <b>and</b> a random decade — 1890s England, 1970s West Indies, 2020s India…</span></li>
@@ -426,7 +435,7 @@ body.sim-active .masthead{
         <li><span class="dotball"></span><span><b>Every player is rated for his own decade</b> — how he ranked among his contemporaries. A 97 from the ’80s is every bit as good as a 97 from today.</span></li>
         <li><span class="dotball"></span><span><b>Fill the card your way.</b> Openers up top, bowlers at the death — but there's no fixed slot for the keeper any more, he just needs to be <b>somewhere</b> in your side. All-rounders slot in based on how they actually played: some open, some finish. Players with no legal spot left simply won't appear. And you still get <b>one do-over per game</b> for a hopeless draw.</span></li>
         <li><span class="dotball"></span><span><b>Set your lineup, then pick a captain.</b> Before the tour starts, fine-tune your order — tap or drag to swap anyone into a different spot — then name your captain. Players batting in their correct position give the team a small boost, and so does a captain with a genuine, real-world winning record for that side.</span></li>
-        <li><span class="dotball"></span><span id="challengeBullet"><b>Beat them all, at their place.</b> Your XI tours the world: a five-match series against each of today’s twelve international sides, played across <b>real grounds in their country</b> — sixty matches in total, all away. Win matches, win series, sweep one 5-0 — that's what separates a good tour from a legendary one.</span></li>
+        <li><span class="dotball"></span><span id="challengeBullet"><b>Beat them all, at their place.</b> Your XI tours the world: a five-match series against each of today’s eleven international sides, played across <b>real grounds in their country</b>, before a five-match finale at Lord's against a randomly-drawn World All-Star XI — sixty matches in total. Win matches, win series, sweep one 5-0 — that's what separates a good tour from a legendary one.</span></li>
       </ul>
       <p class="foot-note" style="margin-top:16px">Fair warning: the draw doesn't care about your plans. Sometimes you need a spinner and it deals you the 1984 West Indies pace battery.<br><span style="opacity:.75">Inspired by the brilliant <a href="https://38-0.app" target="_blank" rel="noopener" style="color:var(--brass)">38-0</a> website.</span></p>
     </div>
@@ -542,7 +551,8 @@ body.sim-active .masthead{
       <div class="sbox"><div class="lb">Batting</div><div class="vl" id="batVal">–</div><div class="bar"><i id="batBar"></i></div></div>
       <div class="sbox"><div class="lb">Bowling</div><div class="vl" id="bowlVal">–</div><div class="bar"><i id="bowlBar"></i></div></div>
     </div>
-    <p id="balanceNote" style="font-size:12.5px;color:var(--cream-dim);line-height:1.55;margin-bottom:16px;text-align:center"></p>
+    <p id="balanceNote" style="font-size:12.5px;color:var(--cream-dim);line-height:1.55;margin-bottom:8px;text-align:center"></p>
+    <p class="honours-aim">🎯 The aim: build an XI strong enough to earn a place on the <b>Honours Board</b>.</p>
     <a href="javascript:void(0)" class="info-link" onclick="openInfoModal()">ⓘ How your score is worked out</a>
     <button class="btn" style="margin-top:14px" onclick="beginTour()" id="tourBtn">Start the world tour · 60 away matches</button>
   </section>
@@ -565,18 +575,18 @@ body.sim-active .masthead{
         <div class="sc-rank" id="scoreRank"></div>
       </div>
       <div id="squadStats" class="stat-sheet"></div>
-      <button class="btn secondary" style="margin-top:16px" onclick="openLeaderboard()">🏆 View Leaderboard</button>
+      <button class="btn secondary" style="margin-top:16px" onclick="openLeaderboard()">🏆 View Honours Board</button>
       <button class="btn secondary" style="margin-top:10px" onclick="copyShare()" id="shareBtn">Copy result</button>
       <textarea id="shareFallback" readonly style="display:none;width:100%;height:150px;margin-top:10px;background:var(--panel-2);color:var(--cream);border:1px solid var(--line);border-radius:8px;font-family:'IBM Plex Mono',monospace;font-size:10px;padding:10px;line-height:1.5"></textarea>
       <button class="btn" style="margin-top:10px" onclick="draftAgain()">Draft again</button>
     </div>
   </section>
 
-  <!-- LEADERBOARD -->
+  <!-- HONOURS BOARD -->
   <section class="screen" id="scr-leaderboard">
     <div class="slot-callout">
-      <div class="eyebrow">Global Hall Of Fame</div>
-      <h2>Global Leaderboard</h2>
+      <div class="eyebrow">A Nod To Lord's</div>
+      <h2>The Honours Board</h2>
       <p>Best performance scores from players everywhere</p>
     </div>
     <div class="lb-filter" id="lbFilterRow">
@@ -591,7 +601,7 @@ body.sim-active .masthead{
     <button class="btn secondary" style="margin-top:14px" onclick="closeLeaderboard()">← Back</button>
   </section>
 
-  <p class="data-note">Curated databases: 4,734 Test, 3,422 ODI and 1,744 T20 players, each rated for his standing within his own decade and format. Era-spanning greats may appear in more than one decade but can only be drafted once per game. Test pools run 1870s–2020s, ODI 1970s–2020s, T20 2000s–2020s.</p>
+  <p class="data-note">Curated databases: 4,523 Test, 3,198 ODI and 1,640 T20 players, each rated for his standing within his own decade and format. Era-spanning greats may appear in more than one decade but can only be drafted once per game. Test pools run 1870s–2020s, ODI 1970s–2020s, T20 2000s–2020s.</p>
 </div>
 
 <!-- Optional: global leaderboard via Firebase. See setup notes near
@@ -621,7 +631,6 @@ const NATIONS = [
   {id:'SL',  name:'Sri Lanka',    flag:'🇱🇰', opp:90,  venues:['Galle International Stadium','R. Premadasa Stadium','Pallekele International Stadium','Sinhalese Sports Club']},
   {id:'WI',  name:'West Indies',  flag:'🏝️', opp:88,  venues:['Kensington Oval','Sabina Park','Queen\u2019s Park Oval','Sir Vivian Richards Stadium','Warner Park']},
   {id:'BAN', name:'Bangladesh',   flag:'🇧🇩', opp:86,  venues:['Sher-e-Bangla National Stadium','Zahur Ahmed Chowdhury Stadium','Sylhet International Stadium']},
-  {id:'AFG', name:'Afghanistan',  flag:'🇦🇫', opp:85,  venues:['Sharjah Cricket Stadium','Zayed Cricket Stadium','Greater Noida Sports Complex']},
   {id:'ZIM', name:'Zimbabwe',     flag:'🇿🇼', opp:84,  venues:['Harare Sports Club','Queens Sports Club']},
   {id:'IRE', name:'Ireland',      flag:'🇮🇪', opp:83,  venues:['Malahide','the Village','Civil Service Cricket Club']},
 ];
@@ -679,10 +688,16 @@ function arFitsSlot(p, slotNo){
   const [lo,hi] = AR_RANGE[sub];
   return slotNo>=lo && slotNo<=hi;
 }
+/* opener eligibility (slots 1-2) for all-rounders: does this player's real
+   batting-position window reach into the top of the order? */
+function arOpens(p){
+  if(p.minBp!=null) return p.minBp<=2;
+  return p.bp==='O';
+}
 
 const SLOTS = [
- {no:1, title:'Opener',        short:'OP', desc:'Faces the new ball first. A batter, keeper, or an all-rounder who opens.', fits:p=>p.roles.includes('bat')||p.roles.includes('wk')||(p.roles.includes('ar')&&p.bp==='O')},
- {no:2, title:'Opener',        short:'OP', desc:'The other half of the opening stand. Same eligibility as slot 1.', fits:p=>p.roles.includes('bat')||p.roles.includes('wk')||(p.roles.includes('ar')&&p.bp==='O')},
+ {no:1, title:'Opener',        short:'OP', desc:'Faces the new ball first. A batter, keeper, or an all-rounder who opens.', fits:p=>p.roles.includes('bat')||p.roles.includes('wk')||(p.roles.includes('ar')&&arOpens(p))},
+ {no:2, title:'Opener',        short:'OP', desc:'The other half of the opening stand. Same eligibility as slot 1.', fits:p=>p.roles.includes('bat')||p.roles.includes('wk')||(p.roles.includes('ar')&&arOpens(p))},
  {no:3, title:'No.3',          short:'3',  desc:'First drop. A batter — or a batting/true all-rounder who bats big.',  fits:p=>p.roles.includes('bat')||p.roles.includes('wk')||(p.roles.includes('ar')&&arFitsSlot(p,3))},
  {no:4, title:'No.4',          short:'4',  desc:'The engine room. Batter or batting/true all-rounder.',    fits:p=>p.roles.includes('bat')||p.roles.includes('wk')||(p.roles.includes('ar')&&arFitsSlot(p,4))},
  {no:5, title:'No.5',          short:'5',  desc:'Builds or rebuilds. Batter, or a true/batting all-rounder.', fits:p=>p.roles.includes('bat')||p.roles.includes('wk')||(p.roles.includes('ar')&&arFitsSlot(p,5))},
@@ -696,6 +711,40 @@ const SLOTS = [
 
 const ROLE_LABEL = {bat:'Batter', wk:'Wicketkeeper', ar:'All-rounder', bowl:'Bowler'};
 const BP_LABEL = {O:'Opener', T:'Top order', M:'Middle order', L:'Lower order', X:'Tailender'};
+
+/* random real-career-stat flavour text for draft cards / squad review.
+   skipZero entries are counting stats where 0 is uninformative (never
+   picked as one of the shown stats); rate stats (avg/SR/econ) show even
+   at 0 since that's a real, if unlikely, value. */
+const STAT_FORMATTERS = [
+  {key:'runs', fmt:v=>`${v.toLocaleString()} runs`, skipZero:true},
+  {key:'battingAvg', fmt:v=>`Avg ${v.toFixed(2)}`},
+  {key:'battingSr', fmt:v=>`SR ${v.toFixed(1)}`},
+  {key:'hundreds', fmt:v=>`${v} hundred${v===1?'':'s'}`, skipZero:true},
+  {key:'fifties', fmt:v=>`${v} fift${v===1?'y':'ies'}`, skipZero:true},
+  {key:'highScore', fmt:v=>`HS ${v}`, skipZero:true},
+  {key:'wickets', fmt:v=>`${v} wkts`, skipZero:true},
+  {key:'bowlingAvg', fmt:v=>`Bowl avg ${v.toFixed(2)}`},
+  {key:'economy', fmt:v=>`Econ ${v.toFixed(2)}`},
+  {key:'bowlingSr', fmt:v=>`Bowl SR ${v.toFixed(1)}`},
+  {key:'fiveW', fmt:v=>`${v} five-fer${v===1?'':'s'}`, skipZero:true},
+  {key:'catches', fmt:v=>`${v} catch${v===1?'':'es'}`, skipZero:true},
+  {key:'stumpings', fmt:v=>`${v} stumping${v===1?'':'s'}`, skipZero:true},
+];
+function pickRandomStats(p, count){
+  if(!p.stats) return [];
+  const avail = STAT_FORMATTERS.filter(sf=>{
+    const v = p.stats[sf.key];
+    if(v==null) return false;
+    if(sf.skipZero && v===0) return false;
+    return true;
+  });
+  for(let i=avail.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [avail[i],avail[j]] = [avail[j],avail[i]];
+  }
+  return avail.slice(0,count).map(sf=>sf.fmt(p.stats[sf.key]));
+}
 
 /* ================= STATE ================= */
 let xiSlots = new Array(11).fill(null);   // batting order 1–11, filled in any order
@@ -846,8 +895,12 @@ function draw(){
 
 /* squad list: every undrafted player from the drawn nation+decade
    who still has at least one open position to go into */
+function battingPosText(p){
+  if(p.minBp!=null && p.maxBp!=null) return p.minBp===p.maxBp ? `Bats ${p.minBp}` : `Bats ${p.minBp}-${p.maxBp}`;
+  return p.bp && BP_LABEL[p.bp] ? BP_LABEL[p.bp] : '';
+}
 function playerTypeLabel(p){
-  const bpTxt = p.bp && BP_LABEL[p.bp] ? BP_LABEL[p.bp] : '';
+  const bpTxt = battingPosText(p);
   const btTxt = p.bt || '';
   if(p.roles.includes('ar')) return [bpTxt, btTxt].filter(Boolean).join(' · ');
   if(p.roles.includes('bowl')) return btTxt;
@@ -859,13 +912,15 @@ function showSquad(pair){
   grid.innerHTML = `<div class="squad-head"><span>${pair.nat.name} · ${DECADE_LABEL[pair.dec]}</span><span>${pool.length} available</span></div>` +
     pool.map(p=>{
       const typeTxt = playerTypeLabel(p);
+      const statsTxt = pickRandomStats(p, 3).join(' · ');
       return `
     <button class="pcard" onclick="showPositions(this.dataset.n, this.dataset.d, this.dataset.c)" data-n="${escAttr(p.n)}" data-d="${p.d}" data-c="${p.c}">
       <span class="flag">${pair.nat.flag}</span>
       <span class="who">
         <span class="nm">${p.n} <span class="decade">'${p.d}</span></span>
         <span class="rl">${p.roles.map(r=>ROLE_LABEL[r]).join(' · ')}${typeTxt?' — '+typeTxt:''}${p.tag?' — '+p.tag:''}</span>
-        ${(p.br!=null && p.bwr!=null) ? `<span class="bb">BAT ${p.br} · BOWL ${p.bwr}</span>` : ''}
+        ${(p.br!=null && p.bwr!=null) ? `<span class="bb">BAT ${p.br} · FIELD ${p.fr} · BOWL ${p.bwr}</span>` : ''}
+        ${statsTxt ? `<span class="stat-line">${statsTxt}</span>` : ''}
       </span>
       <span class="rt">${p.r}<small>DECADE RTG</small></span>
     </button>`;
@@ -1032,7 +1087,7 @@ async function selectFormat(k){
   document.querySelectorAll('.fmt-btn,.fmt-hero').forEach(b=>b.classList.remove('selected'));
   document.getElementById('fmt-'+k).classList.add('selected');
   document.getElementById('mastSub').textContent = `Cricket World Domination · All-era ${FMT.label} XI`;
-  document.getElementById('challengeBullet').innerHTML = '<b>Beat them all, at their place.</b> Your XI tours the world: a five-match series against each of today’s twelve international sides, played across <b>real grounds in their country</b> — sixty matches in total, all away. Win matches, win series, sweep one 5-0 — that’s what separates a good tour from a legendary one.';
+  document.getElementById('challengeBullet').innerHTML = '<b>Beat them all, at their place.</b> Your XI tours the world: a five-match series against each of today’s eleven international sides, played across <b>real grounds in their country</b>, before a five-match finale at Lord’s against a randomly-drawn World All-Star XI — sixty matches in total. Win matches, win series, sweep one 5-0 — that’s what separates a good tour from a legendary one.';
   document.getElementById('tourBtn').textContent = 'Start the world tour · 60 away matches';
   await ensureFormatLoaded(k);
 }
@@ -1121,6 +1176,11 @@ const BP_NATURAL = { O:[1,2], T:[1,2,3,4], M:[3,4,5,6,7], L:[6,7,8,9], X:[8,9,10
    real-data pool responds very differently to the same penalty size. */
 const POSITION_PENALTY_ADD = {test:0.9, odi:4, t20:4.5};
 function positionPenalty(p, slotNo){
+  if(p.minBp!=null && p.maxBp!=null){
+    if(slotNo>=p.minBp && slotNo<=p.maxBp) return 0;
+    const dist = slotNo<p.minBp ? p.minBp-slotNo : slotNo-p.maxBp;
+    return Math.min(8, dist*1.5) + (POSITION_PENALTY_ADD[FMTKEY] || 0);
+  }
   const range = BP_NATURAL[p.bp];
   if(!range || !range.length) return 0;
   if(range.includes(slotNo)) return 0;
@@ -1387,11 +1447,15 @@ function showReview(){
   const rows = document.getElementById('xiRows');
   rows.innerHTML = xi.map((p,i)=>{
     const nat = NATIONS.find(n=>n.id===p.c);
+    const ratingsTxt = (p.br!=null && p.bwr!=null) ? `<span class="bb">BAT ${p.br} · FIELD ${p.fr} · BOWL ${p.bwr}</span>` : '';
+    const statsTxt = pickRandomStats(p, 2).join(' · ');
+    const detail = (ratingsTxt || statsTxt) ? `<div class="sheet-row-detail">${ratingsTxt}${statsTxt ? `<span class="stat-line">${statsTxt}</span>` : ''}</div>` : '';
     return `<div class="sheet-row">
+      <div class="sheet-row-top">
       <span class="no">${i+1}</span><span class="fl">${nat.flag}</span>
       <span class="nm">${p.n}${i===captainIdx?'<span class="capbadge">C</span>':''}</span>
       <span class="dk">'${p.d}</span>
-      <span class="rt">${p.r}</span></div>`;
+      <span class="rt">${p.r}</span></div>${detail}</div>`;
   }).join('');
   const st = teamStrengths();
   document.getElementById('avgRating').textContent = 'Avg ' + (xi.reduce((a,p)=>a+p.r,0)/11).toFixed(1);
@@ -1465,10 +1529,11 @@ function decideNeutral(oppA, oppB){
    oppWkts (combined across all of a side's innings) are kept too, since
    other code still reads them for combined-total contexts. */
 function genTestMatch(code, nat){
+  const oppLabel = nat.isAllStar ? 'All-Stars' : nat.id;
   let score, margin, pts, yourInningsList, oppInningsList;
   if(code==='D'){
     const a1=rand(300,540), b1=rand(280,520), a2=rand(150,330), a2w=rand(4,8), b2=rand(90,260), b2w=rand(4,9);
-    score=`You ${b1} & ${b2}/${b2w} \u00b7 ${nat.id} ${a1} & ${a2}/${a2w}d`;
+    score=`You ${b1} & ${b2}/${b2w} \u00b7 ${oppLabel} ${a1} & ${a2}/${a2w}d`;
     margin=pickOne(['drawn \u2014 last pair survive','drawn \u2014 flat pitch wins','drawn \u2014 nine down at stumps']);
     pts = 35;
     yourInningsList = [{total:b1, wkts:10}, {total:b2, wkts:b2w}];
@@ -1479,7 +1544,7 @@ function genTestMatch(code, nat){
     if(style==='inn'){
       const big=rand(440,660), x1=rand(120,300), x2=rand(80,Math.max(90,big-x1-15));
       const gap=Math.max(5,big-x1-x2);
-      score = weWin ? `You ${big}d \u00b7 ${nat.id} ${x1} & ${x2}` : `${nat.id} ${big}d \u00b7 You ${x1} & ${x2}`;
+      score = weWin ? `You ${big}d \u00b7 ${oppLabel} ${x1} & ${x2}` : `${oppLabel} ${big}d \u00b7 You ${x1} & ${x2}`;
       margin = `${weWin?'won':'lost'} by an innings & ${gap} runs`;
       pts = weWin ? 190 : -160;
       const winnerList = [{total:big, wkts:9}], loserList = [{total:x1, wkts:10}, {total:x2, wkts:10}];
@@ -1488,8 +1553,8 @@ function genTestMatch(code, nat){
     } else if(style==='runs'){
       const f1=rand(260,500), f2=rand(140,330), R=rand(25,260);
       const c1=rand(120,Math.max(140,Math.min(360,f1+f2-R-60))), c2=Math.max(40,f1+f2-c1-R);
-      score = weWin ? `You ${f1} & ${f2}d \u00b7 ${nat.id} ${c1} & ${c2}`
-                    : `${nat.id} ${f1} & ${f2}d \u00b7 You ${c1} & ${c2}`;
+      score = weWin ? `You ${f1} & ${f2}d \u00b7 ${oppLabel} ${c1} & ${c2}`
+                    : `${oppLabel} ${f1} & ${f2}d \u00b7 You ${c1} & ${c2}`;
       margin = `${weWin?'won':'lost'} by ${R} runs`;
       pts = weWin ? 100 + clamp(R/3, 5, 85) : -(70 + clamp(R/4, 5, 60));
       const winnerList = [{total:f1, wkts:10}, {total:f2, wkts:9}], loserList = [{total:c1, wkts:10}, {total:c2, wkts:10}];
@@ -1498,8 +1563,8 @@ function genTestMatch(code, nat){
     } else {
       const a1=rand(180,400), b1=rand(150,420), a2=rand(140,360);
       const chase=Math.max(30,a1+a2-b1+1), w=rand(2,8);
-      score = weWin ? `${nat.id} ${a1} & ${a2} \u00b7 You ${b1} & ${chase}/${10-w}`
-                    : `You ${a1} & ${a2} \u00b7 ${nat.id} ${b1} & ${chase}/${10-w}`;
+      score = weWin ? `${oppLabel} ${a1} & ${a2} \u00b7 You ${b1} & ${chase}/${10-w}`
+                    : `You ${a1} & ${a2} \u00b7 ${oppLabel} ${b1} & ${chase}/${10-w}`;
       margin = `${weWin?'won':'lost'} by ${w} wickets`;
       pts = weWin ? 100 + clamp(w*10, 20, 80) : -(70 + clamp(w*8, 15, 60));
       const fullList = [{total:a1, wkts:10}, {total:a2, wkts:10}], chaseList = [{total:b1, wkts:10}, {total:chase, wkts:10-w}];
@@ -1513,6 +1578,7 @@ function genTestMatch(code, nat){
   return {score, margin, pts: Math.round(pts), yourTotal, yourWkts, oppTotal, oppWkts, yourInningsList, oppInningsList};
 }
 function genWhiteBallMatch(code, nat, superOver){
+  const oppLabel = nat.isAllStar ? 'All-Stars' : nat.id;
   const t20 = FMTKEY==='t20';
   const lo=t20?130:220, hi=t20?225:380, ov=t20?'20 ov':'50 ov';
   const weWin = code==='W';
@@ -1520,9 +1586,9 @@ function genWhiteBallMatch(code, nat, superOver){
   if(superOver){
     const x=rand(lo+20,hi-10), w1=rand(4,9), w2=rand(4,9);
     const mine=rand(9, t20?24:20), theirs= weWin? rand(Math.max(3,mine-9),mine-1) : rand(mine+1,mine+9);
-    const line = weWin ? `Super Over: You ${mine}/${rand(0,2)} beat ${nat.id} ${theirs}/${rand(0,2)}`
-                        : `Super Over: ${nat.id} ${mine}/${rand(0,2)} beat You ${theirs}/${rand(0,2)}`;
-    return {score:`You ${x}/${w1} (${ov}) \u00b7 ${nat.id} ${x}/${w2} (${ov})`, margin:line, pts: weWin?115:-75,
+    const line = weWin ? `Super Over: You ${mine}/${rand(0,2)} beat ${oppLabel} ${theirs}/${rand(0,2)}`
+                        : `Super Over: ${oppLabel} ${mine}/${rand(0,2)} beat You ${theirs}/${rand(0,2)}`;
+    return {score:`You ${x}/${w1} (${ov}) \u00b7 ${oppLabel} ${x}/${w2} (${ov})`, margin:line, pts: weWin?115:-75,
             yourTotal:x, yourWkts:w1, oppTotal:x, oppWkts:w2};
   }
   if(Math.random()<0.5){
@@ -1531,8 +1597,8 @@ function genWhiteBallMatch(code, nat, superOver){
     const firstWkts = rand(3,8);
     const fielded = weWin ? {yourTotal:first, yourWkts:firstWkts, oppTotal:chase, oppWkts:10}
                           : {oppTotal:first, oppWkts:firstWkts, yourTotal:chase, yourWkts:10};
-    return {score: weWin?`You ${first}/${firstWkts} (${ov}) \u00b7 ${nat.id} ${chase} all out`
-                        :`${nat.id} ${first}/${firstWkts} (${ov}) \u00b7 You ${chase} all out`,
+    return {score: weWin?`You ${first}/${firstWkts} (${ov}) \u00b7 ${oppLabel} ${chase} all out`
+                        :`${oppLabel} ${first}/${firstWkts} (${ov}) \u00b7 You ${chase} all out`,
             margin:`${weWin?'won':'lost'} by ${first-chase} runs`,
             pts: Math.round(weWin ? 100+bonus : -(65+bonus*0.7)), ...fielded};
   } else {
@@ -1541,8 +1607,8 @@ function genWhiteBallMatch(code, nat, superOver){
     const firstWkts = rand(5,10), chase=first+rand(1,6);
     const fielded = weWin ? {oppTotal:first, oppWkts:firstWkts, yourTotal:chase, yourWkts:10-w}
                           : {yourTotal:first, yourWkts:firstWkts, oppTotal:chase, oppWkts:10-w};
-    return {score: weWin?`${nat.id} ${first}/${firstWkts} (${ov}) \u00b7 You ${chase}/${10-w}`
-                        :`You ${first}/${firstWkts} (${ov}) \u00b7 ${nat.id} ${chase}/${10-w}`,
+    return {score: weWin?`${oppLabel} ${first}/${firstWkts} (${ov}) \u00b7 You ${chase}/${10-w}`
+                        :`You ${first}/${firstWkts} (${ov}) \u00b7 ${oppLabel} ${chase}/${10-w}`,
             margin:`${weWin?'won':'lost'} by ${w} wickets`,
             pts: Math.round(weWin ? 100+bonus : -(65+bonus*0.6)), ...fielded};
   }
@@ -1606,6 +1672,88 @@ function getOppositionXI(natId, poolKey){
   const key = poolKey+'|'+natId;
   if(!oppositionXICache.has(key)) oppositionXICache.set(key, buildOppositionXI(natId, poolKey));
   return oppositionXICache.get(key);
+}
+
+/* ---- World Tour finale: World All-Star XI --------------------------
+   Ten pseudo-nations spanning a 90-99 difficulty band replace
+   Afghanistan's old slot as the tour's 12th/final stop -- one is drawn
+   at random each tour, always a 5-match series at Lord's (venues has
+   just the one entry, so the existing m%venues.length rotation already
+   lands on it every match with no special-casing). Like every real
+   NATIONS entry, `opp` alone drives match difficulty; the roster below
+   exists purely for the scorecard. */
+const ALLSTAR_TEAMS = [
+  {id:'WXI99', name:'World All-Stars (99 Rated)', flag:'🌍', opp:99, venues:["Lord's"], isAllStar:true},
+  {id:'WXI98', name:'World All-Stars (98 Rated)', flag:'🌍', opp:98, venues:["Lord's"], isAllStar:true},
+  {id:'WXI97', name:'World All-Stars (97 Rated)', flag:'🌍', opp:97, venues:["Lord's"], isAllStar:true},
+  {id:'WXI96', name:'World All-Stars (96 Rated)', flag:'🌍', opp:96, venues:["Lord's"], isAllStar:true},
+  {id:'WXI95', name:'World All-Stars (95 Rated)', flag:'🌍', opp:95, venues:["Lord's"], isAllStar:true},
+  {id:'WXI94', name:'World All-Stars (94 Rated)', flag:'🌍', opp:94, venues:["Lord's"], isAllStar:true},
+  {id:'WXI93', name:'World All-Stars (93 Rated)', flag:'🌍', opp:93, venues:["Lord's"], isAllStar:true},
+  {id:'WXI92', name:'World All-Stars (92 Rated)', flag:'🌍', opp:92, venues:["Lord's"], isAllStar:true},
+  {id:'WXI91', name:'World All-Stars (91 Rated)', flag:'🌍', opp:91, venues:["Lord's"], isAllStar:true},
+  {id:'WXI90', name:'World All-Stars (90 Rated)', flag:'🌍', opp:90, venues:["Lord's"], isAllStar:true},
+];
+/* Shared keeper/5-bowlAr/fill/slot-fit shape used by buildOppositionXI
+   and buildAllStarXI too, factored out here since this is the first
+   spot that needs to run it more than once in a row (all ten tiers,
+   see buildAllWorldAllStarXIs below). */
+function draftXIFromPool(candidates){
+  const drafted = [], used = new Set();
+  const keeper = candidates.find(p=>p.roles.includes('wk'));
+  if(keeper){ drafted.push(keeper); used.add(keeper.n); }
+  const bowlArCandidates = candidates.filter(p=>!used.has(p.n) && (p.roles.includes('bowl')||p.roles.includes('ar')));
+  let bowlArTaken = 0;
+  for(const p of bowlArCandidates){
+    if(bowlArTaken>=5) break;
+    if(used.has(p.n)) continue;
+    drafted.push(p); used.add(p.n); bowlArTaken++;
+  }
+  for(const p of candidates){
+    if(drafted.length>=11) break;
+    if(used.has(p.n)) continue;
+    drafted.push(p); used.add(p.n);
+  }
+  const xiSlots = new Array(11).fill(null);
+  drafted.forEach(p=>{
+    let bestSlot=-1, bestPen=Infinity;
+    for(let i=0;i<11;i++){
+      if(xiSlots[i] || !SLOTS[i].fits(p)) continue;
+      const pen = positionPenalty(p, i+1);
+      if(pen<bestPen){ bestPen=pen; bestSlot=i; }
+    }
+    if(bestSlot===-1) bestSlot = xiSlots.findIndex(s=>!s);
+    if(bestSlot>=0) xiSlots[bestSlot] = p;
+  });
+  return xiSlots.filter(Boolean);
+}
+/* All ten tiers are drafted together in ONE pass, strongest (99) first,
+   each subsequent tier excluding every player already taken by a
+   stronger tier -- so the ten rosters are genuinely distinct XIs
+   drawing from progressively deeper talent, not overlapping slices of
+   the same short list of legends. Sourced globally across every
+   nation in DB[FMTKEY] (not one country), matching the format the
+   whole tour is being played in. Deterministic, no RNG. */
+function buildAllWorldAllStarXIs(){
+  const pool = DB[FMTKEY];
+  const byName = new Map();
+  for(const p of pool) if(!byName.has(p.n) || p.r > byName.get(p.n).r) byName.set(p.n, p);
+  const ranked = [...byName.values()].sort((a,b)=>b.r-a.r);
+  const globallyUsed = new Set();
+  const tiers = [];
+  for(let i=0;i<ALLSTAR_TEAMS.length;i++){
+    const candidates = ranked.filter(p=>!globallyUsed.has(p.n));
+    const xi = draftXIFromPool(candidates);
+    xi.forEach(p=>globallyUsed.add(p.n));
+    tiers.push(xi);
+  }
+  return tiers;
+}
+const worldAllStarXICache = new Map();
+function getWorldAllStarXI(teamId){
+  if(!worldAllStarXICache.has(FMTKEY)) worldAllStarXICache.set(FMTKEY, buildAllWorldAllStarXIs());
+  const tiers = worldAllStarXICache.get(FMTKEY);
+  return tiers[ALLSTAR_TEAMS.findIndex(t=>t.id===teamId)];
 }
 
 /* ---- all-star XI (Series Showdown bonus round) ------------------------
@@ -1860,8 +2008,8 @@ const WORLDCLASS_THRESHOLD = {test:75, odi:85, t20:78};
 const CONDITIONS_PENALTY = {test:0, odi:15, t20:9};
 const STATS_BONUS_WEIGHT = {test:1.75, odi:0.1, t20:0.1};
 /* Format-specific, not a single global value -- ODI's much deeper player
-   pool (3,422 players across 6 decades vs Test's 4,734/16 and T20's
-   1,744/3) lets a near-ceiling draft shrug off the same boost far more
+   pool (3,198 players across 6 decades vs Test's 4,523/16 and T20's
+   1,640/3) lets a near-ceiling draft shrug off the same boost far more
    easily, so it needs a noticeably smaller number to land on the same
    rarity target as Test/T20. */
 const IMMORTAL_STREAK_BOOST = {test:8, odi:8, t20:8};
@@ -1924,7 +2072,14 @@ function startSeason(){
   document.getElementById('seasonEyebrow').textContent = 'World Tour \u00b7 60 Matches \u00b7 All In Their Stadiums';
   revealTotalStops = 12; revealStopWord = 'Tour stop'; revealOnFinish = (delay)=>finishSeason(delay);
   const st = teamStrengths();
+  // 11 real nations, shuffled as before, plus one randomly-drawn World
+  // All-Star team ALWAYS appended last -- the tour's finale, at Lord's,
+  // in whatever format the tour itself is being played. Consumes one
+  // RNG draw, positioned right after the nations shuffle so client and
+  // server stay in lockstep.
   const stops = shuffle(NATIONS.slice());
+  const allStarTeam = ALLSTAR_TEAMS[Math.floor(Math.random()*ALLSTAR_TEAMS.length)];
+  stops.push(allStarTeam);
 
   const hasSpin = hasWorldClassBowlingType(xi, 'spin');
   const hasPace = hasWorldClassBowlingType(xi, 'pace');
@@ -1935,7 +2090,10 @@ function startSeason(){
   let w=0,d=0,l=0;
   let totalSeriesWon=0, totalSweeps=0, marginSum=0, marginCount=0;
   stops.forEach((nat,si)=>{
-    revealRows.push({kind:'stop', html:`<span class="st-flag">${nat.flag}</span><span class="st-name">${nat.name}</span><span class="st-venue">Five ${FMT.noun}${FMTKEY==='test'?'es':'s'} across the country \u00b7 today\u2019s ${FMT.label} side</span>`,
+    const stopVenueText = nat.isAllStar
+      ? `Five ${FMT.noun}s at Lord\u2019s \u00b7 the tour\u2019s finale`
+      : `Five ${FMT.noun}s across the country \u00b7 today\u2019s ${FMT.label} side`;
+    revealRows.push({kind:'stop', html:`<span class="st-flag">${nat.flag}</span><span class="st-name">${nat.name}</span><span class="st-venue">${stopVenueText}</span>`,
                      tally:null, stop:si+1});
     const matches=[];
     for(let m=0;m<5;m++){
@@ -1947,7 +2105,8 @@ function startSeason(){
       if(code!=='W') streakAlive = false;
       const gen = FMTKEY==='test' ? genTestMatch(code, nat) : genWhiteBallMatch(code, nat, res.superOver);
       const {yourInningsList, oppInningsList} = toInningsLists(gen);
-      const scorecard = buildMatchScorecard(xi, getOppositionXI(nat.id), yourInningsList, oppInningsList, nat.id);
+      const oppXi = nat.isAllStar ? getWorldAllStarXI(nat.id) : getOppositionXI(nat.id);
+      const scorecard = buildMatchScorecard(xi, oppXi, yourInningsList, oppInningsList, nat.isAllStar ? 'All-Stars' : nat.id);
       const potm = pickPOTM(code, nat);
       if(code==='W'){
         w++;
@@ -1961,6 +2120,7 @@ function startSeason(){
       revealRows.push({kind:'match', code, num:matchNum, matchNum,
         html:`<span class="tno">M${String(matchNum).padStart(2,'0')}</span>
         <span class="op">vs ${nat.name} \u2014 ${venue}<span class="score">${gen.score}</span><span class="score" style="color:var(--cream-dim)">${gen.margin}</span><span class="potm">POTM: ${potm}</span></span>
+        <span class="view-sc">\ud83d\udccb<br>View</span>
         <span class="badge ${code}">${code==='W'?'WON':code==='D'?'DRAW':'LOST'}</span>`,
         tally:`${w}\u2013${d}\u2013${l}`, stop:si+1});
     }
@@ -2410,19 +2570,25 @@ async function showRepresentScoreAndSave(){
   if(fbDB && functionConfigured){
     try{
       const data = await submitVerifiedRepresentResult(playerName);
-      rankEl.innerHTML = `<div class="review-badge review-good">${pickOne(NOT_OUT_REVIEWS)}</div><div class="review-sub">Saved to the leaderboard \u2014 finished P${data.rank} with ${data.points} points representing ${yourNat.name}.</div>`;
+      const {modeIdx, overallIdx} = await honoursBoardRank('represent', data.points, data.record);
+      const tag = honoursBoardTagHTML(modeIdx, overallIdx, 'Represent Your Nation');
+      rankEl.innerHTML = `<div class="review-badge review-good">${pickOne(NOT_OUT_REVIEWS)}</div>${tag}<div class="review-sub">Finished P${data.rank} with ${data.points} points representing ${yourNat.name}.</div>`;
       return;
     }catch(e){
       console.warn('Server verification failed for Represent Your Nation, saving to this device instead.', e);
       const entry = {name:playerName, score:localPoints, record:localRecord, label:FMT.label, mode:'represent', country:represCountry, countryName:yourNat.name, rank:localRank, points:localPoints, date:new Date().toISOString()};
       await recordScore(entry);
-      rankEl.innerHTML = `<div class="review-badge review-bad">${pickOne(OUT_REVIEWS)}</div><div class="review-sub">Saved to this device instead \u2014 finished P${localRank} with ${localPoints} points.</div>`;
+      const {modeIdx, overallIdx} = await honoursBoardRank('represent', entry.score, entry.record);
+      const tag = honoursBoardTagHTML(modeIdx, overallIdx, 'Represent Your Nation');
+      rankEl.innerHTML = `<div class="review-badge review-bad">${pickOne(OUT_REVIEWS)}</div>${tag}<div class="review-sub">Saved to this device instead \u2014 finished P${localRank} with ${localPoints} points.</div>`;
       return;
     }
   }
   const entry = {name:playerName, score:localPoints, record:localRecord, label:FMT.label, mode:'represent', country:represCountry, countryName:yourNat.name, rank:localRank, points:localPoints, date:new Date().toISOString()};
   await recordScore(entry);
-  rankEl.innerHTML = `<div class="review-sub">Saved to this device \u2014 finished P${localRank} with ${localPoints} points.</div>`;
+  const {modeIdx, overallIdx} = await honoursBoardRank('represent', entry.score, entry.record);
+  const tag = honoursBoardTagHTML(modeIdx, overallIdx, 'Represent Your Nation');
+  rankEl.innerHTML = `${tag}<div class="review-sub">Saved to this device \u2014 finished P${localRank} with ${localPoints} points.</div>`;
 }
 
 const SERIES_SHOWDOWN_FUNCTION_URL = 'https://us-central1-not-out-186a9.cloudfunctions.net/submitSeriesShowdownScore';
@@ -2448,19 +2614,25 @@ async function showSeriesShowdownScoreAndSave(){
     try{
       const data = await submitVerifiedSeriesShowdownResult(playerName);
       document.getElementById('scoreValue').textContent = data.score.toLocaleString();
-      rankEl.innerHTML = `<div class="review-badge review-good">${pickOne(NOT_OUT_REVIEWS)}</div><div class="review-sub">Saved to the leaderboard \u2014 ${data.score.toLocaleString()} points as ${yourNat.name} vs ${oppNat.name}.</div>`;
+      const {modeIdx, overallIdx} = await honoursBoardRank('showdown', data.score, data.record);
+      const tag = honoursBoardTagHTML(modeIdx, overallIdx, 'Series Showdown');
+      rankEl.innerHTML = `<div class="review-badge review-good">${pickOne(NOT_OUT_REVIEWS)}</div>${tag}<div class="review-sub">${data.score.toLocaleString()} points as ${yourNat.name} vs ${oppNat.name}.</div>`;
       return;
     }catch(e){
       console.warn('Server verification failed for Series Showdown, saving to this device instead.', e);
       const entry = {name:playerName, score:csScore, record:localRecord, label:'Series Showdown', mode:'showdown', yourNation:csYourNat, opponentNation:csOppNat, date:new Date().toISOString()};
       await recordScore(entry);
-      rankEl.innerHTML = `<div class="review-badge review-bad">${pickOne(OUT_REVIEWS)}</div><div class="review-sub">Saved to this device instead \u2014 ${csScore.toLocaleString()} points.</div>`;
+      const {modeIdx, overallIdx} = await honoursBoardRank('showdown', entry.score, entry.record);
+      const tag = honoursBoardTagHTML(modeIdx, overallIdx, 'Series Showdown');
+      rankEl.innerHTML = `<div class="review-badge review-bad">${pickOne(OUT_REVIEWS)}</div>${tag}<div class="review-sub">Saved to this device instead \u2014 ${csScore.toLocaleString()} points.</div>`;
       return;
     }
   }
   const entry = {name:playerName, score:csScore, record:localRecord, label:'Series Showdown', mode:'showdown', yourNation:csYourNat, opponentNation:csOppNat, date:new Date().toISOString()};
   await recordScore(entry);
-  rankEl.innerHTML = `<div class="review-sub">Saved to this device \u2014 ${csScore.toLocaleString()} points.</div>`;
+  const {modeIdx, overallIdx} = await honoursBoardRank('showdown', entry.score, entry.record);
+  const tag = honoursBoardTagHTML(modeIdx, overallIdx, 'Series Showdown');
+  rankEl.innerHTML = `${tag}<div class="review-sub">Saved to this device \u2014 ${csScore.toLocaleString()} points.</div>`;
 }
 
 const SERIES_SHOWDOWN_COMBINED_FUNCTION_URL = 'https://us-central1-not-out-186a9.cloudfunctions.net/submitSeriesShowdownCombinedScore';
@@ -2486,19 +2658,25 @@ async function showSeriesShowdownCombinedScoreAndSave(){
     try{
       const data = await submitVerifiedSeriesShowdownCombinedResult(playerName);
       document.getElementById('scoreValue').textContent = data.score.toLocaleString();
-      rankEl.innerHTML = `<div class="review-badge review-good">${pickOne(NOT_OUT_REVIEWS)}</div><div class="review-sub">Saved to the leaderboard \u2014 ${data.score.toLocaleString()} points with a combined ${aNat.name}/${bNat.name} XI.</div>`;
+      const {modeIdx, overallIdx} = await honoursBoardRank('showdown', data.score, data.record);
+      const tag = honoursBoardTagHTML(modeIdx, overallIdx, 'Series Showdown');
+      rankEl.innerHTML = `<div class="review-badge review-good">${pickOne(NOT_OUT_REVIEWS)}</div>${tag}<div class="review-sub">${data.score.toLocaleString()} points with a combined ${aNat.name}/${bNat.name} XI.</div>`;
       return;
     }catch(e){
       console.warn('Server verification failed for Series Showdown (Combined), saving to this device instead.', e);
       const entry = {name:playerName, score:csCombinedScore, record:localRecord, label:'Series Showdown', mode:'showdown', showdownFormat:FMTKEY, natA:csSeries.a, natB:csSeries.b, date:new Date().toISOString()};
       await recordScore(entry);
-      rankEl.innerHTML = `<div class="review-badge review-bad">${pickOne(OUT_REVIEWS)}</div><div class="review-sub">Saved to this device instead \u2014 ${csCombinedScore.toLocaleString()} points.</div>`;
+      const {modeIdx, overallIdx} = await honoursBoardRank('showdown', entry.score, entry.record);
+      const tag = honoursBoardTagHTML(modeIdx, overallIdx, 'Series Showdown');
+      rankEl.innerHTML = `<div class="review-badge review-bad">${pickOne(OUT_REVIEWS)}</div>${tag}<div class="review-sub">Saved to this device instead \u2014 ${csCombinedScore.toLocaleString()} points.</div>`;
       return;
     }
   }
   const entry = {name:playerName, score:csCombinedScore, record:localRecord, label:'Series Showdown', mode:'showdown', showdownFormat:FMTKEY, natA:csSeries.a, natB:csSeries.b, date:new Date().toISOString()};
   await recordScore(entry);
-  rankEl.innerHTML = `<div class="review-sub">Saved to this device \u2014 ${csCombinedScore.toLocaleString()} points.</div>`;
+  const {modeIdx, overallIdx} = await honoursBoardRank('showdown', entry.score, entry.record);
+  const tag = honoursBoardTagHTML(modeIdx, overallIdx, 'Series Showdown');
+  rankEl.innerHTML = `${tag}<div class="review-sub">Saved to this device \u2014 ${csCombinedScore.toLocaleString()} points.</div>`;
 }
 
 async function lbLoadRawLocal(){
@@ -2560,24 +2738,27 @@ const OUT_REVIEWS = [
   'Reviewed by 3rd Umpire \u2014 Catch Camera confirms \u2014 Out',
   'Reviewed by 3rd Umpire \u2014 Run Out Camera confirms \u2014 Out',
 ];
-/* Mode-specific rank, plus a top-15-overall callout when it applies —
-   purely a display computation over the leaderboard that was already
-   fetched via lbLoad(); it never affects what gets written. */
-/* modeEntries must already be scoped to this format specifically
-   (via lbLoad(FMTKEY)) — filtering a global top-200 client-side broke
-   this exact same way the leaderboard tabs did, for the same reason:
-   a low-scoring format's own best entry may never appear in a global
-   top-200 dominated by a higher-scoring format. overallEntries stays
-   the genuine global list, for the separate top-15-overall callout. */
-function formatRankMessage(modeEntries, overallEntries, score, record, modeName){
-  const modeIdx = modeEntries.findIndex(e => e.score===score && e.record===record);
-  const overallIdx = overallEntries.findIndex(e => e.score===score && e.record===record);
-  let msg = '';
-  if(modeIdx===0) msg = `New ${modeName} all-time best!`;
-  else if(modeIdx>=0) msg = `#${modeIdx+1} in ${modeName}!`;
-  else msg = `Saved to the ${modeName} leaderboard.`;
-  if(overallIdx>=0 && overallIdx<15) msg += ` (#${overallIdx+1} overall)`;
-  return msg;
+/* "On the Honours Board" = ranks inside the top 15 for its board — the
+   exact slice renderLbBody() actually renders, so a player told they
+   made it will really see themselves there when they open the board.
+   modeEntries must already be scoped to this specific board (via
+   lbLoad(mode)) — filtering a global top-200 client-side broke this
+   exact same way the leaderboard tabs did, for the same reason: a
+   low-scoring format's own best entry may never appear in a global
+   top-200 dominated by a higher-scoring format/mode. overallEntries
+   stays the genuine global list, for the separate overall callout. */
+async function honoursBoardRank(mode, score, record){
+  const [modeEntries, overallEntries] = await Promise.all([lbLoad(mode), lbLoad('all')]);
+  return {
+    modeIdx: modeEntries.findIndex(e => e.score===score && e.record===record),
+    overallIdx: overallEntries.findIndex(e => e.score===score && e.record===record),
+  };
+}
+function honoursBoardTagHTML(modeIdx, overallIdx, modeName){
+  if(modeIdx<0 || modeIdx>=15) return '';
+  const rankLine = modeIdx===0 ? `New Honours Board record for ${modeName}!` : `#${modeIdx+1} on the ${modeName} board.`;
+  const overallLine = (overallIdx>=0 && overallIdx<15) ? ` Currently #${overallIdx+1} overall.` : '';
+  return `<div class="honours-tag">🏆 Congratulations — you're on the Honours Board! ${rankLine}${overallLine}</div>`;
 }
 async function showScoreAndSave(record){
   document.getElementById('scoreValue').textContent = runScore.toLocaleString();
@@ -2590,25 +2771,28 @@ async function showScoreAndSave(record){
     try{
       const data = await submitVerifiedScore(playerName);
       document.getElementById('scoreValue').textContent = data.score.toLocaleString();
-      const [modeEntries, overallEntries] = await Promise.all([lbLoad(FMTKEY), lbLoad('all')]);
-      const extra = formatRankMessage(modeEntries, overallEntries, data.score, data.record, FMT.label);
-      rankEl.innerHTML = `<div class="review-badge review-good">${pickOne(NOT_OUT_REVIEWS)}</div><div class="review-sub">${extra}</div>`;
+      const {modeIdx, overallIdx} = await honoursBoardRank(FMTKEY, data.score, data.record);
+      const tag = honoursBoardTagHTML(modeIdx, overallIdx, FMT.label);
+      const sub = tag ? '' : `<div class="review-sub">Not quite an Honours Board finish this time — keep climbing.</div>`;
+      rankEl.innerHTML = `<div class="review-badge review-good">${pickOne(NOT_OUT_REVIEWS)}</div>${tag}${sub}`;
       return;
     }catch(e){
       console.warn('Server verification failed, saving to this device instead.', e);
       const entry = {name:playerName, score:runScore, label:FMT.label, format:FMTKEY, record, date:new Date().toISOString()};
       await recordScore(entry);
-      const [modeEntries, overallEntries] = await Promise.all([lbLoad(FMTKEY), lbLoad('all')]);
-      const extra = formatRankMessage(modeEntries, overallEntries, entry.score, entry.record, FMT.label);
-      rankEl.innerHTML = `<div class="review-badge review-bad">${pickOne(OUT_REVIEWS)}</div><div class="review-sub">${extra} (saved to device)</div>`;
+      const {modeIdx, overallIdx} = await honoursBoardRank(FMTKEY, entry.score, entry.record);
+      const tag = honoursBoardTagHTML(modeIdx, overallIdx, FMT.label);
+      const sub = `<div class="review-sub">${tag ? 'Saved to this device.' : 'Not quite an Honours Board finish this time — keep climbing.'} (saved to device)</div>`;
+      rankEl.innerHTML = `<div class="review-badge review-bad">${pickOne(OUT_REVIEWS)}</div>${tag}${sub}`;
       return;
     }
   }
   const entry = {name:playerName, score:runScore, label:FMT.label, format:FMTKEY, record, date:new Date().toISOString()};
   await recordScore(entry);
-  const [modeEntries, overallEntries] = await Promise.all([lbLoad(FMTKEY), lbLoad('all')]);
-  const extra = formatRankMessage(modeEntries, overallEntries, entry.score, entry.record, FMT.label);
-  rankEl.innerHTML = `<div class="review-sub">${extra} (saved to device)</div>`;
+  const {modeIdx, overallIdx} = await honoursBoardRank(FMTKEY, entry.score, entry.record);
+  const tag = honoursBoardTagHTML(modeIdx, overallIdx, FMT.label);
+  const sub = `<div class="review-sub">${tag ? 'Saved to this device.' : 'Not quite an Honours Board finish this time — keep climbing.'} (saved to device)</div>`;
+  rankEl.innerHTML = `${tag}${sub}`;
 }
 let lbFilter = 'all';
 const LB_FILTER_LABEL = {test:'Test Match', odi:'ODI', t20:'T20'};
@@ -2695,9 +2879,9 @@ function closeLeaderboard(){ switchScreen(lbReturnScreen); }
 
 /* ===================== REPRESENT YOUR NATION ===================== */
 /* One country, one format, every player drafted must be theirs (only
-   the decade is random). Simulated as a genuine round-robin league
-   against all 11 other nations \u2014 your 11 matches are revealed one
-   by one, and the other 55 matches between the OTHER nations are
+   the decade is random). Simulated as a 5-match home-and-away series
+   against each of the other 10 nations \u2014 your 50 matches are revealed
+   one by one, and the other 225 matches between the OTHER nations are
    simulated in the background (never shown) purely to produce a
    realistic-looking final table. Points: win=12, tie=6 each,
    draw=4 each, loss=0. Self-contained: does not submit to the global
@@ -2728,10 +2912,11 @@ let csOppNat = null;      // nation id you're facing (Mode 1/2)
 let csStops = [];         // six {label, fmtkey, oppXi, matches:[]} entries (Mode 1/2)
 let csScore = 0;
 const SERIES_SHOWDOWN_MIN_PLAYERS = 11;
-// Mode 3: combined XI from both series nations vs the other 10. Single
+// Mode 3: combined XI from both series nations vs the rest. Single
 // format (chosen up front, like World Tour), reuses World Tour's exact
-// engine/difficulty unchanged -- the only difference is a 10-nation
-// opponent pool instead of 12, so it needs no separate calibration.
+// engine/difficulty unchanged -- the only difference is a smaller
+// opponent pool (whatever NATIONS.length-2 currently is), so it needs
+// no separate calibration and no hardcoded count to keep in sync.
 let csCombined = false;
 let csCombinedFmt = 'test';
 let csCombinedStops = [];
@@ -2985,7 +3170,7 @@ function buildRepresentTable(yourNat, opponents, yourMatches){
 function startRepresentLeague(){
   switchScreen('scr-season');
   const yourNat = NATIONS.find(n=>n.id===represCountry);
-  document.getElementById('seasonEyebrow').textContent = `Represent ${yourNat.name} \u00b7 League \u00b7 55 Matches`;
+  document.getElementById('seasonEyebrow').textContent = `Represent ${yourNat.name} \u00b7 League \u00b7 50 Matches`;
   revealTotalStops = 55; revealStopWord = 'Match'; revealOnFinish = (delay)=>finishRepresentLeague(delay);
 
   const st = teamStrengths();
@@ -3023,6 +3208,7 @@ function startRepresentLeague(){
       revealRows.push({kind:'match', code, matchNum,
         html:`<span class="tno">M${matchNum}</span>
         <span class="op">vs ${opp.name} (${isHome?'H':'A'})<span class="score">${gen.score}</span><span class="score" style="color:var(--cream-dim)">${gen.margin}</span><span class="potm">POTM: ${potm}</span></span>
+        <span class="view-sc">📋<br>View</span>
         <span class="badge ${code==='T'?'D':code}">${resultLabel}</span>`,
         tally:`${w}\u2013${d}\u2013${t}\u2013${l}`, stop:matchNum});
     }
@@ -3064,14 +3250,15 @@ function startRepresentLeague(){
   box.innerHTML='';
   document.getElementById('verdict').classList.remove('show');
   document.getElementById('seasonTally').textContent='0\u20130\u20130\u20130';
-  document.getElementById('testTally').textContent='Match 0 of 55';
+  document.getElementById('testTally').textContent='Match 0 of 50';
   showSkipBtn();
   revealIdx=0;
   revealTimers=revealRows.map((_,i)=>setTimeout(()=>revealOne(i), 340*(i+1)));
 }
 
 function representTableHTML(){
-  const rows = representTable.map((r,i)=>`<tr${r.isYou?' style="color:var(--brass);font-weight:700"':''}><td>${i+1}</td><td>${r.flag} ${r.name}${r.isYou?' (YOU)':''}</td><td>55</td><td>${r.w}</td><td>${r.d}</td><td>${r.t}</td><td>${r.l}</td><td>${r.pts}</td></tr>`).join('');
+  const matchesPerTeam = (representTable.length-1)*5;
+  const rows = representTable.map((r,i)=>`<tr${r.isYou?' style="color:var(--brass);font-weight:700"':''}><td>${i+1}</td><td>${r.flag} ${r.name}${r.isYou?' (YOU)':''}</td><td>${matchesPerTeam}</td><td>${r.w}</td><td>${r.d}</td><td>${r.t}</td><td>${r.l}</td><td>${r.pts}</td></tr>`).join('');
   return `<h3 style="margin-top:2px">Final League Table</h3>
     <table class="stat-table league-table"><tr><th>Pos</th><th>Team</th><th>P</th><th>W</th><th>D</th><th>T</th><th>L</th><th>Pts</th></tr>${rows}</table>`;
 }
@@ -3082,6 +3269,7 @@ function representFinalResultRow(){
     const label = F.code==='W' ? 'CHAMPIONS' : F.code==='D' ? 'JOINT CHAMPIONS' : 'RUNNERS-UP';
     return {kind:'match', code:F.code, matchNum:'final', html:`<span class="tno">FINAL</span>
       <span class="op">vs ${F.oppNat.name} \u2014 Lord's<span class="score">${F.gen.score}</span><span class="score" style="color:var(--cream-dim)">${F.gen.margin}</span><span class="potm">POTM: ${F.potm}</span></span>
+      <span class="view-sc">\ud83d\udccb<br>View</span>
       <span class="badge ${badge}">${label}</span>`};
   }
   const aName = `${F.aNat.flag} ${F.aNat.name}`, bName = `${F.bNat.flag} ${F.bNat.name}`;
@@ -3121,9 +3309,9 @@ function representVerdict(){
     else if(representFinal.code==='D'){ title='JOINT CHAMPIONS OF THE WORLD'; body=`${yourNat.name} drew with ${oppName} at Lord's \u2014 a genuine Test draw, so the title is shared, WTC-style.`; }
     else { title='RUNNERS-UP'; body=`${yourNat.name} reached the Lord's final but came up short against ${oppName} \u2014 a fine season all the same.`; }
   }
-  else if(rank<=3){ title=`FINISHED P${rank}`; body=`A genuine podium finish for ${yourNat.name} \u2014 ${yourRow.pts} points from 55 matches, right up with the very best sides in the world.`; }
+  else if(rank<=3){ title=`FINISHED P${rank}`; body=`A genuine podium finish for ${yourNat.name} \u2014 ${yourRow.pts} points from 50 matches, right up with the very best sides in the world.`; }
   else if(rank<=6){ title=`FINISHED P${rank}`; body=`A solid mid-table campaign for ${yourNat.name} with ${yourRow.pts} points \u2014 competitive, but the top sides in the world edged it this time.`; }
-  else { title=`FINISHED P${rank}`; body=`A tough league campaign for ${yourNat.name} \u2014 ${yourRow.pts} points from 55 matches. The rest of the cricketing world proved too strong on this occasion.`; }
+  else { title=`FINISHED P${rank}`; body=`A tough league campaign for ${yourNat.name} \u2014 ${yourRow.pts} points from 50 matches. The rest of the cricketing world proved too strong on this occasion.`; }
   document.getElementById('verdictRec').textContent = rec;
   document.getElementById('verdictTitle').textContent = title;
   document.getElementById('verdictBody').textContent = body;
@@ -3177,7 +3365,7 @@ function startSeriesShowdown(){
     const hasPace = hasWorldClassBowlingType(xi, 'pace');
     const statsBonus = computeStatsBonus(xi);
 
-    revealRows.push({kind:'stop', html:`<span class="st-flag">${oppNat.flag}</span><span class="st-name">${stopLabel}</span><span class="st-venue">Five ${FMT.noun}${def.fmtkey==='test'?'es':'s'}</span>`,
+    revealRows.push({kind:'stop', html:`<span class="st-flag">${oppNat.flag}</span><span class="st-name">${stopLabel}</span><span class="st-venue">Five ${FMT.noun}s</span>`,
                      tally:null, stop:si+1});
     const matches=[];
     for(let m=0;m<5;m++){
@@ -3201,6 +3389,7 @@ function startSeriesShowdown(){
       revealRows.push({kind:'match', code, num:matchNum, matchNum,
         html:`<span class="tno">M${String(matchNum).padStart(2,'0')}</span>
         <span class="op">vs ${oppNat.name}${def.tier==='allstar'?' All-Stars':''} — ${venue}<span class="score">${gen.score}</span><span class="score" style="color:var(--cream-dim)">${gen.margin}</span><span class="potm">POTM: ${potm}</span></span>
+        <span class="view-sc">📋<br>View</span>
         <span class="badge ${code}">${code==='W'?'WON':code==='D'?'DRAW':'LOST'}</span>`,
         tally:`${w}–${d}–${l}`, stop:si+1});
     }
@@ -3273,7 +3462,7 @@ function seriesShowdownVerdict(){
   });
 }
 
-/* Mode 3: combined XI from both series nations vs the other 10. This is
+/* Mode 3: combined XI from both series nations vs the rest. This is
    World Tour's exact shape and difficulty (same decideMatch/nat.opp+4,
    same composite scoring) with the two series nations excluded from the
    opponent pool -- deliberately NOT a separate difficulty system, so no
@@ -3297,7 +3486,7 @@ function startSeriesShowdownCombined(){
   let w=0,d=0,l=0;
   let totalSeriesWon=0, totalSweeps=0, marginSum=0, marginCount=0;
   stops.forEach((nat,si)=>{
-    revealRows.push({kind:'stop', html:`<span class="st-flag">${nat.flag}</span><span class="st-name">${nat.name}</span><span class="st-venue">Five ${FMT.noun}${FMTKEY==='test'?'es':'s'} across the country · today's ${FMT.label} side</span>`,
+    revealRows.push({kind:'stop', html:`<span class="st-flag">${nat.flag}</span><span class="st-name">${nat.name}</span><span class="st-venue">Five ${FMT.noun}s across the country · today's ${FMT.label} side</span>`,
                      tally:null, stop:si+1});
     const matches=[];
     for(let m=0;m<5;m++){
@@ -3321,6 +3510,7 @@ function startSeriesShowdownCombined(){
       revealRows.push({kind:'match', code, num:matchNum, matchNum,
         html:`<span class="tno">M${String(matchNum).padStart(2,'0')}</span>
         <span class="op">vs ${nat.name} — ${venue}<span class="score">${gen.score}</span><span class="score" style="color:var(--cream-dim)">${gen.margin}</span><span class="potm">POTM: ${potm}</span></span>
+        <span class="view-sc">📋<br>View</span>
         <span class="badge ${code}">${code==='W'?'WON':code==='D'?'DRAW':'LOST'}</span>`,
         tally:`${w}–${d}–${l}`, stop:si+1});
     }
@@ -3420,10 +3610,10 @@ function verdict(){
     const sl=st.matches.filter(m=>m.code==='L').length;
     return sw>sl;
   }).length;
-  const rec=`${w} WON \u00b7 ${d} ${FMTKEY==='test'?'DRAWN':'TIED'} \u00b7 ${l} LOST \u2014 ALL AWAY`;
+  const rec=`${w} WON \u00b7 ${d} ${FMTKEY==='test'?'DRAWN':'TIED'} \u00b7 ${l} LOST`;
   let title, body;
-  if(w===total){ title=`THE IMMORTALS \u00b7 ${total}\u20130`; body=`${total} matches in twelve hostile stadiums. ${total} wins. Every current international side beaten in their own backyard, five times each, by a team pulled from across the decades. It will never be done again \u2014 including by you.`; }
-  else if(l===0){ title='UNBEATEN ON THE ROAD'; body=`Sixty away matches without defeat \u2014 but ${d} ${FMTKEY==='test'?'draw':'tie'}${d>1?'s':''} spoiled the perfect ${total}\u20130. Their crowds went home silent anyway.`; }
+  if(w===total){ title=`THE IMMORTALS \u00b7 ${total}\u20130`; body=`${total} matches across eleven hostile stadiums and a World All-Star finale at Lord's. ${total} wins. Every current international side beaten in their own backyard, five times each, then the best of all time beaten too, by a team pulled from across the decades. It will never be done again \u2014 including by you.`; }
+  else if(l===0){ title='UNBEATEN ON THE ROAD'; body=`Sixty matches without defeat, World All-Star finale included \u2014 but ${d} ${FMTKEY==='test'?'draw':'tie'}${d>1?'s':''} spoiled the perfect ${total}\u20130.`; }
   else if(w>=52){
     title='WORLD DOMINATION';
     const seriesNote = seriesWins===12 ? 'You swept every single series along the way \u2014 an absolute masterclass.' : 'A dropped series along the way keeps it from true perfection.';
@@ -3456,7 +3646,7 @@ function verdict(){
 }
 
 const SITE_URL = 'https://www.not-out.co.uk';
-const SHARE_CTA = `Think you can beat this? Draft your own XI \u2192 ${SITE_URL}`;
+const SHARE_CTA = `Think you can make the Honours Board? Draft your own XI \u2192 ${SITE_URL}`;
 function buildShareText(){
   return represMode ? buildShareTextRepresent()
     : (curSeriesMode && csCombined) ? buildShareTextSeriesShowdownCombined()
@@ -3469,9 +3659,9 @@ function buildShareTextWorldTour(){
     const dots=st.matches.map(m=>m.code==='W'?'\ud83d\udfe2':m.code==='D'?'\ud83d\udfe1':'\ud83d\udd34').join('');
     const sw=st.matches.filter(m=>m.code==='W').length, sd=st.matches.filter(m=>m.code==='D').length, sl=st.matches.filter(m=>m.code==='L').length;
     const record = FMTKEY==='test' ? `${sw}\u2013${sd}\u2013${sl}` : `${sw}\u2013${sl}`;
-    return `${st.nat.id} ${dots} Series: ${record}${sw===5?' \ud83e\uddf9':''}`;
+    return `${st.nat.isAllStar ? 'ALL-STARS' : st.nat.id} ${dots} Series: ${record}${sw===5?' \ud83e\uddf9':''}`;
   }).join('\n');
-  return `NOT OUT* \u2014 Cricket World Domination \u00b7 ${FMT.label}\n60 matches, all away \u00b7 ${w}W ${d}${FMTKEY==='test'?'D':'T'} ${l}L\nScore: ${runScore.toLocaleString()} pts\n\n${lines}\n\n${SHARE_CTA}`;
+  return `NOT OUT* \u2014 Cricket World Domination \u00b7 ${FMT.label}\n60 matches, World All-Star finale included \u00b7 ${w}W ${d}${FMTKEY==='test'?'D':'T'} ${l}L\nScore: ${runScore.toLocaleString()} pts\n\n${lines}\n\n${SHARE_CTA}`;
 }
 function buildShareTextRepresent(){
   const yourNat = NATIONS.find(n=>n.id===represCountry);
@@ -3486,7 +3676,8 @@ function buildShareTextRepresent(){
               : representFinal.code==='D' ? `\n\ud83c\udfc6 JOINT CHAMPIONS \u2014 drew with ${representFinal.oppNat.name} at Lord's`
               : `\n\ud83e\udd48 RUNNERS-UP \u2014 lost the Lord's final to ${representFinal.oppNat.name}`;
   }
-  return `NOT OUT* \u2014 Represent Your Nation \u00b7 ${yourNat.flag} ${yourNat.name} \u00b7 ${FMT.label}\n55-match home & away league \u00b7 Finished P${rank} of 12 \u00b7 ${rec} \u2014 ${points} pts${finalLine}\n\n${dots}\n\n${SHARE_CTA}`;
+  const matchesPerTeam = (representTable.length-1)*5;
+  return `NOT OUT* \u2014 Represent Your Nation \u00b7 ${yourNat.flag} ${yourNat.name} \u00b7 ${FMT.label}\n${matchesPerTeam}-match home & away league \u00b7 Finished P${rank} of ${representTable.length} \u00b7 ${rec} \u2014 ${points} pts${finalLine}\n\n${dots}\n\n${SHARE_CTA}`;
 }
 function buildShareTextSeriesShowdown(){
   const yourNat = NATIONS.find(n=>n.id===csYourNat), oppNat = NATIONS.find(n=>n.id===csOppNat);
@@ -3507,7 +3698,7 @@ function buildShareTextSeriesShowdownCombined(){
     const dots = st.matches.map(m=>m.code==='W'?'\ud83d\udfe2':m.code==='D'?'\ud83d\udfe1':'\ud83d\udd34').join('');
     const sw=st.matches.filter(m=>m.code==='W').length, sd=st.matches.filter(m=>m.code==='D').length, sl=st.matches.filter(m=>m.code==='L').length;
     const record = FMTKEY==='test' ? `${sw}\u2013${sd}\u2013${sl}` : `${sw}\u2013${sl}`;
-    return `${st.nat.id} ${dots} Series: ${record}${sw===5?' \ud83e\uddf9':''}`;
+    return `${st.nat.isAllStar ? 'ALL-STARS' : st.nat.id} ${dots} Series: ${record}${sw===5?' \ud83e\uddf9':''}`;
   }).join('\n');
   return `NOT OUT* \u2014 Series Showdown \u00b7 Combined ${aNat.flag}${bNat.flag} ${aNat.name}/${bNat.name} XI \u00b7 ${FMT.label}\n${total} matches, all away \u00b7 ${w}W ${d}${FMTKEY==='test'?'D':'T'} ${l}L\nScore: ${csCombinedScore.toLocaleString()} pts\n\n${lines}\n\n${SHARE_CTA}`;
 }
@@ -3643,7 +3834,7 @@ if(typeof twemoji !== 'undefined'){
   <!-- NAME ENTRY MODAL -->
   <div class="name-modal" id="nameModal" style="display:none">
     <div class="name-modal-card">
-      <div class="name-modal-title">Name for the Leaderboard</div>
+      <div class="name-modal-title">Name for the Honours Board</div>
       <p class="name-modal-sub">This is how you'll appear to everyone else</p>
       <input type="text" id="nameInput" class="name-modal-input" maxlength="20" placeholder="Your name" autocomplete="off">
       <button class="btn" style="margin-top:14px" onclick="confirmNameInput()">Save &amp; Continue</button>
@@ -3664,7 +3855,7 @@ if(typeof twemoji !== 'undefined'){
 
   <!-- COOKIE / STORAGE NOTICE -->
   <div class="cookie-banner" id="cookieBanner" style="display:none">
-    <p>This site uses local storage on your device to remember your name and last-played format, and sends scores to a leaderboard service to keep the global rankings. No advertising or tracking cookies are used.</p>
+    <p>This site uses local storage on your device to remember your name and last-played format, and sends scores to the Honours Board to keep the global rankings. No advertising or tracking cookies are used.</p>
     <button class="btn" onclick="acceptCookieNotice()">Got it</button>
   </div>
 
