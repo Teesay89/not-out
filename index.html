@@ -281,7 +281,7 @@ img.emoji{height:1em;width:1em;vertical-align:-0.1em;margin:0 .02em}
 .sheet-row-detail .bb{color:var(--brass)}
 .sheet-row-detail .stat-line{color:var(--cream-dim);opacity:.8}
 
-.strength-bars{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+.strength-bars{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px}
 .sbox{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
 .sbox .lb{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--cream-dim)}
 .sbox .vl{font-family:'Graduate',serif;font-size:26px;margin-top:2px}
@@ -550,6 +550,7 @@ body.sim-active .masthead{
     <div class="strength-bars">
       <div class="sbox"><div class="lb">Batting</div><div class="vl" id="batVal">–</div><div class="bar"><i id="batBar"></i></div></div>
       <div class="sbox"><div class="lb">Bowling</div><div class="vl" id="bowlVal">–</div><div class="bar"><i id="bowlBar"></i></div></div>
+      <div class="sbox"><div class="lb">Fielding</div><div class="vl" id="fieldVal">–</div><div class="bar"><i id="fieldBar"></i></div></div>
     </div>
     <p id="balanceNote" style="font-size:12.5px;color:var(--cream-dim);line-height:1.55;margin-bottom:8px;text-align:center"></p>
     <p class="honours-aim">🎯 The aim: build an XI strong enough to earn a place on the <b>Honours Board</b>.</p>
@@ -1264,10 +1265,14 @@ function teamStrengths(){
   const inPositionCount = xi.filter((p,i)=>positionPenalty(p, i+1)===0).length;
   if(inPositionCount>0) notes.push(`${inPositionCount} player${inPositionCount===1?'':'s'} in ${inPositionCount===1?'its':'their'} natural position.`);
   const strength = bat*0.5 + bowl*0.5 + bonus;
+  // Fielding is display-only on the squad review -- every player fields
+  // regardless of position, so it's a plain XI average, and unlike
+  // bat/bowl it never feeds into `strength` (match-odds are unaffected).
+  const fielding = xi.reduce((a,p)=>a+p.fr,0)/11;
   // Display cap only — individual player ratings top out at 99, so the
   // shown team number should too. strength (used for match odds) is
   // computed above from the uncapped bat/bowl and is unaffected.
-  return {bat:Math.min(99, Math.round(bat)), bowl:Math.min(99, Math.round(bowl)), strength, notes};
+  return {bat:Math.min(99, Math.round(bat)), bowl:Math.min(99, Math.round(bowl)), fielding:Math.min(99, Math.round(fielding)), strength, notes};
 }
 
 let moveFromIdx = null;
@@ -1461,8 +1466,10 @@ function showReview(){
   document.getElementById('avgRating').textContent = 'Avg ' + (xi.reduce((a,p)=>a+p.r,0)/11).toFixed(1);
   document.getElementById('batVal').textContent = st.bat;
   document.getElementById('bowlVal').textContent = st.bowl;
+  document.getElementById('fieldVal').textContent = st.fielding;
   document.getElementById('batBar').style.width = clamp((st.bat-70)/29*100,4,100)+'%';
   document.getElementById('bowlBar').style.width = clamp((st.bowl-70)/29*100,4,100)+'%';
+  document.getElementById('fieldBar').style.width = clamp((st.fielding-70)/29*100,4,100)+'%';
   document.getElementById('balanceNote').textContent = st.notes.join('  ·  ');
 }
 
