@@ -420,9 +420,9 @@ body.sim-active .masthead{
       <button class="fmt-hero represent-hero" id="fmt-showdown-hero" onclick="showSeriesShowdownSetup()"><span class="newtag">NEW</span>SERIES SHOWDOWN<small>Pick a side in a real series currently being played</small></button>
       <p id="dataStatus" class="data-status" style="display:none"></p>
       <div class="fmt-row">
-        <button class="fmt-btn selected" id="fmt-test" onclick="selectFormat('test')">Test<small>4,523 players · 16 decades</small></button>
-        <button class="fmt-btn" id="fmt-odi" onclick="selectFormat('odi')">ODI<small>3,198 players · 6 decades</small></button>
-        <button class="fmt-btn" id="fmt-t20" onclick="selectFormat('t20')">T20<small>1,640 players · 3 decades</small></button>
+        <button class="fmt-btn selected" id="fmt-test" onclick="selectFormat('test')">Test<small>4,521 players · 16 decades</small></button>
+        <button class="fmt-btn" id="fmt-odi" onclick="selectFormat('odi')">ODI<small>3,196 players · 6 decades</small></button>
+        <button class="fmt-btn" id="fmt-t20" onclick="selectFormat('t20')">T20<small>1,621 players · 3 decades</small></button>
       </div>
       <div class="era-filter-row" id="eraFilterRow"></div>
       <button class="btn" onclick="startDraft()">Start the draft</button>
@@ -601,7 +601,7 @@ body.sim-active .masthead{
     <button class="btn secondary" style="margin-top:14px" onclick="closeLeaderboard()">← Back</button>
   </section>
 
-  <p class="data-note">Curated databases: 4,523 Test, 3,198 ODI and 1,640 T20 players, each rated for his standing within his own decade and format. Era-spanning greats may appear in more than one decade but can only be drafted once per game. Test pools run 1870s–2020s, ODI 1970s–2020s, T20 2000s–2020s.</p>
+  <p class="data-note">Curated databases: 4,521 Test, 3,196 ODI and 1,621 T20 players, each rated for his standing within his own decade and format. Era-spanning greats may appear in more than one decade but can only be drafted once per game. Test pools run 1870s–2020s, ODI 1970s–2020s, T20 2000s–2020s.</p>
 </div>
 
 <!-- Optional: global leaderboard via Firebase. See setup notes near
@@ -2008,8 +2008,8 @@ const WORLDCLASS_THRESHOLD = {test:75, odi:85, t20:78};
 const CONDITIONS_PENALTY = {test:0, odi:15, t20:9};
 const STATS_BONUS_WEIGHT = {test:1.75, odi:0.1, t20:0.1};
 /* Format-specific, not a single global value -- ODI's much deeper player
-   pool (3,198 players across 6 decades vs Test's 4,523/16 and T20's
-   1,640/3) lets a near-ceiling draft shrug off the same boost far more
+   pool (3,196 players across 6 decades vs Test's 4,521/16 and T20's
+   1,621/3) lets a near-ceiling draft shrug off the same boost far more
    easily, so it needs a noticeably smaller number to land on the same
    rarity target as Test/T20. */
 const IMMORTAL_STREAK_BOOST = {test:8, odi:8, t20:8};
