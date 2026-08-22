@@ -178,7 +178,7 @@ function positionPenalty(p, slotNo){
       final for Represent Your Nation). One loss or draw and it's off for
       the rest of the run. This is what makes a genuine unbeaten run
       rare-but-achievable without inflating an otherwise-average run. */
-const ASIA_NATIONS = new Set(['IND','PAK','SL','BAN','AFG']);
+const ASIA_NATIONS = new Set(['IND','PAK','SL','BAN','AFG','ASIA']);
 const PACE_NATIONS = new Set(['AUS','SA','WI']);
 const WORLDCLASS_THRESHOLD = {test:75, odi:85, t20:78};
 const CONDITIONS_PENALTY = {test:0, odi:15, t20:9};
@@ -1463,6 +1463,13 @@ function rollPack(n){
 // 1 all-star tier. Strength (`opp`) is derived directly from the drafted
 // XI's own average rating, so thin eras/nations naturally play weaker and
 // stacked ones naturally play stronger -- no hand-tuned per-team number.
+// Two more opponent kinds round out the pool: the same 10 World All-Star
+// tiers (90-99 rated) used elsewhere, and two REGIONAL per-decade sides --
+// Asia (India/Pakistan/Sri Lanka/Bangladesh combined) and Rest of World
+// (every other nation combined) -- for eras too early for some nations to
+// field their own XI but where a regional composite still can.
+const ASIA_TEAM_NATIONS = ['IND', 'PAK', 'SL', 'BAN'];
+const ROW_TEAM_NATIONS = NATIONS.filter(n => !ASIA_TEAM_NATIONS.includes(n.id)).map(n => n.id);
 function buildDecadeOpponentXI(natId, decade){
   const pool = DB.best.filter(p => p.c === natId && p.d === decade).sort((a, b) => b.r - a.r);
   return draftXIFromPool(pool);
@@ -1473,12 +1480,26 @@ function getDecadeOpponentXI(natId, decade){
   if(!decadeOpponentXICache.has(key)) decadeOpponentXICache.set(key, buildDecadeOpponentXI(natId, decade));
   return decadeOpponentXICache.get(key);
 }
+function buildRegionalOpponentXI(natIds, decade){
+  const pool = DB.best.filter(p => natIds.includes(p.c) && p.d === decade).sort((a, b) => b.r - a.r);
+  return draftXIFromPool(pool);
+}
+const regionalOpponentXICache = new Map();
+function getRegionalOpponentXI(regionId, decade){
+  const key = regionId + '|' + decade;
+  if(!regionalOpponentXICache.has(key)){
+    const natIds = regionId === 'ASIA' ? ASIA_TEAM_NATIONS : ROW_TEAM_NATIONS;
+    regionalOpponentXICache.set(key, buildRegionalOpponentXI(natIds, decade));
+  }
+  return regionalOpponentXICache.get(key);
+}
 let decadeOpponentsCache = null;
 function getDecadeOpponents(){
   if(decadeOpponentsCache) return decadeOpponentsCache;
   const list = [];
+  const allDecades = [...new Set(DB.best.map(p => p.d))];
   for(const nat of NATIONS){
-    const decades = [...new Set(DB.best.filter(p => p.c === nat.id).map(p => p.d))];
+    const decades = allDecades.filter(d => DB.best.some(p => p.c === nat.id && p.d === d));
     for(const d of decades){
       const xi = getDecadeOpponentXI(nat.id, d);
       // Some eras/nations simply don't have 11 real, role-legal players in
@@ -1489,8 +1510,31 @@ function getDecadeOpponents(){
       list.push({ id: nat.id + '_' + d, natId: nat.id, decade: d, name: `${nat.name} (${d})`, flag: nat.flag, opp, venues: nat.venues, isAllStar: false });
     }
   }
+  const REGIONS = [
+    { id: 'ASIA', natIds: ASIA_TEAM_NATIONS, name: 'Asia XI', flag: '🌏', venues: ['Dubai International Stadium'] },
+    { id: 'ROW', natIds: ROW_TEAM_NATIONS, name: 'Rest of World XI', flag: '🌍', venues: ["Lord's"] },
+  ];
+  for(const region of REGIONS){
+    for(const d of allDecades){
+      const xi = getRegionalOpponentXI(region.id, d);
+      if(xi.length !== 11 || !xi.some(p => p.roles.includes('wk'))) continue;
+      const opp = Math.round(xi.reduce((s, p) => s + p.r, 0) / 11);
+      list.push({ id: region.id + '_' + d, natId: region.id, decade: d, name: `${region.name} (${d})`, flag: region.flag, opp, venues: region.venues, isAllStar: false, isRegional: true });
+    }
+  }
+  for(const team of ALLSTAR_TEAMS){
+    list.push({ id: team.id, natId: team.id, name: team.name, flag: team.flag, opp: team.opp, venues: team.venues, isAllStar: true });
+  }
   decadeOpponentsCache = list;
   return list;
+}
+// Single dispatcher for "the real 11 players this opponent puts on the
+// field" -- branches by opponent kind so verifySeriesWin/the client don't
+// need to know which of the three opponent shapes they're facing.
+function getBYTOpponentXI(nat){
+  if(nat.isAllStar) return getWorldAllStarXI(nat.id);
+  if(nat.isRegional) return getRegionalOpponentXI(nat.natId, nat.decade);
+  return getDecadeOpponentXI(nat.natId, nat.decade);
 }
 function resolvePackOpponent(opponentId){
   const found = getDecadeOpponents().find(o => o.id === opponentId);
@@ -1556,8 +1600,8 @@ function verifySeriesWin({ seed, xi: cardKeys, captainIdx, opponentId, fmt }){
       const code = res.code;
       const gen = fmt === 'test' ? genTestMatch(code, nat) : genWhiteBallMatch(code, nat, res.superOver);
       const genLists = toInningsLists(gen);
-      const oppXi = getDecadeOpponentXI(nat.natId, nat.decade);
-      buildMatchScorecard(fullXi, oppXi, genLists.yourInningsList, genLists.oppInningsList, nat.natId); // Consumes RNG state in lockstep with client
+      const oppXi = getBYTOpponentXI(nat);
+      buildMatchScorecard(fullXi, oppXi, genLists.yourInningsList, genLists.oppInningsList, nat.isAllStar ? 'All-Stars' : nat.natId); // Consumes RNG state in lockstep with client
       pickPOTM(code, nat); // Consumes RNG state in lockstep with client
       if(code === 'W') w++; else if(code === 'D') d++; else l++;
     }

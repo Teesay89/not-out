@@ -453,6 +453,14 @@ body.sim-active .masthead{
 .lb-filter{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:2px 0 14px}
 .lb-pill{padding:7px 13px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--cream-dim);font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.05em;cursor:pointer}
 .lb-pill.selected{border-color:var(--brass);color:var(--brass);background:var(--panel-2)}
+.byt-filter-row{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+.byt-select{flex:1 1 30%;min-width:100px;padding:9px 10px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--cream);font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.02em}
+.byt-select:focus{outline:none;border-color:var(--brass)}
+.byt-warnings{background:rgba(214,64,43,.12);border:1px solid var(--ball);border-radius:10px;padding:10px 14px;margin-bottom:12px}
+.byt-warnings .warn-title{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ball);margin-bottom:4px}
+.byt-warnings ul{margin:0;padding-left:18px}
+.byt-warnings li{font-size:12.5px;color:var(--cream-dim);line-height:1.6}
+.byt-collapse-btn{margin-bottom:10px;text-align:center}
 </style>
 </head>
 <body>
@@ -474,8 +482,8 @@ body.sim-active .masthead{
       <button class="fmt-hero represent-hero" id="fmt-byt-hero" onclick="showBuildYourTeamSetup()"><span class="newtag">NEW</span>BUILD YOUR TEAM<small>Open packs, build a squad that's yours, take on 12 teams</small><small class="byt-signin-note">Requires signing in</small></button>
       <p id="dataStatus" class="data-status" style="display:none"></p>
       <div class="fmt-row">
-        <button class="fmt-btn selected" id="fmt-test" onclick="selectFormat('test')">Test<small>4,521 players · 16 decades</small></button>
-        <button class="fmt-btn" id="fmt-odi" onclick="selectFormat('odi')">ODI<small>3,196 players · 6 decades</small></button>
+        <button class="fmt-btn selected" id="fmt-test" onclick="selectFormat('test')">Test<small>4,558 players · 16 decades</small></button>
+        <button class="fmt-btn" id="fmt-odi" onclick="selectFormat('odi')">ODI<small>3,204 players · 6 decades</small></button>
         <button class="fmt-btn" id="fmt-t20" onclick="selectFormat('t20')">T20<small>1,621 players · 3 decades</small></button>
       </div>
       <div class="era-filter-row" id="eraFilterRow"></div>
@@ -584,9 +592,27 @@ body.sim-active .masthead{
       <h2>Pick your XI</h2>
       <p><span id="bytSquadCount">0</span> of 11 picked <span id="bytSquadRating"></span></p>
     </div>
+    <div id="bytSquadWarnings" class="byt-warnings" style="display:none"></div>
     <button class="btn secondary" style="margin-bottom:12px" onclick="bytAutoSelectBest()">⚡ Auto-select best team</button>
     <div class="pick-grid" id="bytSlotsGrid"></div>
-    <div class="pick-grid" id="bytPickGrid"></div>
+
+    <button class="btn secondary byt-collapse-btn" id="bytAvailableToggle" onclick="bytToggleAvailableList()">▲ Available players (<span id="bytAvailableCount">0</span>)</button>
+    <div id="bytAvailableSection">
+      <div class="byt-filter-row">
+        <select class="byt-select" id="bytPickSort" onchange="bytRenderSquadPicker()">
+          <option value="rating-desc">Rating: high to low</option>
+          <option value="rating-asc">Rating: low to high</option>
+        </select>
+        <select class="byt-select" id="bytPickRoleFilter" onchange="bytRenderSquadPicker()">
+          <option value="all">All roles</option>
+          <option value="bat">Batters</option>
+          <option value="bowl">Bowlers</option>
+          <option value="ar">All-rounders</option>
+          <option value="wk">Keepers</option>
+        </select>
+      </div>
+      <div class="pick-grid" id="bytPickGrid"></div>
+    </div>
     <button class="btn" id="bytSquadContinueBtn" style="margin-top:10px;display:none" onclick="bytConfirmSquad()">Continue to captain pick</button>
   </section>
 
@@ -621,15 +647,34 @@ body.sim-active .masthead{
 
   <!-- BUILD YOUR TEAM: MY COLLECTION -->
   <section class="screen" id="scr-byt-collection">
+    <a href="javascript:void(0)" class="back-link" onclick="showBYTCampaignCheckpoint()">← Back</a>
     <div class="slot-callout">
       <div class="eyebrow" id="bytCollectionTeamName">My Collection</div>
       <h2 id="bytCollectionCount">0 players</h2>
       <p id="bytCollectionSpares">0 spare cards</p>
-      <p class="foot-note" id="bytCollectionRating" style="margin-top:6px"></p>
     </div>
-    <button class="btn secondary" onclick="bytRedeemDuplicates()">Redeem 5 spares for a pack</button>
+    <div class="lb-filter">
+      <button class="lb-pill selected" data-tab="players" onclick="bytSetCollectionTab('players')">My Players</button>
+      <button class="lb-pill" data-tab="duplicates" onclick="bytSetCollectionTab('duplicates')">My Duplicates</button>
+    </div>
+    <div class="byt-filter-row">
+      <select class="byt-select" id="bytCollectionSort" onchange="bytRenderCollectionGrid()">
+        <option value="rating-desc">Rating: high to low</option>
+        <option value="rating-asc">Rating: low to high</option>
+      </select>
+      <select class="byt-select" id="bytCollectionRoleFilter" onchange="bytRenderCollectionGrid()">
+        <option value="all">All roles</option>
+        <option value="bat">Batters</option>
+        <option value="bowl">Bowlers</option>
+        <option value="ar">All-rounders</option>
+        <option value="wk">Keepers</option>
+      </select>
+      <select class="byt-select" id="bytCollectionNationFilter" onchange="bytRenderCollectionGrid()">
+        <option value="all">All nations</option>
+      </select>
+    </div>
+    <button class="btn secondary" id="bytRedeemBtn" onclick="bytRedeemDuplicates()">Redeem 5 spares for a pack</button>
     <div class="pick-grid" id="bytCollectionGrid" style="margin-top:14px"></div>
-    <a href="javascript:void(0)" class="back-link" style="margin-top:10px" onclick="showBYTCampaignCheckpoint()">← Back</a>
   </section>
 
   <!-- DRAFT -->
@@ -739,13 +784,13 @@ body.sim-active .masthead{
       <button class="lb-pill" data-mode="t20" onclick="setLbFilter('t20')">T20</button>
       <button class="lb-pill" data-mode="represent" onclick="setLbFilter('represent')">Represent</button>
       <button class="lb-pill" data-mode="showdown" onclick="setLbFilter('showdown')">Showdown</button>
-      <button class="lb-pill" data-mode="buildteam" onclick="setLbFilter('buildteam')">Build Team</button>
+      <button class="lb-pill" data-mode="buildteam" onclick="setLbFilter('buildteam')">My Team</button>
     </div>
     <div id="lbBody"></div>
     <button class="btn secondary" style="margin-top:14px" onclick="closeLeaderboard()">← Back</button>
   </section>
 
-  <p class="data-note">Curated databases: 4,521 Test, 3,196 ODI and 1,621 T20 players, each rated for his standing within his own decade and format. Era-spanning greats may appear in more than one decade but can only be drafted once per game. Test pools run 1870s–2020s, ODI 1970s–2020s, T20 2000s–2020s.</p>
+  <p class="data-note">Curated databases: 4,558 Test, 3,204 ODI and 1,621 T20 players, each rated for his standing within his own decade and format. Era-spanning greats may appear in more than one decade but can only be drafted once per game. Test pools run 1870s–2020s, ODI 1970s–2020s, T20 2000s–2020s.</p>
   <div class="social-row">
     <a href="https://x.com/notoutcouk" target="_blank" rel="noopener" class="social-link">X</a>
     <a href="https://www.tiktok.com/@notoutcouk" target="_blank" rel="noopener" class="social-link">TikTok</a>
@@ -1922,9 +1967,16 @@ function getWorldAllStarXI(teamId){
 // rest batters) becomes its own opponent, instead of a fixed 11 nations +
 // 1 all-star tier. Strength (`opp`) is derived directly from the drafted
 // XI's own average rating, so thin eras/nations naturally play weaker and
-// stacked ones naturally play stronger. Byte-identical to the copy in
+// stacked ones naturally play stronger. Two more opponent kinds round out
+// the pool: the same 10 World All-Star tiers (90-99 rated) used elsewhere,
+// and two REGIONAL per-decade sides -- Asia (India/Pakistan/Sri Lanka/
+// Bangladesh combined) and Rest of World (every other nation combined) --
+// for eras too early for some nations to field their own XI but where a
+// regional composite still can. Byte-identical to the copy in
 // functions/gamelogic.js -- deterministic (no RNG), so client and server
 // always agree with zero lockstep risk.
+const ASIA_TEAM_NATIONS = ['IND', 'PAK', 'SL', 'BAN'];
+const ROW_TEAM_NATIONS = NATIONS.filter(n => !ASIA_TEAM_NATIONS.includes(n.id)).map(n => n.id);
 function buildDecadeOpponentXI(natId, decade){
   const pool = DB.best.filter(p => p.c === natId && p.d === decade).sort((a, b) => b.r - a.r);
   return draftXIFromPool(pool);
@@ -1935,12 +1987,26 @@ function getDecadeOpponentXI(natId, decade){
   if(!decadeOpponentXICache.has(key)) decadeOpponentXICache.set(key, buildDecadeOpponentXI(natId, decade));
   return decadeOpponentXICache.get(key);
 }
+function buildRegionalOpponentXI(natIds, decade){
+  const pool = DB.best.filter(p => natIds.includes(p.c) && p.d === decade).sort((a, b) => b.r - a.r);
+  return draftXIFromPool(pool);
+}
+const regionalOpponentXICache = new Map();
+function getRegionalOpponentXI(regionId, decade){
+  const key = regionId + '|' + decade;
+  if(!regionalOpponentXICache.has(key)){
+    const natIds = regionId === 'ASIA' ? ASIA_TEAM_NATIONS : ROW_TEAM_NATIONS;
+    regionalOpponentXICache.set(key, buildRegionalOpponentXI(natIds, decade));
+  }
+  return regionalOpponentXICache.get(key);
+}
 let decadeOpponentsCache = null;
 function getDecadeOpponents(){
   if(decadeOpponentsCache) return decadeOpponentsCache;
   const list = [];
+  const allDecades = [...new Set(DB.best.map(p => p.d))];
   for(const nat of NATIONS){
-    const decades = [...new Set(DB.best.filter(p => p.c === nat.id).map(p => p.d))];
+    const decades = allDecades.filter(d => DB.best.some(p => p.c === nat.id && p.d === d));
     for(const d of decades){
       const xi = getDecadeOpponentXI(nat.id, d);
       if(xi.length !== 11 || !xi.some(p => p.roles.includes('wk'))) continue;
@@ -1948,8 +2014,31 @@ function getDecadeOpponents(){
       list.push({ id: nat.id + '_' + d, natId: nat.id, decade: d, name: `${nat.name} (${d})`, flag: nat.flag, opp, venues: nat.venues, isAllStar: false });
     }
   }
+  const REGIONS = [
+    { id: 'ASIA', natIds: ASIA_TEAM_NATIONS, name: 'Asia XI', flag: '🌏', venues: ['Dubai International Stadium'] },
+    { id: 'ROW', natIds: ROW_TEAM_NATIONS, name: 'Rest of World XI', flag: '🌍', venues: ["Lord's"] },
+  ];
+  for(const region of REGIONS){
+    for(const d of allDecades){
+      const xi = getRegionalOpponentXI(region.id, d);
+      if(xi.length !== 11 || !xi.some(p => p.roles.includes('wk'))) continue;
+      const opp = Math.round(xi.reduce((s, p) => s + p.r, 0) / 11);
+      list.push({ id: region.id + '_' + d, natId: region.id, decade: d, name: `${region.name} (${d})`, flag: region.flag, opp, venues: region.venues, isAllStar: false, isRegional: true });
+    }
+  }
+  for(const team of ALLSTAR_TEAMS){
+    list.push({ id: team.id, natId: team.id, name: team.name, flag: team.flag, opp: team.opp, venues: team.venues, isAllStar: true });
+  }
   decadeOpponentsCache = list;
   return list;
+}
+// Single dispatcher for "the real 11 players this opponent puts on the
+// field" -- branches by opponent kind so bytPlaySeries doesn't need to
+// know which of the three opponent shapes it's facing.
+function getBYTOpponentXI(nat){
+  if(nat.isAllStar) return getWorldAllStarXI(nat.id);
+  if(nat.isRegional) return getRegionalOpponentXI(nat.natId, nat.decade);
+  return getDecadeOpponentXI(nat.natId, nat.decade);
 }
 
 /* ---- all-star XI (Series Showdown bonus round) ------------------------
@@ -2199,7 +2288,7 @@ function mulberry32(seed){
       while you're still undefeated this tour. One loss or draw and it's
       off for the rest of the tour. This is what makes a genuine unbeaten
       run rare-but-achievable without inflating an otherwise-average tour. */
-const ASIA_NATIONS = new Set(['IND','PAK','SL','BAN','AFG']);
+const ASIA_NATIONS = new Set(['IND','PAK','SL','BAN','AFG','ASIA']);
 const PACE_NATIONS = new Set(['AUS','SA','WI']);
 const WORLDCLASS_THRESHOLD = {test:75, odi:85, t20:78};
 const CONDITIONS_PENALTY = {test:0, odi:15, t20:9};
@@ -3092,8 +3181,8 @@ function renderLbBody(){
       const updatedWhen = isNaN(ud) ? '' : ud.toLocaleDateString();
       return `<div class="lb-row ${i===0?'top1':''}">
         <span class="lb-rank">${i+1}</span>
-        <div class="lb-mid"><div class="lb-score">${escHtml(e.teamName||'Unnamed XI')}${e.squadRating!=null?` · Squad ${e.squadRating}`:''}</div><div class="lb-meta">${e.wins||0}W · ${e.draws||0}D · ${e.losses||0}L · ${updatedWhen}</div></div>
-        <span class="lb-fmt">Build Team</span>
+        <div class="lb-mid"><div class="lb-score">${escHtml(e.teamName||'Unnamed XI')}</div><div class="lb-meta">${e.wins||0}W · ${e.draws||0}D · ${e.losses||0}L · ${updatedWhen}</div></div>
+        <span class="lb-fmt">My Team</span>
       </div>`;
     }
     if(e.mode==='represent'){
@@ -3434,6 +3523,8 @@ function showBYTSquadBuilder(){
     captainIdx = -1;
   }
   PLAYERS = DB.best; buildPlayerIndex();
+  document.getElementById('bytAvailableSection').style.display = '';
+  bytRenderAvailableToggleLabel(false);
   switchScreen('scr-byt-squad');
   bytRenderSquadPicker();
 }
@@ -3461,14 +3552,58 @@ function bytRenderSlotsOverview(){
     </div>`;
   }).join('');
 }
+// What's stopping this XI from being confirmable right now, shown as a
+// running checklist at the top of the squad builder -- so a missing
+// keeper (or any other gap) is obvious immediately instead of only
+// surfacing after clicking Continue.
+function bytComputeSquadWarnings(){
+  const warnings = [];
+  const hasKeeper = xiSlots.some(p=>p && p.roles.includes('wk'));
+  if(!hasKeeper) warnings.push('No wicketkeeper selected yet');
+  const invalidCount = xiSlots.filter((p,i)=>p && !SLOTS[i].fits(p)).length;
+  if(invalidCount>0) warnings.push(`${invalidCount} player${invalidCount===1?'':'s'} in a position they're not eligible for`);
+  const emptyCount = xiSlots.filter(p=>!p).length;
+  if(emptyCount>0) warnings.push(`${emptyCount} slot${emptyCount===1?'':'s'} still empty`);
+  return warnings;
+}
+function bytRenderSquadWarnings(){
+  const box = document.getElementById('bytSquadWarnings');
+  const warnings = bytComputeSquadWarnings();
+  if(!warnings.length){ box.style.display = 'none'; return; }
+  box.style.display = '';
+  box.innerHTML = `<div class="warn-title">Not ready yet</div><ul>${warnings.map(w=>`<li>${w}</li>`).join('')}</ul>`;
+}
+// Rebuilds the toggle button's full innerHTML (arrow + label + count span)
+// together every time -- setting .textContent on the button would wipe out
+// the nested #bytAvailableCount span permanently, since .textContent
+// replaces every child with one plain text node.
+function bytRenderAvailableToggleLabel(collapsed){
+  const prevCount = document.getElementById('bytAvailableCount');
+  const count = prevCount ? prevCount.textContent : '0';
+  document.getElementById('bytAvailableToggle').innerHTML = `${collapsed?'▼':'▲'} Available players (<span id="bytAvailableCount">${count}</span>)`;
+}
+function bytToggleAvailableList(){
+  const section = document.getElementById('bytAvailableSection');
+  const isHidden = section.style.display === 'none';
+  section.style.display = isHidden ? '' : 'none';
+  bytRenderAvailableToggleLabel(!isHidden);
+}
 function bytRenderSquadPicker(){
   document.getElementById('bytSquadCount').textContent = picksMade;
   const rating = bytAvgRating(xiSlots);
   document.getElementById('bytSquadRating').textContent = rating!=null ? `· Team rating: ${rating}` : '';
   bytRenderSlotsOverview();
+  bytRenderSquadWarnings();
+
+  const sortMode = document.getElementById('bytPickSort').value;
+  const roleFilter = document.getElementById('bytPickRoleFilter').value;
+  let available = bytOwnedPlayers.filter(p=>!draftedNames.has(p.n));
+  if(roleFilter!=='all') available = available.filter(p=>bytPlayerRoleMatches(p, roleFilter));
+  available.sort((a,b)=> sortMode==='rating-asc' ? a.r-b.r : b.r-a.r);
+  document.getElementById('bytAvailableCount').textContent = available.length;
+
   const grid = document.getElementById('bytPickGrid');
-  const available = bytOwnedPlayers.filter(p=>!draftedNames.has(p.n));
-  grid.innerHTML = available.map(p=>{
+  grid.innerHTML = available.length ? available.map(p=>{
     const { nat, typeTxt, statsTxt } = bytRenderCard(p);
     return `<button class="pcard" onclick="bytShowPositions('${bytCardKey(p)}')">
       <span class="flag">${nat?nat.flag:''}</span>
@@ -3480,7 +3615,8 @@ function bytRenderSquadPicker(){
       </span>
       <span class="rt">${p.r}<small>RATING</small></span>
     </button>`;
-  }).join('');
+  }).join('') : '<div class="lb-empty">No players match these filters.</div>';
+
   const full = picksMade>=11;
   const legal = full && bytXiIsLegal(xiSlots);
   const continueBtn = document.getElementById('bytSquadContinueBtn');
@@ -3488,19 +3624,22 @@ function bytRenderSquadPicker(){
   continueBtn.disabled = full && !legal;
   continueBtn.textContent = legal ? 'Continue to captain pick' : 'Fix invalid slots to continue';
 }
+// Picking a player and choosing his position both happen on this same
+// squad-builder page -- the position picker is a modal overlay, not a
+// screen change, so the available-players list underneath never moves.
 function bytShowPositions(cardKey){
   const p = bytHydrate(cardKey);
   const open = openSlotsFor(p);
-  const grid = document.getElementById('bytPickGrid');
-  grid.innerHTML = `<button class="back-link" onclick="bytRenderSquadPicker()">← Back to your collection</button>
-    <div class="pos-prompt">Where does ${p.n} go?</div>
-    <div class="pos-grid">` +
-    open.map(i=>{
-      const pen = positionPenalty(p, SLOTS[i].no);
-      return `<button class="pos-btn ${pen===0?'fit-good':''}" onclick="bytPlace('${cardKey}', ${i})">
-        ${SLOTS[i].no}<small>${fitBadge(pen)}</small></button>`;
-    }).join('') +
-    `</div>`;
+  document.getElementById('bytPositionPrompt').textContent = `Where does ${p.n} go?`;
+  document.getElementById('bytPositionGrid').innerHTML = open.map(i=>{
+    const pen = positionPenalty(p, SLOTS[i].no);
+    return `<button class="pos-btn ${pen===0?'fit-good':''}" onclick="bytPlace('${cardKey}', ${i})">
+      ${SLOTS[i].no}<small>${fitBadge(pen)}</small></button>`;
+  }).join('');
+  document.getElementById('bytPositionModal').style.display = 'flex';
+}
+function bytClosePositionModal(){
+  document.getElementById('bytPositionModal').style.display = 'none';
 }
 function bytPlace(cardKey, idx){
   const p = bytHydrate(cardKey);
@@ -3508,6 +3647,7 @@ function bytPlace(cardKey, idx){
   xiSlots[idx] = p;
   draftedNames.add(p.n);
   picksMade++;
+  bytClosePositionModal();
   bytRenderSquadPicker();
 }
 function bytRemoveFromSlot(idx){
@@ -3653,8 +3793,8 @@ function bytPlaySeries(){
     const code = res.code;
     const gen = FMTKEY==='test' ? genTestMatch(code, nat) : genWhiteBallMatch(code, nat, res.superOver);
     const {yourInningsList, oppInningsList} = toInningsLists(gen);
-    const oppXi = getDecadeOpponentXI(nat.natId, nat.decade);
-    const scorecard = buildMatchScorecard(fullXi, oppXi, yourInningsList, oppInningsList, nat.natId);
+    const oppXi = getBYTOpponentXI(nat);
+    const scorecard = buildMatchScorecard(fullXi, oppXi, yourInningsList, oppInningsList, nat.isAllStar ? 'All-Stars' : nat.natId);
     const potm = pickPOTM(code, nat);
     if(code==='W') w++; else if(code==='D') d++; else l++;
     const matchNum = m+1;
@@ -3737,15 +3877,54 @@ function bytBackToCheckpoint(){
   showBYTCampaignCheckpoint();
 }
 
-function showBYTCollection(){
-  switchScreen('scr-byt-collection');
-  document.getElementById('bytCollectionTeamName').textContent = bytCollection.teamName;
+// "All-rounders" = any player with the ar role (batting/bowling/true sub-type).
+// "Bowlers" = bowl role OR a bowling all-rounder. "Batters" = bat role OR a
+// batting all-rounder -- each filter is its own independent view, so a
+// bowling all-rounder shows under both "All-rounders" and "Bowlers".
+function bytPlayerRoleMatches(p, filter){
+  if(filter==='all') return true;
+  if(filter==='bat') return p.roles.includes('bat') || (p.roles.includes('ar') && p.arsub==='batting');
+  if(filter==='bowl') return p.roles.includes('bowl') || (p.roles.includes('ar') && p.arsub==='bowling');
+  if(filter==='ar') return p.roles.includes('ar');
+  if(filter==='wk') return p.roles.includes('wk');
+  return true;
+}
+let bytCollectionTab = 'players';
+function bytSetCollectionTab(tab){
+  bytCollectionTab = tab;
+  document.querySelectorAll('#scr-byt-collection .lb-pill').forEach(b=>b.classList.toggle('selected', b.dataset.tab===tab));
+  document.getElementById('bytRedeemBtn').style.display = tab==='duplicates' ? '' : 'none';
+  bytRenderCollectionGrid();
+}
+function bytPopulateNationFilter(){
+  const sel = document.getElementById('bytCollectionNationFilter');
+  const owned = new Set(bytOwnedPlayers.map(p=>p.c));
+  const current = sel.value || 'all';
+  sel.innerHTML = '<option value="all">All nations</option>' +
+    NATIONS.filter(n=>owned.has(n.id)).map(n=>`<option value="${n.id}">${n.flag} ${n.name}</option>`).join('');
+  sel.value = [...sel.options].some(o=>o.value===current) ? current : 'all';
+}
+function bytRenderCollectionGrid(){
+  const sortMode = document.getElementById('bytCollectionSort').value;
+  const roleFilter = document.getElementById('bytCollectionRoleFilter').value;
+  const nationFilter = document.getElementById('bytCollectionNationFilter').value;
+  let list = bytOwnedPlayers.slice();
+  if(bytCollectionTab==='duplicates'){
+    list = list.filter(p=>{ const c = bytCollection.cards[bytCardKey(p)]; return c && c.count>1; });
+  }
+  if(roleFilter!=='all') list = list.filter(p=>bytPlayerRoleMatches(p, roleFilter));
+  if(nationFilter!=='all') list = list.filter(p=>p.c===nationFilter);
+  list.sort((a,b)=> sortMode==='rating-asc' ? a.r-b.r : b.r-a.r);
+
   document.getElementById('bytCollectionCount').textContent = `${bytOwnedPlayers.length} players`;
   document.getElementById('bytCollectionSpares').textContent = `${bytCollection.spareCount} spare card${bytCollection.spareCount===1?'':'s'}`;
-  const squadRating = bytAvgRating(bytOwnedPlayers);
-  document.getElementById('bytCollectionRating').textContent = squadRating!=null ? `Squad rating: ${squadRating}` : '';
+
   const grid = document.getElementById('bytCollectionGrid');
-  grid.innerHTML = bytOwnedPlayers.map(p=>{
+  if(!list.length){
+    grid.innerHTML = `<div class="lb-empty">${bytCollectionTab==='duplicates' ? "No duplicate cards yet — win packs and you'll start collecting spares." : 'No players match these filters.'}</div>`;
+    return;
+  }
+  grid.innerHTML = list.map(p=>{
     const { nat, statsTxt } = bytRenderCard(p);
     const key = bytCardKey(p);
     const count = (bytCollection.cards[key] && bytCollection.cards[key].count) || 1;
@@ -3760,6 +3939,15 @@ function showBYTCollection(){
       <span class="rt">${p.r}<small>RATING</small></span>
     </div>`;
   }).join('');
+}
+function showBYTCollection(){
+  switchScreen('scr-byt-collection');
+  document.getElementById('bytCollectionTeamName').textContent = bytCollection.teamName;
+  bytCollectionTab = 'players';
+  document.querySelectorAll('#scr-byt-collection .lb-pill').forEach(b=>b.classList.toggle('selected', b.dataset.tab==='players'));
+  document.getElementById('bytRedeemBtn').style.display = 'none';
+  bytPopulateNationFilter();
+  bytRenderCollectionGrid();
 }
 async function bytRedeemDuplicates(){
   if(bytCollection.spareCount < 5){
@@ -4753,6 +4941,17 @@ if(typeof twemoji !== 'undefined'){
       <p class="name-modal-sub" style="margin:12px 0 4px">or enter a name manually</p>
       <input type="text" id="nameInput" class="name-modal-input" maxlength="20" placeholder="Your name" autocomplete="off">
       <button class="btn" style="margin-top:14px" onclick="confirmNameInput()">Save &amp; Continue</button>
+    </div>
+  </div>
+
+  <!-- BUILD YOUR TEAM: POSITION PICKER (a modal, not a screen -- picking a
+       player and choosing where he goes stays on the same squad-builder
+       page throughout) -->
+  <div class="name-modal" id="bytPositionModal" style="display:none">
+    <div class="name-modal-card">
+      <div class="pos-prompt" id="bytPositionPrompt">Where does he go?</div>
+      <div class="pos-grid" id="bytPositionGrid"></div>
+      <button class="back-link" onclick="bytClosePositionModal()">Cancel</button>
     </div>
   </div>
 
