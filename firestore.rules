@@ -13,5 +13,17 @@ service cloud.firestore {
       // from a browser console has no path in.
       allow write: if false;
     }
+
+    // Pack Draft's persistent per-user collection. A signed-in user may
+    // read only their own document (for rendering "my collection" /
+    // resuming a campaign) — everyone else's is invisible to them. Same
+    // "Admin SDK only" write lockdown as leaderboard: pack rolls, series
+    // verification, and duplicate redemption all happen in Cloud
+    // Functions, never as a direct client write, so a forged "I own a 99"
+    // has no path in either.
+    match /packCollections/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false;
+    }
   }
 }

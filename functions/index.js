@@ -321,3 +321,282 @@ exports.submitSeriesShowdownCombinedScore = onRequest(async (req, res) => {
     });
   }
 });
+
+// ============================================================
+// Build Your Team -- persistent, signed-in-only collection mode.
+// Unlike every mode above, sign-in here is mandatory, not optional: there
+// is no guest path, since the whole point is progress that survives across
+// sessions. Every endpoint below requires a valid Firebase ID token and
+// rejects with 401 if it's missing or doesn't verify -- never falls back
+// to a guest-style default the way resolveVerifiedIdentity does elsewhere.
+// ============================================================
+
+async function requireAuthedUid(req, res) {
+  const { idToken } = req.body || {};
+  if (!idToken) {
+    res.status(401).json({ ok: false, error: "Sign-in required" });
+    return null;
+  }
+  try {
+    const decoded = await admin.auth().verifyIdToken(idToken);
+    return decoded.uid;
+  } catch (e) {
+    res.status(401).json({ ok: false, error: "Invalid or expired sign-in" });
+    return null;
+  }
+}
+
+// Merges newly-rolled cards into an existing {cards, spareCount} pair.
+// Pooled duplicate rule: every copy beyond a card's first adds one spare to
+// the running counter -- checked against the running `updated` state as
+// each new card is merged in, so this also catches two copies of the same
+// player landing in the SAME pack, not just across packs.
+function mergeCardsIntoCollection(cards, spareCount, newCardObjs) {
+  const updated = { ...cards };
+  let spares = spareCount;
+  for (const p of newCardObjs) {
+    const key = gamelogic.cardKey(p);
+    const prevCount = (updated[key] && updated[key].count) || 0;
+    if (prevCount >= 1) spares += 1;
+    updated[key] = { count: prevCount + 1 };
+  }
+  return { cards: updated, spareCount: spares };
+}
+
+function packDoc(db, uid) {
+  return db.collection("packCollections").doc(uid);
+}
+
+const PACK_TEAM_NAME_MAX = 30;
+
+exports.openStarterPack = onRequest(async (req, res) => {
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Headers", "Content-Type");
+  if (req.method === "OPTIONS") {
+    res.set("Access-Control-Allow-Methods", "POST");
+    res.status(204).send("");
+    return;
+  }
+  if (req.method !== "POST") {
+    res.status(405).json({ ok: false, error: "Method not allowed" });
+    return;
+  }
+
+  try {
+    const uid = await requireAuthedUid(req, res);
+    if (!uid) return;
+
+    const { teamName, fmt } = req.body || {};
+    if (!teamName || typeof teamName !== "string") {
+      res.status(400).json({ ok: false, error: "Missing team name" });
+      return;
+    }
+    if (!["test", "odi", "t20"].includes(fmt)) {
+      res.status(400).json({ ok: false, error: "Missing or bad format" });
+      return;
+    }
+
+    const db = admin.firestore();
+    const docRef = packDoc(db, uid);
+    const existing = await docRef.get();
+    if (existing.exists) {
+      // Idempotent: retrying (e.g. a flaky connection) never re-rolls a
+      // free pack or silently renames an existing team.
+      res.status(200).json({ ok: true, collection: existing.data() });
+      return;
+    }
+
+    const safeTeamName = String(teamName).replace(/[<>&"'`]/g, '').replace(/\s+/g, ' ').trim().slice(0, PACK_TEAM_NAME_MAX) || "My Team";
+
+    const starterCards = gamelogic.rollStarterPack();
+    const merged = mergeCardsIntoCollection({}, 0, starterCards);
+
+    // The 12 opponents (11 NATIONS + 1 randomly-drawn ALLSTAR_TEAMS tier),
+    // shuffled once for this campaign -- same shape as World Tour's own
+    // stops shuffle, just persisted instead of recomputed per session.
+    const allStarTeam = gamelogic.ALLSTAR_TEAMS[Math.floor(Math.random() * gamelogic.ALLSTAR_TEAMS.length)];
+    const order = gamelogic.shuffle(gamelogic.NATIONS.map((n) => n.id));
+    order.push(allStarTeam.id);
+
+    const now = new Date().toISOString();
+    const doc = {
+      teamName: safeTeamName,
+      cards: merged.cards,
+      spareCount: merged.spareCount,
+      campaign: {
+        order,
+        index: 0,
+        wins: 0,
+        losses: 0,
+        xi: null,
+        captainIdx: null,
+        fmt: String(fmt),
+      },
+      createdAt: now,
+      updatedAt: now,
+    };
+    await docRef.set(doc);
+    res.status(200).json({ ok: true, collection: doc });
+  } catch (err) {
+    console.error("openStarterPack error:", err);
+    res.status(500).json({ ok: false, error: err.message || "Internal server error" });
+  }
+});
+
+exports.claimSeriesReward = onRequest(async (req, res) => {
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Headers", "Content-Type");
+  if (req.method === "OPTIONS") {
+    res.set("Access-Control-Allow-Methods", "POST");
+    res.status(204).send("");
+    return;
+  }
+  if (req.method !== "POST") {
+    res.status(405).json({ ok: false, error: "Method not allowed" });
+    return;
+  }
+
+  try {
+    const uid = await requireAuthedUid(req, res);
+    if (!uid) return;
+
+    const { seed, xi, captainIdx, opponentId } = req.body || {};
+    if (seed === undefined || !Array.isArray(xi) || xi.length !== 11 || !opponentId) {
+      res.status(400).json({ ok: false, error: "Missing required fields" });
+      return;
+    }
+
+    const db = admin.firestore();
+    const docRef = packDoc(db, uid);
+    const snap = await docRef.get();
+    if (!snap.exists) {
+      res.status(404).json({ ok: false, error: "No collection found -- open a starter pack first" });
+      return;
+    }
+    const data = snap.data();
+    const campaign = data.campaign || {};
+
+    // The opponent must be whichever stop this campaign is actually on --
+    // otherwise a client could just keep claiming the weakest team over
+    // and over instead of working through all 12.
+    const expectedOpponent = (campaign.order || [])[campaign.index || 0];
+    if (opponentId !== expectedOpponent) {
+      res.status(409).json({ ok: false, error: "Not your current opponent", expectedOpponent });
+      return;
+    }
+
+    // Ownership check: every submitted card must actually be in this
+    // user's own collection with at least one copy -- gamelogic's
+    // verifySeriesWin only checks that cards are REAL, not that this
+    // specific uid owns them, so that has to happen here.
+    for (const key of xi) {
+      const owned = data.cards && data.cards[key] && data.cards[key].count > 0;
+      if (!owned) {
+        res.status(403).json({ ok: false, error: "You don't own one of the submitted cards: " + key });
+        return;
+      }
+    }
+
+    const result = gamelogic.verifySeriesWin({ seed, xi, captainIdx, opponentId, fmt: campaign.fmt });
+
+    // Advance to the next stop regardless of the result -- a loss doesn't
+    // grant a pack, but the campaign still moves on, same as World Tour
+    // never repeating a stop. Wrapping past 12 reshuffles and starts again.
+    let nextIndex = (campaign.index || 0) + 1;
+    let nextOrder = campaign.order;
+    if (nextIndex >= nextOrder.length) {
+      const allStarTeam = gamelogic.ALLSTAR_TEAMS[Math.floor(Math.random() * gamelogic.ALLSTAR_TEAMS.length)];
+      nextOrder = gamelogic.shuffle(gamelogic.NATIONS.map((n) => n.id));
+      nextOrder.push(allStarTeam.id);
+      nextIndex = 0;
+    }
+
+    let cards = data.cards;
+    let spareCount = data.spareCount || 0;
+    let newCards = [];
+    if (result.won) {
+      newCards = gamelogic.rollPack(6);
+      const merged = mergeCardsIntoCollection(cards, spareCount, newCards);
+      cards = merged.cards;
+      spareCount = merged.spareCount;
+    }
+
+    const updated = {
+      cards,
+      spareCount,
+      campaign: {
+        order: nextOrder,
+        index: nextIndex,
+        wins: (campaign.wins || 0) + (result.won ? 1 : 0),
+        losses: (campaign.losses || 0) + (result.won ? 0 : 1),
+        xi,
+        captainIdx: Number(captainIdx) || 0,
+        fmt: campaign.fmt,
+      },
+      updatedAt: new Date().toISOString(),
+    };
+    await docRef.update(updated);
+
+    res.status(200).json({
+      ok: true,
+      won: result.won,
+      record: result.record,
+      newCards: newCards.map((p) => ({ n: p.n, c: p.c, d: p.d, r: p.r, cid: p.cid, key: gamelogic.cardKey(p) })),
+      spareCount,
+    });
+  } catch (err) {
+    console.error("claimSeriesReward error:", err);
+    res.status(500).json({ ok: false, error: err.message || "Internal server error" });
+  }
+});
+
+exports.redeemDuplicates = onRequest(async (req, res) => {
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Headers", "Content-Type");
+  if (req.method === "OPTIONS") {
+    res.set("Access-Control-Allow-Methods", "POST");
+    res.status(204).send("");
+    return;
+  }
+  if (req.method !== "POST") {
+    res.status(405).json({ ok: false, error: "Method not allowed" });
+    return;
+  }
+
+  try {
+    const uid = await requireAuthedUid(req, res);
+    if (!uid) return;
+
+    const db = admin.firestore();
+    const docRef = packDoc(db, uid);
+    const snap = await docRef.get();
+    if (!snap.exists) {
+      res.status(404).json({ ok: false, error: "No collection found -- open a starter pack first" });
+      return;
+    }
+    const data = snap.data();
+    const spareCount = data.spareCount || 0;
+    if (spareCount < 5) {
+      res.status(400).json({ ok: false, error: "Need at least 5 spares to redeem" });
+      return;
+    }
+
+    const newCards = gamelogic.rollPack(6);
+    const merged = mergeCardsIntoCollection(data.cards, spareCount - 5, newCards);
+
+    await docRef.update({
+      cards: merged.cards,
+      spareCount: merged.spareCount,
+      updatedAt: new Date().toISOString(),
+    });
+
+    res.status(200).json({
+      ok: true,
+      newCards: newCards.map((p) => ({ n: p.n, c: p.c, d: p.d, r: p.r, cid: p.cid, key: gamelogic.cardKey(p) })),
+      spareCount: merged.spareCount,
+    });
+  } catch (err) {
+    console.error("redeemDuplicates error:", err);
+    res.status(500).json({ ok: false, error: err.message || "Internal server error" });
+  }
+});

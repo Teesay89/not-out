@@ -1385,4 +1385,146 @@ function calculateScore({ format, seed, xi: clientXi, captainIdx }) {
   }
 }
 
-module.exports = { calculateScore, calculateRepresentResult, calculateSeriesShowdownResult, calculateSeriesShowdownCombinedResult, DB, mulberry32, NATIONS, HUNDRED_TEAMS, FORMATS, SLOTS, teamStrengths, decideMatch, decideNeutral, genTestMatch, genWhiteBallMatch, genHundredMatch, pickPOTM, buildHundredTable, getBowlingUnit, shuffle, admin, db, __setFMTKEY, __setXI };
+/* ================= BUILD YOUR TEAM: pack rolling + series verification =================
+   A persistent, signed-in-only collection mode. Pack contents are rolled with
+   plain Math.random(), NOT seeded/mirrored -- unlike match simulation, the
+   client never computes or predicts a pack's contents, only receives the
+   server's authoritative result, so there's no lockstep requirement here. */
+
+// Authored so 45-59 is genuinely the most common tier and every tier is rarer
+// than the one below it -- deliberately NOT proportional to best.json's real
+// (bell-shaped) rating distribution, which would make 60-79 the most common
+// tier instead of 45-59.
+const PACK_RARITY_TABLE = [
+  { min: 99, max: 99, weight: 0.0010 },
+  { min: 98, max: 98, weight: 0.0030 },
+  { min: 90, max: 97, weight: 0.0200 },
+  { min: 80, max: 89, weight: 0.1200 },
+  { min: 60, max: 79, weight: 0.3500 },
+  { min: 45, max: 59, weight: 0.5060 },
+];
+
+function rollRarityTier(){
+  const roll = Math.random();
+  let acc = 0;
+  for(const tier of PACK_RARITY_TABLE){
+    acc += tier.weight;
+    if(roll < acc) return tier;
+  }
+  return PACK_RARITY_TABLE[PACK_RARITY_TABLE.length - 1];
+}
+
+function rollCard(pool){
+  const tier = rollRarityTier();
+  const candidates = pool.filter(p => p.r >= tier.min && p.r <= tier.max);
+  // A tier with zero real players in this specific pool (shouldn't happen
+  // against the full best.json range, but defends against a narrower pool
+  // later) falls back to the whole pool rather than throwing.
+  const usable = candidates.length ? candidates : pool;
+  return usable[Math.floor(Math.random() * usable.length)];
+}
+
+// The stable identity for an owned card: cid alone isn't enough since the
+// game already treats each decade-version of a real player as a distinct
+// entity everywhere else (e.g. two separate Ricky Ponting rows, 1990s and
+// 2000s, in best.json).
+function cardKey(p){ return `${p.cid}_${p.d}`; }
+
+function rollStarterPack(){
+  const pool = DB.best;
+  const wkPool = pool.filter(p => p.roles.includes('wk'));
+  const bowlPool = pool.filter(p => p.roles.includes('bowl') || p.roles.includes('ar'));
+  const cards = [];
+  for(let i = 0; i < 2; i++) cards.push(rollCard(wkPool));
+  for(let i = 0; i < 10; i++) cards.push(rollCard(bowlPool));
+  for(let i = 0; i < 10; i++) cards.push(rollCard(pool));
+  return cards;
+}
+
+function rollPack(n){
+  const cards = [];
+  for(let i = 0; i < n; i++) cards.push(rollCard(DB.best));
+  return cards;
+}
+
+// The 12 Build Your Team opponents are the same 11 NATIONS + 1 ALLSTAR_TEAMS
+// tier used elsewhere -- this just resolves whichever id was stored in the
+// shuffled campaign order back to the real object.
+function resolvePackOpponent(opponentId){
+  const nat = NATIONS.find(n => n.id === opponentId);
+  if(nat) return nat;
+  const allStar = ALLSTAR_TEAMS.find(t => t.id === opponentId);
+  if(allStar) return allStar;
+  throw new Error('unknown opponent: ' + opponentId);
+}
+
+/* Hydrates a Build Your Team XI from card keys against DB.best. Ownership --
+   does this uid actually own each of these cards? -- is checked by the
+   caller in functions/index.js BEFORE this runs (against the Firestore
+   collection doc); this only checks that the cards are real and legally
+   slotted, exactly like calculateScore's own hydration step checks the
+   player is real. */
+function hydratePackXI(cardKeys){
+  if(!Array.isArray(cardKeys) || cardKeys.length !== 11) throw new Error('XI must have exactly 11 players');
+  const pool = DB.best;
+  const seen = new Set();
+  return cardKeys.map((key) => {
+    const found = pool.find(p => cardKey(p) === key);
+    if(!found) throw new Error('unknown card: ' + key);
+    if(seen.has(key)) throw new Error('duplicate card: ' + key);
+    seen.add(key);
+    return found;
+  });
+}
+
+/* One 5-match series against a single Build Your Team opponent, verified
+   entirely server-side -- mirrors calculateScore's World Tour branch, but
+   for one opponent per call instead of a 12-stop tour, and with hasSpin/
+   hasPace/conditionsPenalty computed fresh from THIS call's xi every time
+   (never cached across series) -- that's what makes a lineup change between
+   series actually change the odds against the next opponent. No streak/
+   Immortal-XI bonus here: that's a whole-tour concept that doesn't map onto
+   independently-verified, revisable-lineup series. */
+function verifySeriesWin({ seed, xi: cardKeys, captainIdx, opponentId, fmt }){
+  if(!['test','odi','t20'].includes(fmt)) throw new Error('bad format');
+  if(!Number.isInteger(seed)) throw new Error('bad seed');
+
+  const nativeRandom = Math.random;
+  Math.random = mulberry32(seed);
+
+  try{
+    __setFMTKEY(fmt);
+    const fullXi = hydratePackXI(cardKeys);
+    for(let i = 0; i < 11; i++){
+      if(!SLOTS[i].fits(fullXi[i])) throw new Error(`player at slot ${i + 1} (${fullXi[i].n}) is not eligible for that slot`);
+    }
+    if(!fullXi.some(p => p.roles.includes('wk'))) throw new Error('XI has no wicketkeeper');
+    __setXI(fullXi);
+    __setCaptainIdx(captainIdx);
+
+    const nat = resolvePackOpponent(opponentId);
+    const st = teamStrengths();
+    const hasSpin = hasWorldClassBowlingType(fullXi, 'spin');
+    const hasPace = hasWorldClassBowlingType(fullXi, 'pace');
+    const statsBonus = computeStatsBonus(fullXi);
+    const conditionsPenalty = computeConditionsPenalty(nat, hasSpin, hasPace);
+
+    let w = 0, d = 0, l = 0;
+    for(let m = 0; m < 5; m++){
+      const effStrength = st.strength + statsBonus - conditionsPenalty - (BASE_DIFFICULTY_PENALTY[fmt] || 0);
+      const res = decideMatch(effStrength, nat.opp + 4);
+      const code = res.code;
+      const gen = fmt === 'test' ? genTestMatch(code, nat) : genWhiteBallMatch(code, nat, res.superOver);
+      const genLists = toInningsLists(gen);
+      const oppXi = nat.isAllStar ? getWorldAllStarXI(nat.id) : getOppositionXI(nat.id, 'best');
+      buildMatchScorecard(fullXi, oppXi, genLists.yourInningsList, genLists.oppInningsList, nat.isAllStar ? 'All-Stars' : nat.id); // Consumes RNG state in lockstep with client
+      pickPOTM(code, nat); // Consumes RNG state in lockstep with client
+      if(code === 'W') w++; else if(code === 'D') d++; else l++;
+    }
+    return { won: w > l, record: `${w}-${d}-${l}` };
+  } finally {
+    Math.random = nativeRandom;
+  }
+}
+
+module.exports = { calculateScore, calculateRepresentResult, calculateSeriesShowdownResult, calculateSeriesShowdownCombinedResult, DB, mulberry32, NATIONS, ALLSTAR_TEAMS, HUNDRED_TEAMS, FORMATS, SLOTS, teamStrengths, decideMatch, decideNeutral, genTestMatch, genWhiteBallMatch, genHundredMatch, pickPOTM, buildHundredTable, getBowlingUnit, shuffle, admin, db, __setFMTKEY, __setXI, rollStarterPack, rollPack, verifySeriesWin, cardKey };

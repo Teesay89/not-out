@@ -438,6 +438,7 @@ body.sim-active .masthead{
       <h2>Choose your format</h2>
       <button class="fmt-hero represent-hero" id="fmt-represent-hero" onclick="showRepresentSetup()"><span class="newtag">NEW</span>REPRESENT YOUR NATION<small>One country only · face the rest of the world in a league table</small></button>
       <button class="fmt-hero represent-hero" id="fmt-showdown-hero" onclick="showSeriesShowdownSetup()"><span class="newtag">NEW</span>SERIES SHOWDOWN<small>Pick a side in a real series currently being played</small></button>
+      <button class="fmt-hero represent-hero" id="fmt-byt-hero" onclick="showBuildYourTeamSetup()"><span class="newtag">NEW</span>BUILD YOUR TEAM<small>Open packs, build a squad that's yours, take on 12 teams — sign-in required</small></button>
       <p id="dataStatus" class="data-status" style="display:none"></p>
       <div class="fmt-row">
         <button class="fmt-btn selected" id="fmt-test" onclick="selectFormat('test')">Test<small>4,521 players · 16 decades</small></button>
@@ -509,6 +510,81 @@ body.sim-active .masthead{
       <button class="btn" onclick="startSeriesShowdownCombinedDraft()">Start the draft</button>
     </div>
     <a href="javascript:void(0)" class="back-link" style="margin-top:10px" onclick="exitSeriesShowdownSetup()">← Back</a>
+  </section>
+
+  <!-- BUILD YOUR TEAM: SETUP -->
+  <section class="screen" id="scr-byt-setup">
+    <div class="slot-callout">
+      <div class="eyebrow">Build Your Team</div>
+      <h2>Name your team</h2>
+      <p>Sign in, open your first pack, and take your XI on the road — win a series, earn a pack, grow your squad.</p>
+    </div>
+    <input type="text" id="bytTeamNameInput" class="name-modal-input" maxlength="30" placeholder="Your team's name" autocomplete="off">
+    <div class="fmt-row" id="bytFmtRow" style="margin-top:14px">
+      <button class="fmt-btn selected" data-fmt="test" onclick="selectBYTFormat('test')">Test</button>
+      <button class="fmt-btn" data-fmt="odi" onclick="selectBYTFormat('odi')">ODI</button>
+      <button class="fmt-btn" data-fmt="t20" onclick="selectBYTFormat('t20')">T20</button>
+    </div>
+    <p class="foot-note" style="margin-top:14px">This choice sets the format for every series you play with this team — pick carefully, it can't be changed later.</p>
+    <button class="btn" style="margin-top:10px" onclick="startBuildYourTeam()">Open my starter pack</button>
+    <a href="javascript:void(0)" class="back-link" style="margin-top:10px" onclick="exitBuildYourTeamSetup()">← Back</a>
+  </section>
+
+  <!-- BUILD YOUR TEAM: PACK REVEAL -->
+  <section class="screen" id="scr-byt-reveal">
+    <div class="slot-callout">
+      <div class="eyebrow">Build Your Team</div>
+      <h2 id="bytRevealTitle">New Pack</h2>
+    </div>
+    <div class="pick-grid" id="bytRevealGrid"></div>
+    <button class="btn" style="margin-top:10px" onclick="bytContinueFromReveal()">Continue</button>
+  </section>
+
+  <!-- BUILD YOUR TEAM: SQUAD BUILDER -->
+  <section class="screen" id="scr-byt-squad">
+    <div class="slot-callout">
+      <div class="eyebrow" id="bytSquadEyebrow">Build Your Team</div>
+      <h2>Pick your XI</h2>
+      <p>Choose any 11 from your collection, then place each in the order — <span id="bytSquadCount">0</span> of 11 picked.</p>
+    </div>
+    <div class="pick-grid" id="bytPickGrid"></div>
+  </section>
+
+  <!-- BUILD YOUR TEAM: CAMPAIGN CHECKPOINT -->
+  <section class="screen" id="scr-byt-checkpoint">
+    <div class="slot-callout">
+      <div class="eyebrow" id="bytCheckpointTeamName">Build Your Team</div>
+      <h2 id="bytCheckpointRecord">0 wins · 0 losses</h2>
+      <p id="bytCheckpointNext">Next opponent: —</p>
+      <p class="foot-note" id="bytCheckpointHint" style="margin-top:8px"></p>
+    </div>
+    <button class="btn secondary" onclick="bytRevisesLineup()">Revise lineup</button>
+    <button class="btn" style="margin-top:10px" onclick="bytPlaySeries()">Play the series</button>
+    <button class="btn secondary" style="margin-top:10px" onclick="showBYTCollection()">My collection</button>
+    <a href="javascript:void(0)" class="back-link" style="margin-top:10px" onclick="switchScreen('scr-intro')">← Back to menu</a>
+  </section>
+
+  <!-- BUILD YOUR TEAM: SERIES RESULT (the match-by-match reveal itself
+       reuses #scr-season/#fixtures directly, same as every other mode) -->
+  <section class="screen" id="scr-byt-result">
+    <div class="verdict show" style="margin-top:40px">
+      <div class="rec" id="bytResultRec"></div>
+      <h2 id="bytResultTitle"></h2>
+      <p id="bytResultBody"></p>
+      <button class="btn" style="margin-top:16px" onclick="bytBackToCheckpoint()">Continue</button>
+    </div>
+  </section>
+
+  <!-- BUILD YOUR TEAM: MY COLLECTION -->
+  <section class="screen" id="scr-byt-collection">
+    <div class="slot-callout">
+      <div class="eyebrow" id="bytCollectionTeamName">My Collection</div>
+      <h2 id="bytCollectionCount">0 players</h2>
+      <p id="bytCollectionSpares">0 spare cards</p>
+    </div>
+    <button class="btn secondary" onclick="bytRedeemDuplicates()">Redeem 5 spares for a pack</button>
+    <div class="pick-grid" id="bytCollectionGrid" style="margin-top:14px"></div>
+    <a href="javascript:void(0)" class="back-link" style="margin-top:10px" onclick="showBYTCampaignCheckpoint()">← Back</a>
   </section>
 
   <!-- DRAFT -->
@@ -1495,6 +1571,7 @@ function showReview(){
   document.getElementById('bowlBar').style.width = clamp((st.bowl-70)/29*100,4,100)+'%';
   document.getElementById('fieldBar').style.width = clamp((st.fielding-70)/29*100,4,100)+'%';
   document.getElementById('balanceNote').textContent = st.notes.join('  ·  ');
+  if(bytMode) document.getElementById('tourBtn').textContent = 'Confirm lineup';
 }
 
 /* ================= SEASON SIM =================
@@ -2086,6 +2163,7 @@ function computeStatsBonus(xiList){
 let runSeed = null;
 const __nativeRandom = Math.random.bind(Math);
 function beginTour(){
+  if(bytMode){ bytConfirmLineup(); return; }
   runSeed = Math.floor(__nativeRandom() * 2**31);
   Math.random = mulberry32(runSeed);
   if(represMode) startRepresentLeague();
@@ -2324,7 +2402,12 @@ function renderSquadStats(){
 let currentScorecard = null, currentInningsIdx = 0;
 function showMatchScorecard(matchNum){
   let sc, title;
-  if(represMode){
+  if(bytMode){
+    const m = bytMatches[matchNum-1];
+    if(!m || !m.scorecard) return;
+    sc = m.scorecard;
+    title = `M${matchNum} vs ${bytCurrentOppLabel}`;
+  } else if(represMode){
     if(matchNum==='final'){
       if(!representFinal || !representFinal.scorecard) return;
       sc = representFinal.scorecard;
@@ -3030,6 +3113,375 @@ async function showSeriesShowdownSetup(){
 function exitSeriesShowdownSetup(){
   curSeriesMode = false;
   switchScreen('scr-intro');
+}
+
+/* ================= BUILD YOUR TEAM =================
+   Persistent, signed-in-only collection mode. Squad placement reuses
+   SLOTS/positionPenalty/openSlotsFor unchanged (they're already pool-
+   agnostic) by writing into the same xiSlots/draftedNames/xi/captainIdx
+   globals every other mode uses -- so showCaptainPick()/showReview() work
+   completely unmodified once 11 cards are placed. The match reveal reuses
+   #scr-season/#fixtures/appendRow/revealOne/skipReveal the same way, one
+   series (5 matches) at a time instead of a 12-stop tour. Everything here
+   mirrors the server's verifySeriesWin exactly -- see functions/gamelogic.js
+   -- since the server independently re-simulates every series before
+   granting a reward. */
+let bytMode = false;
+let bytCollection = null;
+let bytOwnedPlayers = [];
+let bytCardIndex = null;
+let bytLastResult = null;
+let bytMatches = [];
+let bytCurrentOppLabel = '';
+
+const BYT_STARTER_URL = 'https://us-central1-not-out-186a9.cloudfunctions.net/openStarterPack';
+const BYT_CLAIM_URL = 'https://us-central1-not-out-186a9.cloudfunctions.net/claimSeriesReward';
+const BYT_REDEEM_URL = 'https://us-central1-not-out-186a9.cloudfunctions.net/redeemDuplicates';
+
+function bytCardKey(p){ return `${p.cid}_${p.d}`; }
+function bytBuildCardIndex(){
+  bytCardIndex = new Map();
+  for(const p of DB.best) bytCardIndex.set(bytCardKey(p), p);
+}
+function bytHydrate(key){
+  if(!bytCardIndex) bytBuildCardIndex();
+  return bytCardIndex.get(key);
+}
+function bytOwnedList(){
+  const out = [];
+  for(const key of Object.keys(bytCollection.cards)) {
+    const p = bytHydrate(key);
+    if(p) out.push(p);
+  }
+  return out.sort((a,b)=>b.r-a.r);
+}
+function bytOpponentObj(id){
+  return NATIONS.find(n=>n.id===id) || ALLSTAR_TEAMS.find(t=>t.id===id);
+}
+function bytCurrentUid(){
+  return (fbAuth && fbAuth.currentUser) ? fbAuth.currentUser.uid : null;
+}
+async function bytRefetchCollection(uid){
+  if(!fbDB) return null;
+  const snap = await fbDB.collection('packCollections').doc(uid).get();
+  return snap.exists ? snap.data() : null;
+}
+function bytRenderCard(p, extraStatsCount){
+  const nat = NATIONS.find(n=>n.id===p.c);
+  const typeTxt = playerTypeLabel(p);
+  const statsTxt = pickRandomStats(p, extraStatsCount==null?2:extraStatsCount).join(' · ');
+  return { nat, typeTxt, statsTxt };
+}
+
+async function showBuildYourTeamSetup(){
+  if(!fbAuth){ await showConfirm('Sign-in unavailable', 'Sign-in is not available on this device.', 'OK'); return; }
+  if(!fbAuth.currentUser){
+    try{ await signInWithGoogle(); }catch(e){ console.warn('Google sign-in failed or was cancelled', e); return; }
+  }
+  await ensureFormatLoaded('best');
+  bytBuildCardIndex();
+  const uid = bytCurrentUid();
+  if(uid){
+    try{
+      const existing = await bytRefetchCollection(uid);
+      if(existing){
+        bytCollection = existing;
+        bytMode = true;
+        bytOwnedPlayers = bytOwnedList();
+        FMTKEY = bytCollection.campaign.fmt; FMT = FORMATS[FMTKEY]; DECADES = FMT.decades;
+        showBYTCampaignCheckpoint();
+        return;
+      }
+    }catch(e){ console.warn('Could not check for an existing Build Your Team collection', e); }
+  }
+  switchScreen('scr-byt-setup');
+}
+function selectBYTFormat(fmt){
+  document.querySelectorAll('#bytFmtRow .fmt-btn').forEach(b=>b.classList.toggle('selected', b.dataset.fmt===fmt));
+}
+function exitBuildYourTeamSetup(){
+  switchScreen('scr-intro');
+}
+async function startBuildYourTeam(){
+  const teamNameRaw = document.getElementById('bytTeamNameInput').value;
+  const selBtn = document.querySelector('#bytFmtRow .fmt-btn.selected');
+  const fmt = selBtn ? selBtn.dataset.fmt : 'test';
+  const idToken = await getAuthIdToken();
+  if(!idToken){ await showConfirm('Sign-in needed', 'Please sign in to play Build Your Team.', 'OK'); return; }
+  try{
+    const res = await fetch(BYT_STARTER_URL, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({idToken, teamName: teamNameRaw, fmt})
+    });
+    const data = await res.json();
+    if(!res.ok || !data.ok) throw new Error(data.error || ('HTTP '+res.status));
+    bytCollection = data.collection;
+    bytMode = true;
+    FMTKEY = fmt; FMT = FORMATS[fmt]; DECADES = FMT.decades;
+    bytOwnedPlayers = bytOwnedList();
+    showBYTPackReveal(bytOwnedPlayers.slice(), 'Your Starter Pack', showBYTSquadBuilder);
+  }catch(e){
+    await showConfirm('Could not open pack', e.message, 'OK');
+  }
+}
+
+function showBYTPackReveal(cards, title, onContinue){
+  switchScreen('scr-byt-reveal');
+  document.getElementById('bytRevealTitle').textContent = title;
+  const grid = document.getElementById('bytRevealGrid');
+  grid.innerHTML = cards.map(p=>{
+    const { nat, statsTxt } = bytRenderCard(p);
+    return `<div class="pcard" style="cursor:default">
+      <span class="flag">${nat?nat.flag:''}</span>
+      <span class="who">
+        <span class="nm">${p.n} <span class="decade">'${p.d}</span></span>
+        <span class="rl">${p.roles.map(r=>ROLE_LABEL[r]).join(' · ')}${p.tag?' — '+p.tag:''}</span>
+        <span class="bb">BAT ${p.br} · FIELD ${p.fr} · BOWL ${p.bwr}</span>
+        ${statsTxt?`<span class="stat-line">${statsTxt}</span>`:''}
+      </span>
+      <span class="rt">${p.r}<small>RATING</small></span>
+    </div>`;
+  }).join('');
+  window.__bytRevealContinue = onContinue;
+}
+function bytContinueFromReveal(){
+  if(window.__bytRevealContinue) window.__bytRevealContinue();
+}
+
+function showBYTSquadBuilder(){
+  xiSlots = new Array(11).fill(null);
+  draftedNames = new Set();
+  picksMade = 0;
+  PLAYERS = DB.best; buildPlayerIndex();
+  switchScreen('scr-byt-squad');
+  bytRenderSquadPicker();
+}
+function bytRenderSquadPicker(){
+  document.getElementById('bytSquadCount').textContent = picksMade;
+  const grid = document.getElementById('bytPickGrid');
+  const available = bytOwnedPlayers.filter(p=>!draftedNames.has(p.n));
+  grid.innerHTML = available.map(p=>{
+    const { nat, typeTxt, statsTxt } = bytRenderCard(p);
+    return `<button class="pcard" onclick="bytShowPositions('${bytCardKey(p)}')">
+      <span class="flag">${nat?nat.flag:''}</span>
+      <span class="who">
+        <span class="nm">${p.n} <span class="decade">'${p.d}</span></span>
+        <span class="rl">${p.roles.map(r=>ROLE_LABEL[r]).join(' · ')}${typeTxt?' — '+typeTxt:''}</span>
+        <span class="bb">BAT ${p.br} · FIELD ${p.fr} · BOWL ${p.bwr}</span>
+        ${statsTxt?`<span class="stat-line">${statsTxt}</span>`:''}
+      </span>
+      <span class="rt">${p.r}<small>RATING</small></span>
+    </button>`;
+  }).join('');
+}
+function bytShowPositions(cardKey){
+  const p = bytHydrate(cardKey);
+  const open = openSlotsFor(p);
+  const grid = document.getElementById('bytPickGrid');
+  grid.innerHTML = `<button class="back-link" onclick="bytRenderSquadPicker()">← Back to your collection</button>
+    <div class="pos-prompt">Where does ${p.n} go?</div>
+    <div class="pos-grid">` +
+    open.map(i=>{
+      const pen = positionPenalty(p, SLOTS[i].no);
+      return `<button class="pos-btn ${pen===0?'fit-good':''}" onclick="bytPlace('${cardKey}', ${i})">
+        ${SLOTS[i].no}<small>${fitBadge(pen)}</small></button>`;
+    }).join('') +
+    `</div>`;
+}
+function bytPlace(cardKey, idx){
+  const p = bytHydrate(cardKey);
+  if(!openSlotsFor(p).includes(idx)) return;
+  xiSlots[idx] = p;
+  draftedNames.add(p.n);
+  picksMade++;
+  if(picksMade >= 11){ xi = xiSlots.slice(); showCaptainPick(); return; }
+  bytRenderSquadPicker();
+}
+function bytConfirmLineup(){
+  bytCollection.campaign.xi = xi.map(bytCardKey);
+  bytCollection.campaign.captainIdx = captainIdx;
+  showBYTCampaignCheckpoint();
+}
+
+function showBYTCampaignCheckpoint(){
+  switchScreen('scr-byt-checkpoint');
+  const c = bytCollection.campaign;
+  document.getElementById('bytCheckpointTeamName').textContent = bytCollection.teamName;
+  document.getElementById('bytCheckpointRecord').textContent = `${c.wins} won · ${c.losses} lost`;
+  const oppId = c.order[c.index];
+  const nat = bytOpponentObj(oppId);
+  const label = nat.isAllStar ? nat.name : nat.name;
+  document.getElementById('bytCheckpointNext').textContent = `Next: ${nat.flag} ${label} — stop ${c.index+1} of ${c.order.length}`;
+  let hint;
+  if(ASIA_NATIONS.has(oppId)) hint = 'These conditions favour genuine spin — bring a world-class spinner if you can.';
+  else if(PACE_NATIONS.has(oppId)) hint = 'These conditions favour genuine pace — bring a world-class quick if you can.';
+  else hint = 'Neutral conditions here — no bowling type is specifically favoured.';
+  document.getElementById('bytCheckpointHint').textContent = hint;
+}
+function bytRevisesLineup(){
+  showBYTSquadBuilder();
+}
+
+function bytPlaySeries(){
+  const c = bytCollection.campaign;
+  if(!c.xi){ showBYTSquadBuilder(); return; }
+  const oppId = c.order[c.index];
+  const nat = bytOpponentObj(oppId);
+  bytCurrentOppLabel = nat.isAllStar ? 'World All-Stars' : nat.name;
+  const fullXi = c.xi.map(bytHydrate);
+  xi = fullXi; captainIdx = c.captainIdx;
+  FMTKEY = c.fmt; FMT = FORMATS[FMTKEY]; DECADES = FMT.decades;
+
+  const seed = Math.floor(Math.random() * 2**31);
+  Math.random = mulberry32(seed);
+
+  const st = teamStrengths();
+  const hasSpin = hasWorldClassBowlingType(fullXi, 'spin');
+  const hasPace = hasWorldClassBowlingType(fullXi, 'pace');
+  const statsBonus = computeStatsBonus(fullXi);
+  const conditionsPenalty = computeConditionsPenalty(nat, hasSpin, hasPace);
+
+  revealTotalStops = 1; revealStopWord = 'Series'; revealOnFinish = (delay)=>bytFinishSeries(delay, seed, oppId);
+  revealRows = [];
+  let w=0,d=0,l=0;
+  revealRows.push({kind:'stop', html:`<span class="st-flag">${nat.flag}</span><span class="st-name">vs ${nat.isAllStar?nat.name:nat.name}</span><span class="st-venue">Five ${FMT.noun}s</span>`, tally:null, stop:1});
+  for(let m=0;m<5;m++){
+    const venue = nat.venues[m % nat.venues.length];
+    const effStrength = st.strength + statsBonus - conditionsPenalty - (BASE_DIFFICULTY_PENALTY[FMTKEY]||0);
+    const res = decideMatch(effStrength, nat.opp+4);
+    const code = res.code;
+    const gen = FMTKEY==='test' ? genTestMatch(code, nat) : genWhiteBallMatch(code, nat, res.superOver);
+    const {yourInningsList, oppInningsList} = toInningsLists(gen);
+    const oppXi = nat.isAllStar ? getWorldAllStarXI(nat.id) : getOppositionXI(nat.id, 'best');
+    const scorecard = buildMatchScorecard(fullXi, oppXi, yourInningsList, oppInningsList, nat.isAllStar ? 'All-Stars' : nat.id);
+    const potm = pickPOTM(code, nat);
+    if(code==='W') w++; else if(code==='D') d++; else l++;
+    const matchNum = m+1;
+    bytMatches[m] = {code, ...gen, potm, venue, scorecard, matchNum};
+    revealRows.push({kind:'match', code, num:matchNum, matchNum,
+      html:`<span class="tno">M${matchNum}</span>
+      <span class="op">vs ${nat.isAllStar?'All-Stars':nat.name} — ${venue}<span class="score">${gen.score}</span><span class="score" style="color:var(--cream-dim)">${gen.margin}</span><span class="potm">POTM: ${potm}</span></span>
+      <span class="view-sc">📋<br>View</span>
+      <span class="badge ${code}">${code==='W'?'WON':code==='D'?'DRAW':'LOST'}</span>`,
+      tally:`${w}–${d}–${l}`, stop:1});
+  }
+  Math.random = __nativeRandom;
+
+  bytMatches.length = 5;
+  document.getElementById('seasonEyebrow').textContent = `Build Your Team · vs ${nat.isAllStar?'World All-Stars':nat.name}`;
+  const box=document.getElementById('fixtures');
+  box.innerHTML='';
+  document.getElementById('verdict').classList.remove('show');
+  document.getElementById('seasonTally').textContent='0–0–0';
+  document.getElementById('testTally').textContent='Series 1 of 1';
+  switchScreen('scr-season');
+  showSkipBtn();
+  revealIdx=0;
+  revealTimers=revealRows.map((_,i)=>setTimeout(()=>revealOne(i), 340*(i+1)));
+}
+
+async function bytFinishSeries(delay, seed, opponentId){
+  hideSkipBtn();
+  setTimeout(async ()=>{
+    const idToken = await getAuthIdToken();
+    const cardKeys = xi.map(bytCardKey);
+    try{
+      const res = await fetch(BYT_CLAIM_URL, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({idToken, seed, xi:cardKeys, captainIdx, opponentId, fmt:FMTKEY})
+      });
+      const data = await res.json();
+      if(!res.ok || !data.ok) throw new Error(data.error || ('HTTP '+res.status));
+      bytLastResult = data;
+
+      // The server is the sole source of truth for campaign progress and
+      // the card collection (it just rolled a real pack and advanced the
+      // shuffled order) -- refetch rather than trying to mirror its
+      // increment/reshuffle logic client-side, which would risk drifting
+      // out of sync with what actually got written.
+      const uid = bytCurrentUid();
+      const fresh = uid ? await bytRefetchCollection(uid) : null;
+      if(fresh){
+        bytCollection = fresh;
+        bytOwnedPlayers = bytOwnedList();
+      }
+
+      switchScreen('scr-byt-result');
+      document.getElementById('bytResultRec').textContent = data.record;
+      document.getElementById('bytResultTitle').textContent = data.won ? 'Series Won!' : 'Series Lost';
+      document.getElementById('bytResultBody').textContent = data.won
+        ? `You earned a 6-card pack for winning.`
+        : `No pack this time — on to the next opponent.`;
+      if(data.won && data.newCards && data.newCards.length){
+        const revealed = data.newCards.map(c=>bytHydrate(c.key)).filter(Boolean);
+        window.__bytRevealContinue = ()=>showBYTCampaignCheckpoint();
+        setTimeout(()=>{
+          document.getElementById('bytResultBody').textContent += ' Tap Continue to see your new cards.';
+        }, 0);
+        document.querySelector('#scr-byt-result .btn').setAttribute('onclick', 'bytShowRewardThenCheckpoint()');
+        window.__bytRewardCards = revealed;
+      } else {
+        document.querySelector('#scr-byt-result .btn').setAttribute('onclick', 'bytBackToCheckpoint()');
+      }
+    }catch(e){
+      await showConfirm('Could not verify series', e.message, 'OK');
+      showBYTCampaignCheckpoint();
+    }
+  }, delay);
+}
+function bytShowRewardThenCheckpoint(){
+  showBYTPackReveal(window.__bytRewardCards || [], 'New Pack — 6 Cards', showBYTCampaignCheckpoint);
+}
+function bytBackToCheckpoint(){
+  showBYTCampaignCheckpoint();
+}
+
+function showBYTCollection(){
+  switchScreen('scr-byt-collection');
+  document.getElementById('bytCollectionTeamName').textContent = bytCollection.teamName;
+  document.getElementById('bytCollectionCount').textContent = `${bytOwnedPlayers.length} players`;
+  document.getElementById('bytCollectionSpares').textContent = `${bytCollection.spareCount} spare card${bytCollection.spareCount===1?'':'s'}`;
+  const grid = document.getElementById('bytCollectionGrid');
+  grid.innerHTML = bytOwnedPlayers.map(p=>{
+    const { nat, statsTxt } = bytRenderCard(p);
+    const key = bytCardKey(p);
+    const count = (bytCollection.cards[key] && bytCollection.cards[key].count) || 1;
+    return `<div class="pcard" style="cursor:default">
+      <span class="flag">${nat?nat.flag:''}</span>
+      <span class="who">
+        <span class="nm">${p.n} <span class="decade">'${p.d}</span>${count>1?` <span class="decade">x${count}</span>`:''}</span>
+        <span class="rl">${p.roles.map(r=>ROLE_LABEL[r]).join(' · ')}</span>
+        <span class="bb">BAT ${p.br} · FIELD ${p.fr} · BOWL ${p.bwr}</span>
+        ${statsTxt?`<span class="stat-line">${statsTxt}</span>`:''}
+      </span>
+      <span class="rt">${p.r}<small>RATING</small></span>
+    </div>`;
+  }).join('');
+}
+async function bytRedeemDuplicates(){
+  if(bytCollection.spareCount < 5){
+    await showConfirm('Not enough spares', `You have ${bytCollection.spareCount} of the 5 spare cards needed.`, 'OK');
+    return;
+  }
+  const idToken = await getAuthIdToken();
+  try{
+    const res = await fetch(BYT_REDEEM_URL, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({idToken})
+    });
+    const data = await res.json();
+    if(!res.ok || !data.ok) throw new Error(data.error || ('HTTP '+res.status));
+    for(const c of data.newCards){
+      const prev = bytCollection.cards[c.key];
+      bytCollection.cards[c.key] = { count: (prev?prev.count:0) + 1 };
+    }
+    bytCollection.spareCount = data.spareCount;
+    bytOwnedPlayers = bytOwnedList();
+    const revealed = data.newCards.map(c=>bytHydrate(c.key)).filter(Boolean);
+    showBYTPackReveal(revealed, 'New Pack — 6 Cards', showBYTCollection);
+  }catch(e){
+    await showConfirm('Could not redeem spares', e.message, 'OK');
+  }
 }
 function selectSeriesShowdownSeries(seriesId){
   csSeries = CURRENT_SERIES.find(s=>s.id===seriesId);
