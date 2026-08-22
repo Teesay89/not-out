@@ -1569,32 +1569,41 @@ function hydratePackXI(cardKeys){
    series actually change the odds against the next opponent. No streak/
    Immortal-XI bonus here: that's a whole-tour concept that doesn't map onto
    independently-verified, revisable-lineup series. */
-function verifySeriesWin({ seed, xi: cardKeys, captainIdx, opponentId, fmt }){
+// xiPerMatch/captainIdxPerMatch: one entry per one of the 5 matches, so a
+// lineup change between matches (not just between series) actually takes
+// effect -- hasSpin/hasPace/statsBonus/conditionsPenalty are recomputed
+// fresh every match from THAT match's xi, never cached across the series.
+// The opponent (and therefore its own strength) stays fixed for all 5,
+// same as before.
+function verifySeriesWin({ seed, xiPerMatch, captainIdxPerMatch, opponentId, fmt }){
   if(!['test','odi','t20'].includes(fmt)) throw new Error('bad format');
   if(!Number.isInteger(seed)) throw new Error('bad seed');
+  if(!Array.isArray(xiPerMatch) || xiPerMatch.length !== 5) throw new Error('xiPerMatch must have exactly 5 entries');
+  if(!Array.isArray(captainIdxPerMatch) || captainIdxPerMatch.length !== 5) throw new Error('captainIdxPerMatch must have exactly 5 entries');
 
   const nativeRandom = Math.random;
   Math.random = mulberry32(seed);
 
   try{
     __setFMTKEY(fmt);
-    const fullXi = hydratePackXI(cardKeys);
-    for(let i = 0; i < 11; i++){
-      if(!SLOTS[i].fits(fullXi[i])) throw new Error(`player at slot ${i + 1} (${fullXi[i].n}) is not eligible for that slot`);
-    }
-    if(!fullXi.some(p => p.roles.includes('wk'))) throw new Error('XI has no wicketkeeper');
-    __setXI(fullXi);
-    __setCaptainIdx(captainIdx);
-
     const nat = resolvePackOpponent(opponentId);
-    const st = teamStrengths();
-    const hasSpin = hasWorldClassBowlingType(fullXi, 'spin');
-    const hasPace = hasWorldClassBowlingType(fullXi, 'pace');
-    const statsBonus = computeStatsBonus(fullXi);
-    const conditionsPenalty = computeConditionsPenalty(nat, hasSpin, hasPace);
 
     let w = 0, d = 0, l = 0;
+    const potmNames = [];
     for(let m = 0; m < 5; m++){
+      const fullXi = hydratePackXI(xiPerMatch[m]);
+      for(let i = 0; i < 11; i++){
+        if(!SLOTS[i].fits(fullXi[i])) throw new Error(`match ${m + 1}: player at slot ${i + 1} (${fullXi[i].n}) is not eligible for that slot`);
+      }
+      if(!fullXi.some(p => p.roles.includes('wk'))) throw new Error(`match ${m + 1}: XI has no wicketkeeper`);
+      __setXI(fullXi);
+      __setCaptainIdx(captainIdxPerMatch[m]);
+
+      const st = teamStrengths();
+      const hasSpin = hasWorldClassBowlingType(fullXi, 'spin');
+      const hasPace = hasWorldClassBowlingType(fullXi, 'pace');
+      const statsBonus = computeStatsBonus(fullXi);
+      const conditionsPenalty = computeConditionsPenalty(nat, hasSpin, hasPace);
       const effStrength = st.strength + statsBonus - conditionsPenalty - (BASE_DIFFICULTY_PENALTY[fmt] || 0);
       const res = decideMatch(effStrength, nat.opp + 4);
       const code = res.code;
@@ -1602,10 +1611,10 @@ function verifySeriesWin({ seed, xi: cardKeys, captainIdx, opponentId, fmt }){
       const genLists = toInningsLists(gen);
       const oppXi = getBYTOpponentXI(nat);
       buildMatchScorecard(fullXi, oppXi, genLists.yourInningsList, genLists.oppInningsList, nat.isAllStar ? 'All-Stars' : nat.natId); // Consumes RNG state in lockstep with client
-      pickPOTM(code, nat); // Consumes RNG state in lockstep with client
+      potmNames.push(pickPOTM(code, nat)); // Consumes RNG state in lockstep with client
       if(code === 'W') w++; else if(code === 'D') d++; else l++;
     }
-    return { won: w > l, drawn: w === l, record: `${w}-${d}-${l}`, matchWins: w, matchDraws: d, matchLosses: l };
+    return { won: w > l, drawn: w === l, record: `${w}-${d}-${l}`, matchWins: w, matchDraws: d, matchLosses: l, potmNames };
   } finally {
     Math.random = nativeRandom;
   }

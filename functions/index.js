@@ -446,18 +446,22 @@ exports.openStarterPack = onRequest(async (req, res) => {
       campaign: {
         order,
         index: 0,
-        // Per-match tally across every series ever played -- drives both
-        // the public-facing record (checkpoint, Honours Board) and the
-        // every-10-match-wins milestone pack.
+        // Per-match tally across every series ever played -- drives the
+        // public-facing record (checkpoint, Honours Board).
         matchWins: 0,
         matchDraws: 0,
         matchLosses: 0,
+        // Series-level count -- drives the every-20-series milestone pack
+        // and the every-10-series format-change offer.
+        seriesPlayed: 0,
         xi: null,
         captainIdx: null,
         fmt: String(fmt),
       },
       milestonesClaimed: 0,
       lastDailyClaim: null,
+      seriesToday: 0,
+      seriesTodayDate: null,
       createdAt: now,
       updatedAt: now,
     };
@@ -494,8 +498,12 @@ exports.claimSeriesReward = onRequest(async (req, res) => {
     const uid = await requireAuthedUid(req, res);
     if (!uid) return;
 
-    const { seed, xi, captainIdx, opponentId } = req.body || {};
-    if (seed === undefined || !Array.isArray(xi) || xi.length !== 11 || !opponentId) {
+    const { seed, xiPerMatch, captainIdxPerMatch, opponentId } = req.body || {};
+    if (
+      seed === undefined || !opponentId ||
+      !Array.isArray(xiPerMatch) || xiPerMatch.length !== 5 || xiPerMatch.some((x) => !Array.isArray(x) || x.length !== 11) ||
+      !Array.isArray(captainIdxPerMatch) || captainIdxPerMatch.length !== 5
+    ) {
       res.status(400).json({ ok: false, error: "Missing required fields" });
       return;
     }
@@ -519,11 +527,24 @@ exports.claimSeriesReward = onRequest(async (req, res) => {
       return;
     }
 
-    // Ownership check: every submitted card must actually be in this
-    // user's own collection with at least one copy -- gamelogic's
-    // verifySeriesWin only checks that cards are REAL, not that this
-    // specific uid owns them, so that has to happen here.
-    for (const key of xi) {
+    // 20-series-a-day cap: reset the counter on a new UTC calendar day, then
+    // reject BEFORE simulating anything if today's quota is already spent.
+    // An already-started series (client mid-way through 5 matches) still
+    // always finalizes through this same one call, so this only ever blocks
+    // a genuinely new series from starting.
+    const today = new Date().toISOString().slice(0, 10);
+    let seriesToday = data.seriesTodayDate === today ? data.seriesToday || 0 : 0;
+    if (seriesToday >= 20) {
+      res.status(429).json({ ok: false, error: "You've reached today's limit of 20 series -- come back tomorrow." });
+      return;
+    }
+
+    // Ownership check: every card used in any of the 5 matches must
+    // actually be in this user's own collection with at least one copy --
+    // gamelogic's verifySeriesWin only checks that cards are REAL, not that
+    // this specific uid owns them, so that has to happen here.
+    const allKeysUsed = new Set(xiPerMatch.flat());
+    for (const key of allKeysUsed) {
       const owned = data.cards && data.cards[key] && data.cards[key].count > 0;
       if (!owned) {
         res.status(403).json({ ok: false, error: "You don't own one of the submitted cards: " + key });
@@ -531,7 +552,7 @@ exports.claimSeriesReward = onRequest(async (req, res) => {
       }
     }
 
-    const result = gamelogic.verifySeriesWin({ seed, xi, captainIdx, opponentId, fmt: campaign.fmt });
+    const result = gamelogic.verifySeriesWin({ seed, xiPerMatch, captainIdxPerMatch, opponentId, fmt: campaign.fmt });
 
     // Advance to the next stop regardless of the result -- a loss doesn't
     // grant a pack, but the campaign still moves on, same as World Tour
@@ -554,20 +575,27 @@ exports.claimSeriesReward = onRequest(async (req, res) => {
       spareCount = merged.spareCount;
     }
 
+    const seriesPlayed = (campaign.seriesPlayed || 0) + 1;
+    const lastXi = xiPerMatch[4];
+    const lastCaptainIdx = captainIdxPerMatch[4];
     const newCampaign = {
       order: nextOrder,
       index: nextIndex,
       matchWins: (campaign.matchWins || 0) + result.matchWins,
       matchDraws: (campaign.matchDraws || 0) + result.matchDraws,
       matchLosses: (campaign.matchLosses || 0) + result.matchLosses,
-      xi,
-      captainIdx: Number(captainIdx) || 0,
+      seriesPlayed,
+      xi: lastXi,
+      captainIdx: Number(lastCaptainIdx) || 0,
       fmt: campaign.fmt,
     };
+    seriesToday += 1;
     const updated = {
       cards,
       spareCount,
       campaign: newCampaign,
+      seriesToday,
+      seriesTodayDate: today,
       updatedAt: new Date().toISOString(),
     };
     await docRef.update(updated);
@@ -587,6 +615,9 @@ exports.claimSeriesReward = onRequest(async (req, res) => {
       record: result.record,
       newCards: newCards.map((p) => ({ n: p.n, c: p.c, d: p.d, r: p.r, cid: p.cid, key: gamelogic.cardKey(p) })),
       spareCount,
+      seriesPlayed,
+      seriesToday,
+      formatChangeAvailable: seriesPlayed % 10 === 0,
     });
   } catch (err) {
     console.error("claimSeriesReward error:", err);
@@ -645,11 +676,11 @@ exports.redeemDuplicates = onRequest(async (req, res) => {
   }
 });
 
-// Every 10 cumulative MATCH wins (never reset by the 12-opponent order
-// wrapping around) earns one free 6-card pack. milestonesClaimed tracks how
-// many of these have already been claimed, so eligibility is always
-// re-derived server-side from the real win count -- never trusted from
-// the client.
+// Every 20 series played (win, draw or loss -- never reset by the
+// 12-opponent order wrapping around) earns one free 6-card pack.
+// milestonesClaimed tracks how many of these have already been claimed, so
+// eligibility is always re-derived server-side from the real series count
+// -- never trusted from the client.
 exports.claimWinMilestonePack = onRequest(async (req, res) => {
   res.set("Access-Control-Allow-Origin", "*");
   res.set("Access-Control-Allow-Headers", "Content-Type");
@@ -675,11 +706,11 @@ exports.claimWinMilestonePack = onRequest(async (req, res) => {
       return;
     }
     const data = snap.data();
-    const matchWins = (data.campaign && data.campaign.matchWins) || 0;
+    const seriesPlayed = (data.campaign && data.campaign.seriesPlayed) || 0;
     const claimed = data.milestonesClaimed || 0;
-    const eligible = Math.floor(matchWins / 10);
+    const eligible = Math.floor(seriesPlayed / 20);
     if (eligible <= claimed) {
-      res.status(400).json({ ok: false, error: "No milestone pack available yet", matchWins, milestonesClaimed: claimed });
+      res.status(400).json({ ok: false, error: "No milestone pack available yet", seriesPlayed, milestonesClaimed: claimed });
       return;
     }
 
@@ -767,6 +798,54 @@ exports.claimDailyPack = onRequest(async (req, res) => {
     });
   } catch (err) {
     console.error("claimDailyPack error:", err);
+    res.status(500).json({ ok: false, error: err.message || "Internal server error" });
+  }
+});
+
+// Every 10 series played, the player may pick a new format for the campaign
+// going forward -- eligibility (seriesPlayed is an exact multiple of 10) is
+// re-checked server-side, never trusted from the client.
+exports.changeBYTFormat = onRequest(async (req, res) => {
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Headers", "Content-Type");
+  if (req.method === "OPTIONS") {
+    res.set("Access-Control-Allow-Methods", "POST");
+    res.status(204).send("");
+    return;
+  }
+  if (req.method !== "POST") {
+    res.status(405).json({ ok: false, error: "Method not allowed" });
+    return;
+  }
+
+  try {
+    const uid = await requireAuthedUid(req, res);
+    if (!uid) return;
+
+    const { fmt } = req.body || {};
+    if (!["test", "odi", "t20"].includes(fmt)) {
+      res.status(400).json({ ok: false, error: "Missing or bad format" });
+      return;
+    }
+
+    const db = admin.firestore();
+    const docRef = packDoc(db, uid);
+    const snap = await docRef.get();
+    if (!snap.exists) {
+      res.status(404).json({ ok: false, error: "No collection found -- open a starter pack first" });
+      return;
+    }
+    const data = snap.data();
+    const seriesPlayed = (data.campaign && data.campaign.seriesPlayed) || 0;
+    if (seriesPlayed === 0 || seriesPlayed % 10 !== 0) {
+      res.status(400).json({ ok: false, error: "Format can only be changed every 10 series", seriesPlayed });
+      return;
+    }
+
+    await docRef.update({ "campaign.fmt": fmt, updatedAt: new Date().toISOString() });
+    res.status(200).json({ ok: true, fmt });
+  } catch (err) {
+    console.error("changeBYTFormat error:", err);
     res.status(500).json({ ok: false, error: err.message || "Internal server error" });
   }
 });
