@@ -168,6 +168,10 @@ img.emoji{height:1em;width:1em;vertical-align:-0.1em;margin:0 .02em}
 .cookie-banner p{font-size:12.5px;line-height:1.5;color:var(--cream-dim);margin-bottom:10px}
 .cookie-banner .btn{padding:10px 18px;font-size:14px}
 .info-link{display:block;text-align:center;margin:10px 0 14px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.06em;color:var(--brass);text-decoration:none;cursor:pointer}
+.social-row{display:flex;justify-content:center;gap:10px;flex-wrap:wrap;margin:16px 0 4px}
+.social-link{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--brass);text-decoration:none;padding:7px 14px;border:1px solid var(--line);border-radius:999px;transition:border-color .15s ease, background .15s ease}
+.social-link:hover{border-color:var(--brass);background:var(--panel-2)}
+.kofi-link{font-weight:600}
 .info-modal-body{text-align:left;font-size:13px;line-height:1.6;color:var(--cream-dim);max-height:50vh;overflow-y:auto;margin-top:12px}
 .info-modal-body h4{color:var(--brass);font-family:'Graduate',serif;font-size:14px;margin:14px 0 4px;letter-spacing:.02em}
 .info-modal-body h4:first-child{margin-top:0}
@@ -742,6 +746,12 @@ body.sim-active .masthead{
   </section>
 
   <p class="data-note">Curated databases: 4,521 Test, 3,196 ODI and 1,621 T20 players, each rated for his standing within his own decade and format. Era-spanning greats may appear in more than one decade but can only be drafted once per game. Test pools run 1870s–2020s, ODI 1970s–2020s, T20 2000s–2020s.</p>
+  <div class="social-row">
+    <a href="https://x.com/notoutcouk" target="_blank" rel="noopener" class="social-link">X</a>
+    <a href="https://www.tiktok.com/@notoutcouk" target="_blank" rel="noopener" class="social-link">TikTok</a>
+    <a href="https://www.instagram.com/notoutcouk/" target="_blank" rel="noopener" class="social-link">Instagram</a>
+  </div>
+  <a href="https://ko-fi.com/notoutcouk" target="_blank" rel="noopener" class="info-link kofi-link">☕ Enjoying NOT OUT? Support it on Ko-fi</a>
   <a href="javascript:void(0)" class="info-link" onclick="reopenConsentBanner()">Cookie settings</a>
   <a href="privacy.html" class="info-link">Privacy Policy</a>
   <p class="info-link" id="signedInStatus" style="display:none"></p>
