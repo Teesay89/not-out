@@ -258,6 +258,31 @@ img.emoji{height:1em;width:1em;vertical-align:-0.1em;margin:0 .02em}
 .pcard .rt small{display:block;font-size:9px;letter-spacing:.18em;color:var(--cream-dim);font-weight:400;text-align:right}
 .decade{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.08em;color:var(--pitch);background:var(--brass);border-radius:4px;padding:2px 6px;font-weight:600}
 
+/* ---------- Build Your Team: pack-opening reveal ---------- */
+.pack-hero-stage{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:240px;text-align:center;margin-bottom:14px;cursor:pointer}
+.pack-hero-stage.show{display:flex}
+.pack-hero-card{width:min(260px,80vw);padding:26px 18px;border-radius:16px;background:linear-gradient(160deg,var(--panel-2),var(--panel));border:2px solid var(--line);opacity:0;transform:scale(.25) rotateY(180deg)}
+.pack-hero-card.reveal{animation:packHeroReveal .85s cubic-bezier(.22,.85,.3,1) forwards}
+@keyframes packHeroReveal{0%{transform:scale(.25) rotateY(180deg);opacity:0}55%{transform:scale(1.08) rotateY(0deg);opacity:1}100%{transform:scale(1) rotateY(0deg);opacity:1}}
+.pack-hero-card .flag{font-size:32px}
+.pack-hero-card .nm{font-family:'Graduate',serif;font-size:22px;margin-top:10px}
+.pack-hero-card .rl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--cream-dim);margin-top:4px}
+.pack-hero-card .rt{font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:46px;color:var(--brass);margin-top:12px}
+.pack-hero-card .rt small{display:block;font-size:10px;letter-spacing:.2em;color:var(--cream-dim);font-weight:400}
+.pack-hero-tag{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--brass);opacity:0;margin-top:16px}
+.pack-hero-tag.show{animation:fadeUp .4s ease both}
+.pack-hero-tier-legend{border-color:#f4c948!important;box-shadow:0 0 34px 8px rgba(244,201,72,.55)}
+.pack-hero-tier-epic{border-color:#c774e8!important;box-shadow:0 0 26px 6px rgba(199,116,232,.4)}
+.pack-hero-tier-rare{border-color:#57a9e8!important;box-shadow:0 0 20px 5px rgba(87,169,232,.35)}
+.pack-hero-tier-uncommon{border-color:#5bc06b!important;box-shadow:0 0 14px 3px rgba(91,192,107,.25)}
+.pick-grid .pcard.entrance{animation:pcardEnter .36s ease both}
+@keyframes pcardEnter{from{opacity:0;transform:translateY(10px) scale(.97)}to{opacity:1;transform:none}}
+.byt-slot-row.empty{opacity:.5}
+.byt-slot-row .rl{font-size:10.5px}
+.byt-slot-row{flex-wrap:wrap}
+.byt-slot-row .rt{margin-left:auto}
+.byt-slot-row button{flex:1 1 100%;margin-top:4px}
+
 .squad-head{display:flex;justify-content:space-between;align-items:baseline;font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--cream-dim);padding:2px 2px 8px}
 .pos-prompt{font-family:'Graduate',serif;font-size:16px;letter-spacing:.03em;text-align:center;margin:2px 0 10px}
 .pos-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
@@ -536,8 +561,12 @@ body.sim-active .masthead{
       <div class="eyebrow">Build Your Team</div>
       <h2 id="bytRevealTitle">New Pack</h2>
     </div>
+    <div class="pack-hero-stage" id="bytHeroStage" onclick="bytSkipHeroReveal()">
+      <div class="pack-hero-card" id="bytHeroCard"></div>
+      <div class="pack-hero-tag" id="bytHeroTag"></div>
+    </div>
     <div class="pick-grid" id="bytRevealGrid"></div>
-    <button class="btn" style="margin-top:10px" onclick="bytContinueFromReveal()">Continue</button>
+    <button class="btn" id="bytRevealContinueBtn" style="margin-top:10px;display:none" onclick="bytContinueFromReveal()">Continue</button>
   </section>
 
   <!-- BUILD YOUR TEAM: SQUAD BUILDER -->
@@ -545,9 +574,12 @@ body.sim-active .masthead{
     <div class="slot-callout">
       <div class="eyebrow" id="bytSquadEyebrow">Build Your Team</div>
       <h2>Pick your XI</h2>
-      <p>Choose any 11 from your collection, then place each in the order — <span id="bytSquadCount">0</span> of 11 picked.</p>
+      <p><span id="bytSquadCount">0</span> of 11 picked <span id="bytSquadRating"></span></p>
     </div>
+    <button class="btn secondary" style="margin-bottom:12px" onclick="bytAutoSelectBest()">⚡ Auto-select best team</button>
+    <div class="pick-grid" id="bytSlotsGrid"></div>
     <div class="pick-grid" id="bytPickGrid"></div>
+    <button class="btn" id="bytSquadContinueBtn" style="margin-top:10px;display:none" onclick="bytConfirmSquad()">Continue to captain pick</button>
   </section>
 
   <!-- BUILD YOUR TEAM: CAMPAIGN CHECKPOINT -->
@@ -556,6 +588,7 @@ body.sim-active .masthead{
       <div class="eyebrow" id="bytCheckpointTeamName">Build Your Team</div>
       <h2 id="bytCheckpointRecord">0 wins · 0 losses</h2>
       <p id="bytCheckpointNext">Next opponent: —</p>
+      <p class="foot-note" id="bytCheckpointRatings" style="margin-top:6px"></p>
       <p class="foot-note" id="bytCheckpointHint" style="margin-top:8px"></p>
     </div>
     <button class="btn secondary" onclick="bytRevisesLineup()">Revise lineup</button>
@@ -581,6 +614,7 @@ body.sim-active .masthead{
       <div class="eyebrow" id="bytCollectionTeamName">My Collection</div>
       <h2 id="bytCollectionCount">0 players</h2>
       <p id="bytCollectionSpares">0 spare cards</p>
+      <p class="foot-note" id="bytCollectionRating" style="margin-top:6px"></p>
     </div>
     <button class="btn secondary" onclick="bytRedeemDuplicates()">Redeem 5 spares for a pack</button>
     <div class="pick-grid" id="bytCollectionGrid" style="margin-top:14px"></div>
@@ -701,6 +735,7 @@ body.sim-active .masthead{
 
   <p class="data-note">Curated databases: 4,521 Test, 3,196 ODI and 1,621 T20 players, each rated for his standing within his own decade and format. Era-spanning greats may appear in more than one decade but can only be drafted once per game. Test pools run 1870s–2020s, ODI 1970s–2020s, T20 2000s–2020s.</p>
   <a href="javascript:void(0)" class="info-link" onclick="reopenConsentBanner()">Cookie settings</a>
+  <a href="privacy.html" class="info-link">Privacy Policy</a>
   <p class="info-link" id="signedInStatus" style="display:none"></p>
 </div>
 
@@ -3158,6 +3193,21 @@ function bytOwnedList(){
 function bytOpponentObj(id){
   return NATIONS.find(n=>n.id===id) || ALLSTAR_TEAMS.find(t=>t.id===id);
 }
+function bytAvgRating(list){
+  const arr = (list||[]).filter(Boolean);
+  if(!arr.length) return null;
+  return Math.round(arr.reduce((s,p)=>s+p.r,0)/arr.length);
+}
+/* Purely cosmetic bucketing for the pack-reveal glow -- mirrors the
+   server's PACK_RARITY_TABLE boundaries (functions/gamelogic.js) but
+   has no effect on gameplay, only on which colour a card flips in with. */
+function bytRarityTier(r){
+  if(r>=99) return 'legend';
+  if(r>=90) return 'epic';
+  if(r>=80) return 'rare';
+  if(r>=60) return 'uncommon';
+  return 'common';
+}
 function bytCurrentUid(){
   return (fbAuth && fbAuth.currentUser) ? fbAuth.currentUser.uid : null;
 }
@@ -3228,10 +3278,47 @@ async function startBuildYourTeam(){
 function showBYTPackReveal(cards, title, onContinue){
   switchScreen('scr-byt-reveal');
   document.getElementById('bytRevealTitle').textContent = title;
+  window.__bytRevealContinue = onContinue;
+  clearTimeout(window.__bytHeroTimer);
+
   const grid = document.getElementById('bytRevealGrid');
-  grid.innerHTML = cards.map(p=>{
+  const continueBtn = document.getElementById('bytRevealContinueBtn');
+  const heroStage = document.getElementById('bytHeroStage');
+  const heroCard = document.getElementById('bytHeroCard');
+  const heroTag = document.getElementById('bytHeroTag');
+  grid.innerHTML = '';
+  continueBtn.style.display = 'none';
+  heroCard.classList.remove('reveal');
+  heroTag.classList.remove('show');
+
+  const sorted = cards.slice().sort((a,b)=>b.r-a.r);
+  window.__bytRevealCards = sorted;
+  const best = sorted[0];
+  if(!best){ bytShowFullPackGrid(); return; }
+
+  const { nat } = bytRenderCard(best, 0);
+  heroCard.className = 'pack-hero-card pack-hero-tier-' + bytRarityTier(best.r);
+  heroCard.innerHTML = `<span class="flag">${nat?nat.flag:''}</span>
+    <div class="nm">${best.n} <span class="decade">'${best.d}</span></div>
+    <div class="rl">${best.roles.map(r=>ROLE_LABEL[r]).join(' · ')}</div>
+    <div class="rt">${best.r}<small>RATING</small></div>`;
+  heroTag.textContent = sorted.length>1 ? `Best of ${sorted.length} — tap to see the rest` : 'Tap to continue';
+  heroStage.classList.add('show');
+  requestAnimationFrame(()=>heroCard.classList.add('reveal'));
+  setTimeout(()=>heroTag.classList.add('show'), 500);
+  window.__bytHeroTimer = setTimeout(bytShowFullPackGrid, 1900);
+}
+function bytSkipHeroReveal(){
+  clearTimeout(window.__bytHeroTimer);
+  bytShowFullPackGrid();
+}
+function bytShowFullPackGrid(){
+  document.getElementById('bytHeroStage').classList.remove('show');
+  const cards = window.__bytRevealCards || [];
+  const grid = document.getElementById('bytRevealGrid');
+  grid.innerHTML = cards.map((p,i)=>{
     const { nat, statsTxt } = bytRenderCard(p);
-    return `<div class="pcard" style="cursor:default">
+    return `<div class="pcard entrance" style="cursor:default;animation-delay:${Math.min(i,10)*45}ms">
       <span class="flag">${nat?nat.flag:''}</span>
       <span class="who">
         <span class="nm">${p.n} <span class="decade">'${p.d}</span></span>
@@ -3242,22 +3329,59 @@ function showBYTPackReveal(cards, title, onContinue){
       <span class="rt">${p.r}<small>RATING</small></span>
     </div>`;
   }).join('');
-  window.__bytRevealContinue = onContinue;
+  document.getElementById('bytRevealContinueBtn').style.display = '';
 }
 function bytContinueFromReveal(){
   if(window.__bytRevealContinue) window.__bytRevealContinue();
 }
 
 function showBYTSquadBuilder(){
-  xiSlots = new Array(11).fill(null);
-  draftedNames = new Set();
-  picksMade = 0;
+  // Remember the team you last confirmed -- revising a lineup starts from
+  // where you left off, not from a blank sheet. Only a fresh campaign (no
+  // series played or confirmed yet) starts blank.
+  const saved = bytCollection && bytCollection.campaign && bytCollection.campaign.xi;
+  if(saved && saved.length===11){
+    xiSlots = saved.map(bytHydrate);
+    draftedNames = new Set(xiSlots.filter(Boolean).map(p=>p.n));
+    picksMade = xiSlots.filter(Boolean).length;
+    captainIdx = bytCollection.campaign.captainIdx!=null ? bytCollection.campaign.captainIdx : -1;
+  } else {
+    xiSlots = new Array(11).fill(null);
+    draftedNames = new Set();
+    picksMade = 0;
+    captainIdx = -1;
+  }
   PLAYERS = DB.best; buildPlayerIndex();
   switchScreen('scr-byt-squad');
   bytRenderSquadPicker();
 }
+function bytRenderSlotsOverview(){
+  const box = document.getElementById('bytSlotsGrid');
+  box.innerHTML = SLOTS.map((s,i)=>{
+    const p = xiSlots[i];
+    if(!p){
+      return `<div class="pcard byt-slot-row empty" style="cursor:default">
+        <span class="who"><span class="nm">${s.short} · Empty</span><span class="rl">${s.title}</span></span>
+      </div>`;
+    }
+    const nat = NATIONS.find(n=>n.id===p.c);
+    const pen = positionPenalty(p, s.no);
+    return `<div class="pcard byt-slot-row" style="cursor:default">
+      <span class="flag">${nat?nat.flag:''}</span>
+      <span class="who">
+        <span class="nm">${s.short} · ${p.n} <span class="decade">'${p.d}</span></span>
+        <span class="rl">${s.title} — ${fitBadge(pen)}</span>
+      </span>
+      <span class="rt">${p.r}<small>RATING</small></span>
+      <button class="btn secondary" style="padding:6px 10px;font-size:11px;flex:0 0 auto" onclick="bytRemoveFromSlot(${i})">Remove</button>
+    </div>`;
+  }).join('');
+}
 function bytRenderSquadPicker(){
   document.getElementById('bytSquadCount').textContent = picksMade;
+  const rating = bytAvgRating(xiSlots);
+  document.getElementById('bytSquadRating').textContent = rating!=null ? `· Team rating: ${rating}` : '';
+  bytRenderSlotsOverview();
   const grid = document.getElementById('bytPickGrid');
   const available = bytOwnedPlayers.filter(p=>!draftedNames.has(p.n));
   grid.innerHTML = available.map(p=>{
@@ -3273,6 +3397,7 @@ function bytRenderSquadPicker(){
       <span class="rt">${p.r}<small>RATING</small></span>
     </button>`;
   }).join('');
+  document.getElementById('bytSquadContinueBtn').style.display = picksMade>=11 ? '' : 'none';
 }
 function bytShowPositions(cardKey){
   const p = bytHydrate(cardKey);
@@ -3294,8 +3419,32 @@ function bytPlace(cardKey, idx){
   xiSlots[idx] = p;
   draftedNames.add(p.n);
   picksMade++;
-  if(picksMade >= 11){ xi = xiSlots.slice(); showCaptainPick(); return; }
   bytRenderSquadPicker();
+}
+function bytRemoveFromSlot(idx){
+  const p = xiSlots[idx];
+  if(!p) return;
+  xiSlots[idx] = null;
+  draftedNames.delete(p.n);
+  picksMade--;
+  bytRenderSquadPicker();
+}
+function bytAutoSelectBest(){
+  const drafted = draftXIFromPool(bytOwnedPlayers);
+  if(drafted.length < 11){
+    showConfirm('Not enough players', "Your collection doesn't have enough eligible players yet to auto-fill a full legal XI.", 'OK');
+    return;
+  }
+  xiSlots = new Array(11).fill(null);
+  draftedNames = new Set();
+  drafted.forEach((p,i)=>{ xiSlots[i] = p; draftedNames.add(p.n); });
+  picksMade = 11;
+  bytRenderSquadPicker();
+}
+function bytConfirmSquad(){
+  if(picksMade < 11) return;
+  xi = xiSlots.slice();
+  showCaptainPick();
 }
 function bytConfirmLineup(){
   bytCollection.campaign.xi = xi.map(bytCardKey);
@@ -3312,6 +3461,10 @@ function showBYTCampaignCheckpoint(){
   const nat = bytOpponentObj(oppId);
   const label = nat.isAllStar ? nat.name : nat.name;
   document.getElementById('bytCheckpointNext').textContent = `Next: ${nat.flag} ${label} — stop ${c.index+1} of ${c.order.length}`;
+  const teamRating = c.xi ? bytAvgRating(c.xi.map(bytHydrate)) : null;
+  const squadRating = bytAvgRating(bytOwnedPlayers);
+  document.getElementById('bytCheckpointRatings').textContent =
+    `${teamRating!=null?`Team rating: ${teamRating}`:'No lineup set yet'} · Squad rating: ${squadRating!=null?squadRating:'—'}`;
   let hint;
   if(ASIA_NATIONS.has(oppId)) hint = 'These conditions favour genuine spin — bring a world-class spinner if you can.';
   else if(PACE_NATIONS.has(oppId)) hint = 'These conditions favour genuine pace — bring a world-class quick if you can.';
@@ -3441,6 +3594,8 @@ function showBYTCollection(){
   document.getElementById('bytCollectionTeamName').textContent = bytCollection.teamName;
   document.getElementById('bytCollectionCount').textContent = `${bytOwnedPlayers.length} players`;
   document.getElementById('bytCollectionSpares').textContent = `${bytCollection.spareCount} spare card${bytCollection.spareCount===1?'':'s'}`;
+  const squadRating = bytAvgRating(bytOwnedPlayers);
+  document.getElementById('bytCollectionRating').textContent = squadRating!=null ? `Squad rating: ${squadRating}` : '';
   const grid = document.getElementById('bytCollectionGrid');
   grid.innerHTML = bytOwnedPlayers.map(p=>{
     const { nat, statsTxt } = bytRenderCard(p);

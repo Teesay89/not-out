@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Privacy Policy | NOT OUT</title>
+<meta name="description" content="Privacy policy for NOT OUT, an independent fan-made cricket game.">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Graduate&family=Archivo:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --pitch:#0D120C;
+  --panel:#151C13;
+  --panel-2:#1B2417;
+  --cream:#EFE9D8;
+  --cream-dim:#B9B4A2;
+  --brass:#C9A24B;
+  --line:rgba(239,233,216,.14);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:
+    radial-gradient(1200px 600px at 50% -10%, rgba(62,107,58,.18), transparent 60%),
+    var(--pitch);
+  color:var(--cream);
+  font-family:'Archivo',sans-serif;
+  line-height:1.6;
+  padding:32px 20px 80px;
+}
+.wrap{max-width:680px;margin:0 auto}
+h1{font-family:'Graduate',serif;font-size:32px;letter-spacing:.02em;margin-bottom:6px}
+.updated{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--brass);margin-bottom:28px}
+h2{font-family:'Graduate',serif;font-size:20px;letter-spacing:.02em;margin-top:32px;margin-bottom:10px;color:var(--brass)}
+p, li{font-size:14.5px;color:var(--cream-dim);margin-bottom:10px}
+strong{color:var(--cream)}
+ul{padding-left:20px;margin-bottom:10px}
+a{color:var(--brass)}
+.back-link{display:inline-block;margin-bottom:24px;font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.05em;text-decoration:none}
+table{width:100%;border-collapse:collapse;margin:12px 0 16px;font-size:13px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);color:var(--cream-dim);vertical-align:top}
+th{color:var(--cream);font-weight:600}
+.hr{border:none;border-top:1px solid var(--line);margin:36px 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a href="index.html" class="back-link">← Back to NOT OUT</a>
+  <h1>Privacy Policy</h1>
+  <div class="updated">Last updated: 22 August 2026</div>
+
+  <p>NOT OUT is an independent, fan-made cricket game. It is not affiliated with, endorsed by, or connected to the ICC or any cricket board. This page explains what data the site collects, why, and what choices you have.</p>
+  <p>If anything here is unclear, or you want to access, correct, or delete your data, email <a href="mailto:admin@not-out.co.uk">admin@not-out.co.uk</a>.</p>
+
+  <h2>What we collect</h2>
+  <p>The site is playable as a guest with no data collection beyond your device. Some features ask for more:</p>
+  <table>
+    <tr><th>Data</th><th>When</th><th>Where it's stored</th></tr>
+    <tr><td>A player name you type in</td><td>Guest play, submitting a score</td><td>Your device only (local storage), plus the Honours Board if you submit a score</td></tr>
+    <tr><td>Your Google account's display name and a unique account ID</td><td>Only if you choose to sign in with Google</td><td>Firebase Authentication (Google); attached to your Honours Board entries and Build Your Team data</td></tr>
+    <tr><td>Score, match record, format, and date</td><td>Whenever you submit a result</td><td>The public Honours Board (Firestore) — visible to every visitor</td></tr>
+    <tr><td>Team name, card collection, and campaign progress</td><td>Only if you use Build Your Team (requires sign-in)</td><td>A private record tied to your account (Firestore) — visible only to you</td></tr>
+    <tr><td>Basic usage data (pages viewed, device/browser type, approximate region)</td><td>Only if you accept analytics cookies</td><td>Google Analytics (GA4)</td></tr>
+    <tr><td>Last format played, cookie choice, a local leaderboard cache</td><td>Always, as you play</td><td>Your device only (local storage) — never sent to us</td></tr>
+  </table>
+
+  <h2>Google Sign-In</h2>
+  <p>Signing in is optional and only required for the Build Your Team mode. If you sign in, we receive your Google display name and a Firebase-issued account ID (not your Google password). This lets us verify a score or Build Your Team action really came from your account, and lets Build Your Team save your progress so it's there next time you visit. We don't request or store your email address for any of this.</p>
+  <p>Every score, series result, and pack opened is independently re-checked on our server before anything is saved — a signed-in identity only ever adds verification, it never changes what's visible about you beyond your chosen display name.</p>
+
+  <h2>The Honours Board (leaderboard)</h2>
+  <p>Anyone can submit a score, with or without signing in. Submitted entries — name, score, match record, format, and date — are <strong>public</strong> and visible to every visitor. If you were signed in when you submitted, your Firebase account ID is stored alongside the entry to prevent tampering; this ID is not displayed to other players and doesn't by itself reveal who you are.</p>
+
+  <h2>Build Your Team</h2>
+  <p>This mode requires signing in so your collection can persist across visits and devices. Your team name, owned cards, and campaign progress are stored in a database record tied to your account. Firestore's access rules mean only you can read your own record — no other player or visitor can see it.</p>
+
+  <h2>Cookies and analytics</h2>
+  <p>We use Google Analytics (GA4) to understand how the site is used in aggregate. In line with Google's Consent Mode, an analytics tag loads on every visit but starts in a denied state — no analytics cookies are set and nothing is linked to you personally until you actively accept. You'll see a banner on your first visit, and you can change your choice at any time via the <strong>"Cookie settings"</strong> link in the site footer.</p>
+  <p>We don't run ads and don't use any cross-site or third-party ad tracking.</p>
+
+  <h2>Who we share data with</h2>
+  <p>The site runs on Google Firebase / Google Cloud Platform (database, authentication, and server functions) and is hosted via GitHub Pages. Google Analytics, when you've consented, is also operated by Google. We don't sell your data or share it with any advertiser.</p>
+
+  <h2>How long we keep data</h2>
+  <p>Honours Board entries and Build Your Team collections are kept for as long as the site operates. There's currently no self-service "delete my data" button — email <a href="mailto:admin@not-out.co.uk">admin@not-out.co.uk</a> with your player or team name (and roughly when you played) and we'll remove it.</p>
+
+  <h2>Your rights</h2>
+  <p>Depending on where you live, you may have the right to access, correct, or delete the data we hold about you, and to object to how it's processed. Contact <a href="mailto:admin@not-out.co.uk">admin@not-out.co.uk</a> for any of this. If you're in the UK or EU, you also have the right to complain to your local data protection authority (in the UK, the <a href="https://ico.org.uk" target="_blank" rel="noopener">ICO</a>).</p>
+
+  <h2>Children</h2>
+  <p>NOT OUT isn't specifically directed at children, and we don't knowingly collect personal data from young children. If you believe a child has submitted personal data to the site, contact us and we'll remove it.</p>
+
+  <h2>Security</h2>
+  <p>All traffic is served over HTTPS. Private data (like Build Your Team collections) is protected by database rules that restrict it to its owner, and every score or result is independently verified server-side before being stored. No method of storage or transmission is ever 100% secure, but we take reasonable steps to protect what we hold.</p>
+
+  <h2>Changes to this policy</h2>
+  <p>We may update this policy as the site changes. The "last updated" date at the top will reflect the latest revision — check back occasionally.</p>
+
+  <hr class="hr">
+  <p><a href="index.html" class="back-link">← Back to NOT OUT</a></p>
+</div>
+</body>
+</html>
