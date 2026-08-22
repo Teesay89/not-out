@@ -284,6 +284,8 @@ img.emoji{height:1em;width:1em;vertical-align:-0.1em;margin:0 .02em}
 .byt-slot-row{flex-wrap:wrap}
 .byt-slot-row .rt{margin-left:auto}
 .byt-slot-row button{flex:1 1 100%;margin-top:4px}
+.byt-slot-row.invalid{border-color:var(--ball)!important;box-shadow:0 0 0 1px var(--ball) inset}
+.byt-slot-row.invalid .rl{color:var(--ball);font-weight:600}
 
 .squad-head{display:flex;justify-content:space-between;align-items:baseline;font-family:'IBM Plex Mono',monospace;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--cream-dim);padding:2px 2px 8px}
 .pos-prompt{font-family:'Graduate',serif;font-size:16px;letter-spacing:.03em;text-align:center;margin:2px 0 10px}
@@ -3435,12 +3437,14 @@ function bytRenderSlotsOverview(){
       </div>`;
     }
     const nat = NATIONS.find(n=>n.id===p.c);
+    const fits = SLOTS[i].fits(p);
     const pen = positionPenalty(p, s.no);
-    return `<div class="pcard byt-slot-row" style="cursor:default">
+    const badge = fits ? fitBadge(pen) : '❌ Not eligible here';
+    return `<div class="pcard byt-slot-row${fits?'':' invalid'}" style="cursor:default">
       <span class="flag">${nat?nat.flag:''}</span>
       <span class="who">
         <span class="nm">${s.short} · ${p.n} <span class="decade">'${p.d}</span></span>
-        <span class="rl">${s.title} — ${fitBadge(pen)}</span>
+        <span class="rl">${s.title} — ${badge}</span>
       </span>
       <span class="rt">${p.r}<small>RATING</small></span>
       <button class="btn secondary" style="padding:6px 10px;font-size:11px;flex:0 0 auto" onclick="bytRemoveFromSlot(${i})">Remove</button>
@@ -3467,7 +3471,12 @@ function bytRenderSquadPicker(){
       <span class="rt">${p.r}<small>RATING</small></span>
     </button>`;
   }).join('');
-  document.getElementById('bytSquadContinueBtn').style.display = picksMade>=11 ? '' : 'none';
+  const full = picksMade>=11;
+  const legal = full && bytXiIsLegal(xiSlots);
+  const continueBtn = document.getElementById('bytSquadContinueBtn');
+  continueBtn.style.display = full ? '' : 'none';
+  continueBtn.disabled = full && !legal;
+  continueBtn.textContent = legal ? 'Continue to captain pick' : 'Fix invalid slots to continue';
 }
 function bytShowPositions(cardKey){
   const p = bytHydrate(cardKey);
@@ -3499,20 +3508,66 @@ function bytRemoveFromSlot(idx){
   picksMade--;
   bytRenderSquadPicker();
 }
+// Every slot legally filled AND a keeper present -- the actual rule the
+// server enforces in verifySeriesWin. draftXIFromPool's greedy assignment
+// (used elsewhere for opponent XIs, where the candidate pool is huge) has
+// a fallback that jams a leftover player into ANY empty slot if no
+// fitting one was found -- fine when there are thousands of candidates to
+// choose from, but with a small owned collection that fallback can
+// actually trigger, producing a bowler in a batting slot that LOOKS like
+// a complete XI but isn't. bytBestLegalXI below never does that; this
+// checker is the belt-and-braces guarantee that nothing illegal can ever
+// be confirmed, from auto-select or any other path.
+function bytXiIsLegal(list){
+  return Array.isArray(list) && list.length===11 && list.every(Boolean)
+    && list.every((p,i)=>SLOTS[i].fits(p)) && list.some(p=>p.roles.includes('wk'));
+}
+// Proper maximum bipartite matching (Kuhn's algorithm) between the 11
+// slots and owned players (deduped to one card per real person, highest-
+// rated decade kept) -- guarantees a fully legal XI whenever one exists,
+// unlike draftXIFromPool's greedy-with-illegal-fallback.
+function bytKuhnTryMatch(slotIdx, candidates, matchOf, visited){
+  for(let ci=0; ci<candidates.length; ci++){
+    if(visited[ci] || !SLOTS[slotIdx].fits(candidates[ci])) continue;
+    visited[ci] = true;
+    if(matchOf[ci]===-1 || bytKuhnTryMatch(matchOf[ci], candidates, matchOf, visited)){
+      matchOf[ci] = slotIdx;
+      return true;
+    }
+  }
+  return false;
+}
+function bytBestLegalXI(pool){
+  const byName = new Map();
+  for(const p of pool){ const prev = byName.get(p.n); if(!prev || p.r>prev.r) byName.set(p.n, p); }
+  const candidates = [...byName.values()].sort((a,b)=>b.r-a.r);
+  const matchOf = new Array(candidates.length).fill(-1);
+  for(let slotIdx=0; slotIdx<11; slotIdx++){
+    const visited = new Array(candidates.length).fill(false);
+    if(!bytKuhnTryMatch(slotIdx, candidates, matchOf, visited)) return null;
+  }
+  const out = new Array(11).fill(null);
+  candidates.forEach((p,ci)=>{ if(matchOf[ci]!==-1) out[matchOf[ci]] = p; });
+  return bytXiIsLegal(out) ? out : null;
+}
 function bytAutoSelectBest(){
-  const drafted = draftXIFromPool(bytOwnedPlayers);
-  if(drafted.length < 11){
-    showConfirm('Not enough players', "Your collection doesn't have enough eligible players yet to auto-fill a full legal XI.", 'OK');
+  const legalXI = bytBestLegalXI(bytOwnedPlayers);
+  if(!legalXI){
+    showConfirm('Not enough players', "Your collection doesn't have enough eligible players yet to auto-fill a full legal XI. Open more packs or place players manually.", 'OK');
     return;
   }
   xiSlots = new Array(11).fill(null);
   draftedNames = new Set();
-  drafted.forEach((p,i)=>{ xiSlots[i] = p; draftedNames.add(p.n); });
+  legalXI.forEach((p,i)=>{ xiSlots[i] = p; draftedNames.add(p.n); });
   picksMade = 11;
   bytRenderSquadPicker();
 }
 function bytConfirmSquad(){
   if(picksMade < 11) return;
+  if(!bytXiIsLegal(xiSlots)){
+    showConfirm('Invalid lineup', 'One or more players are in a position they\'re not eligible for — look for the "Not eligible here" slots below and swap those players out before continuing.', 'OK');
+    return;
+  }
   xi = xiSlots.slice();
   showCaptainPick();
 }
@@ -3552,10 +3607,19 @@ function bytRevisesLineup(){
 function bytPlaySeries(){
   const c = bytCollection.campaign;
   if(!c.xi){ showBYTSquadBuilder(); return; }
+  const fullXi = c.xi.map(bytHydrate);
+  if(!bytXiIsLegal(fullXi)){
+    // A lineup saved before this validation existed (or any other stale
+    // state) could have an illegal slot -- the server would reject it
+    // anyway at the end of the series, so catch it here instead of
+    // wasting time on a simulation that can never be confirmed.
+    showConfirm('Lineup needs fixing', 'Your saved lineup has a player in a position they\'re not eligible for. Revise your lineup to fix it before playing.', 'OK');
+    showBYTSquadBuilder();
+    return;
+  }
   const oppId = c.order[c.index];
   const nat = bytOpponentObj(oppId);
   bytCurrentOppLabel = nat.isAllStar ? 'World All-Stars' : nat.name;
-  const fullXi = c.xi.map(bytHydrate);
   xi = fullXi; captainIdx = c.captainIdx;
   FMTKEY = c.fmt; FMT = FORMATS[FMTKEY]; DECADES = FMT.decades;
 
