@@ -604,6 +604,7 @@ body.sim-active .masthead{
   </section>
 
   <p class="data-note">Curated databases: 4,521 Test, 3,196 ODI and 1,621 T20 players, each rated for his standing within his own decade and format. Era-spanning greats may appear in more than one decade but can only be drafted once per game. Test pools run 1870s–2020s, ODI 1970s–2020s, T20 2000s–2020s.</p>
+  <a href="javascript:void(0)" class="info-link" onclick="reopenConsentBanner()">Cookie settings</a>
 </div>
 
 <!-- Optional: global leaderboard via Firebase. See setup notes near
@@ -3743,6 +3744,7 @@ function switchScreen(id){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   window.scrollTo({top:0});
+  trackScreen(id);
 }
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 function rand(a,b){return a+Math.floor(Math.random()*(b-a+1));}
@@ -3801,23 +3803,64 @@ function draftAgain(){
   }
   window.scrollTo({top:0});
 }
-const COOKIE_NOTICE_KEY = 'notout_cookie_notice_ack';
-function acceptCookieNotice(){
-  try{ localStorage.setItem(COOKIE_NOTICE_KEY, '1'); }catch(e){}
-  document.getElementById('cookieBanner').style.display = 'none';
+/* ================= ANALYTICS CONSENT (GA4) =================
+   Real accept/decline, not a dismiss-and-move-on notice: nothing
+   analytics-related is ever requested from Google until the visitor
+   explicitly accepts. Declining (or never choosing) means gtag.js is
+   never fetched at all -- not loaded-then-blocked, genuinely absent. */
+const GA_MEASUREMENT_ID = 'G-XXXXXXXXXX'; // paste the real GA4 Measurement ID here once the property exists
+const CONSENT_KEY = 'notout_consent_v1';
+
+function getConsentState(){
+  try{ return localStorage.getItem(CONSENT_KEY); }catch(e){ return null; }
 }
-function showCookieNoticeIfNeeded(){
-  try{
-    if(!localStorage.getItem(COOKIE_NOTICE_KEY)){
-      const el = document.getElementById('cookieBanner');
-      if(el) el.style.display = 'block';
-    }
-  }catch(e){}
+function setConsentState(state){
+  try{ localStorage.setItem(CONSENT_KEY, state); }catch(e){}
+  const el = document.getElementById('cookieBanner');
+  if(el) el.style.display = 'none';
+  if(state === 'accepted') loadAnalytics();
 }
+function reopenConsentBanner(){
+  const el = document.getElementById('cookieBanner');
+  if(el) el.style.display = 'block';
+}
+function showConsentBannerIfNeeded(){
+  const state = getConsentState();
+  if(!state){
+    const el = document.getElementById('cookieBanner');
+    if(el) el.style.display = 'block';
+  } else if(state === 'accepted'){
+    loadAnalytics();
+  }
+}
+
+let analyticsLoaded = false;
+function loadAnalytics(){
+  if(analyticsLoaded) return;
+  if(!GA_MEASUREMENT_ID || GA_MEASUREMENT_ID.includes('XXXXXXXXXX')) return; // property not configured yet -- no-op
+  analyticsLoaded = true;
+  window.dataLayer = window.dataLayer || [];
+  window.gtag = function(){ dataLayer.push(arguments); };
+  gtag('js', new Date());
+  // send_page_view:false -- this is a single-page app; switchScreen() below
+  // fires its own screen_view events instead of one pageview for the
+  // whole session.
+  gtag('config', GA_MEASUREMENT_ID, {send_page_view:false});
+  const s = document.createElement('script');
+  s.async = true;
+  s.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_MEASUREMENT_ID;
+  document.head.appendChild(s);
+  trackScreen(document.querySelector('.screen.active')?.id);
+}
+function trackScreen(id){
+  if(!analyticsLoaded || !id || typeof gtag!=='function') return;
+  gtag('event', 'screen_view', {screen_name: id});
+}
+
 if(document.readyState === 'loading'){
-  document.addEventListener('DOMContentLoaded', showCookieNoticeIfNeeded);
+  document.addEventListener('DOMContentLoaded', showConsentBannerIfNeeded);
 }else{
-  showCookieNoticeIfNeeded(); // DOM already parsed by the time this script ran
+  showConsentBannerIfNeeded(); // DOM already parsed by the time this script ran
 }
 
 let __startFmt = 'test';
@@ -3861,10 +3904,13 @@ if(typeof twemoji !== 'undefined'){
     </div>
   </div>
 
-  <!-- COOKIE / STORAGE NOTICE -->
+  <!-- COOKIE / ANALYTICS CONSENT -->
   <div class="cookie-banner" id="cookieBanner" style="display:none">
-    <p>This site uses local storage on your device to remember your name and last-played format, and sends scores to the Honours Board to keep the global rankings. No advertising or tracking cookies are used.</p>
-    <button class="btn" onclick="acceptCookieNotice()">Got it</button>
+    <p>This site uses local storage on your device to remember your name and last-played format, and sends scores to the Honours Board to keep the global rankings — that part always happens. With your consent, it also uses Google Analytics to understand how the site gets used. No ads, no cross-site tracking. You can change your choice any time from the "Cookie settings" link in the footer.</p>
+    <div class="confirm-btn-row">
+      <button class="btn secondary" onclick="setConsentState('declined')">Decline</button>
+      <button class="btn" onclick="setConsentState('accepted')">Accept</button>
+    </div>
   </div>
 
   <!-- HOW IT WORKS -->
