@@ -1430,14 +1430,18 @@ function rollCard(pool){
 // 2000s, in best.json).
 function cardKey(p){ return `${p.cid}_${p.d}`; }
 
+// 2 keepers, 10 bowling-capable (bowler or all-rounder), 10 batting-capable
+// (batter or all-rounder) -- an all-rounder can land in either of the
+// latter two buckets, which is intentional (they're eligible for both).
 function rollStarterPack(){
   const pool = DB.best;
   const wkPool = pool.filter(p => p.roles.includes('wk'));
   const bowlPool = pool.filter(p => p.roles.includes('bowl') || p.roles.includes('ar'));
+  const batPool = pool.filter(p => p.roles.includes('bat') || p.roles.includes('ar'));
   const cards = [];
   for(let i = 0; i < 2; i++) cards.push(rollCard(wkPool));
   for(let i = 0; i < 10; i++) cards.push(rollCard(bowlPool));
-  for(let i = 0; i < 10; i++) cards.push(rollCard(pool));
+  for(let i = 0; i < 10; i++) cards.push(rollCard(batPool));
   return cards;
 }
 
@@ -1521,7 +1525,7 @@ function verifySeriesWin({ seed, xi: cardKeys, captainIdx, opponentId, fmt }){
       pickPOTM(code, nat); // Consumes RNG state in lockstep with client
       if(code === 'W') w++; else if(code === 'D') d++; else l++;
     }
-    return { won: w > l, record: `${w}-${d}-${l}` };
+    return { won: w > l, drawn: w === l, record: `${w}-${d}-${l}` };
   } finally {
     Math.random = nativeRandom;
   }

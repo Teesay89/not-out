@@ -427,11 +427,14 @@ exports.openStarterPack = onRequest(async (req, res) => {
         order,
         index: 0,
         wins: 0,
+        draws: 0,
         losses: 0,
         xi: null,
         captainIdx: null,
         fmt: String(fmt),
       },
+      milestonesClaimed: 0,
+      lastDailyClaim: null,
       createdAt: now,
       updatedAt: now,
     };
@@ -528,7 +531,8 @@ exports.claimSeriesReward = onRequest(async (req, res) => {
         order: nextOrder,
         index: nextIndex,
         wins: (campaign.wins || 0) + (result.won ? 1 : 0),
-        losses: (campaign.losses || 0) + (result.won ? 0 : 1),
+        draws: (campaign.draws || 0) + (result.drawn ? 1 : 0),
+        losses: (campaign.losses || 0) + (!result.won && !result.drawn ? 1 : 0),
         xi,
         captainIdx: Number(captainIdx) || 0,
         fmt: campaign.fmt,
@@ -540,6 +544,7 @@ exports.claimSeriesReward = onRequest(async (req, res) => {
     res.status(200).json({
       ok: true,
       won: result.won,
+      drawn: result.drawn,
       record: result.record,
       newCards: newCards.map((p) => ({ n: p.n, c: p.c, d: p.d, r: p.r, cid: p.cid, key: gamelogic.cardKey(p) })),
       spareCount,
@@ -597,6 +602,132 @@ exports.redeemDuplicates = onRequest(async (req, res) => {
     });
   } catch (err) {
     console.error("redeemDuplicates error:", err);
+    res.status(500).json({ ok: false, error: err.message || "Internal server error" });
+  }
+});
+
+// Every 10 cumulative series wins (never reset by the 12-opponent order
+// wrapping around) earns one free 6-card pack. milestonesClaimed tracks how
+// many of these have already been claimed, so eligibility is always
+// re-derived server-side from the real win count -- never trusted from
+// the client.
+exports.claimWinMilestonePack = onRequest(async (req, res) => {
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Headers", "Content-Type");
+  if (req.method === "OPTIONS") {
+    res.set("Access-Control-Allow-Methods", "POST");
+    res.status(204).send("");
+    return;
+  }
+  if (req.method !== "POST") {
+    res.status(405).json({ ok: false, error: "Method not allowed" });
+    return;
+  }
+
+  try {
+    const uid = await requireAuthedUid(req, res);
+    if (!uid) return;
+
+    const db = admin.firestore();
+    const docRef = packDoc(db, uid);
+    const snap = await docRef.get();
+    if (!snap.exists) {
+      res.status(404).json({ ok: false, error: "No collection found -- open a starter pack first" });
+      return;
+    }
+    const data = snap.data();
+    const wins = (data.campaign && data.campaign.wins) || 0;
+    const claimed = data.milestonesClaimed || 0;
+    const eligible = Math.floor(wins / 10);
+    if (eligible <= claimed) {
+      res.status(400).json({ ok: false, error: "No milestone pack available yet", wins, milestonesClaimed: claimed });
+      return;
+    }
+
+    const newCards = gamelogic.rollPack(6);
+    const merged = mergeCardsIntoCollection(data.cards, data.spareCount || 0, newCards);
+    const milestonesClaimed = claimed + 1;
+
+    await docRef.update({
+      cards: merged.cards,
+      spareCount: merged.spareCount,
+      milestonesClaimed,
+      updatedAt: new Date().toISOString(),
+    });
+
+    res.status(200).json({
+      ok: true,
+      newCards: newCards.map((p) => ({ n: p.n, c: p.c, d: p.d, r: p.r, cid: p.cid, key: gamelogic.cardKey(p) })),
+      spareCount: merged.spareCount,
+      milestonesClaimed,
+    });
+  } catch (err) {
+    console.error("claimWinMilestonePack error:", err);
+    res.status(500).json({ ok: false, error: err.message || "Internal server error" });
+  }
+});
+
+// One free 6-card pack per real-world day -- gated by a 20-hour minimum
+// gap since the last claim (rather than a strict UTC-midnight cutoff) so a
+// player who logs in at a slightly different time each day doesn't get
+// pushed later and later, while still being "once a day" in practice.
+const DAILY_PACK_MIN_HOURS = 20;
+exports.claimDailyPack = onRequest(async (req, res) => {
+  res.set("Access-Control-Allow-Origin", "*");
+  res.set("Access-Control-Allow-Headers", "Content-Type");
+  if (req.method === "OPTIONS") {
+    res.set("Access-Control-Allow-Methods", "POST");
+    res.status(204).send("");
+    return;
+  }
+  if (req.method !== "POST") {
+    res.status(405).json({ ok: false, error: "Method not allowed" });
+    return;
+  }
+
+  try {
+    const uid = await requireAuthedUid(req, res);
+    if (!uid) return;
+
+    const db = admin.firestore();
+    const docRef = packDoc(db, uid);
+    const snap = await docRef.get();
+    if (!snap.exists) {
+      res.status(404).json({ ok: false, error: "No collection found -- open a starter pack first" });
+      return;
+    }
+    const data = snap.data();
+    const now = new Date();
+    const last = data.lastDailyClaim ? new Date(data.lastDailyClaim) : null;
+    const hoursSince = last ? (now - last) / 3600000 : Infinity;
+    if (hoursSince < DAILY_PACK_MIN_HOURS) {
+      res.status(400).json({
+        ok: false,
+        error: "Daily pack already claimed -- come back later",
+        hoursRemaining: Math.ceil(DAILY_PACK_MIN_HOURS - hoursSince),
+      });
+      return;
+    }
+
+    const newCards = gamelogic.rollPack(6);
+    const merged = mergeCardsIntoCollection(data.cards, data.spareCount || 0, newCards);
+    const lastDailyClaim = now.toISOString();
+
+    await docRef.update({
+      cards: merged.cards,
+      spareCount: merged.spareCount,
+      lastDailyClaim,
+      updatedAt: lastDailyClaim,
+    });
+
+    res.status(200).json({
+      ok: true,
+      newCards: newCards.map((p) => ({ n: p.n, c: p.c, d: p.d, r: p.r, cid: p.cid, key: gamelogic.cardKey(p) })),
+      spareCount: merged.spareCount,
+      lastDailyClaim,
+    });
+  } catch (err) {
+    console.error("claimDailyPack error:", err);
     res.status(500).json({ ok: false, error: err.message || "Internal server error" });
   }
 });
