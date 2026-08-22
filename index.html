@@ -3,6 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<!-- Google tag (gtag.js) -- loads on every visit per Google's Consent Mode
+     v2 design: the tag itself always loads and pings Google anonymously,
+     but every consent signal below defaults to 'denied' until the visitor
+     accepts via the in-page banner (see setConsentState()/applyConsent()
+     further down) -- until then, no cookies are set and nothing is tied
+     to an identifiable visitor. Keep this Measurement ID in sync with any
+     other reference to G-CNVZ0G790Y in this file. -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-CNVZ0G790Y"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){ dataLayer.push(arguments); }
+  gtag('consent', 'default', {
+    ad_storage: 'denied',
+    ad_user_data: 'denied',
+    ad_personalization: 'denied',
+    analytics_storage: 'denied'
+  });
+  gtag('js', new Date());
+  gtag('config', 'G-CNVZ0G790Y', {send_page_view:false});
+</script>
 <title>Not Out | Cricket World Domination</title>
 <meta name="description" content="Draft an XI from any country, any decade, and take on the world. Cricket World Domination.">
 <meta property="og:type" content="website">
@@ -3803,22 +3823,27 @@ function draftAgain(){
   }
   window.scrollTo({top:0});
 }
-/* ================= ANALYTICS CONSENT (GA4) =================
-   Real accept/decline, not a dismiss-and-move-on notice: nothing
-   analytics-related is ever requested from Google until the visitor
-   explicitly accepts. Declining (or never choosing) means gtag.js is
-   never fetched at all -- not loaded-then-blocked, genuinely absent. */
-const GA_MEASUREMENT_ID = 'G-CNVZ0G790Y';
+/* ================= ANALYTICS CONSENT (GA4 / Consent Mode v2) =================
+   gtag.js loads unconditionally on every visit (see the snippet in
+   <head>) with every consent signal defaulted to 'denied' -- Google gets
+   only an anonymous, cookieless ping until the visitor accepts here.
+   Accepting/declining never controls whether the tag loads, only whether
+   it's allowed to set cookies / use anything identifying, via
+   gtag('consent','update', ...). */
 const CONSENT_KEY = 'notout_consent_v1';
 
 function getConsentState(){
   try{ return localStorage.getItem(CONSENT_KEY); }catch(e){ return null; }
 }
+function applyConsent(state){
+  if(typeof gtag !== 'function') return;
+  gtag('consent', 'update', {analytics_storage: state === 'accepted' ? 'granted' : 'denied'});
+}
 function setConsentState(state){
   try{ localStorage.setItem(CONSENT_KEY, state); }catch(e){}
   const el = document.getElementById('cookieBanner');
   if(el) el.style.display = 'none';
-  if(state === 'accepted') loadAnalytics();
+  applyConsent(state);
 }
 function reopenConsentBanner(){
   const el = document.getElementById('cookieBanner');
@@ -3829,31 +3854,12 @@ function showConsentBannerIfNeeded(){
   if(!state){
     const el = document.getElementById('cookieBanner');
     if(el) el.style.display = 'block';
-  } else if(state === 'accepted'){
-    loadAnalytics();
+  } else {
+    applyConsent(state);
   }
 }
-
-let analyticsLoaded = false;
-function loadAnalytics(){
-  if(analyticsLoaded) return;
-  if(!GA_MEASUREMENT_ID || GA_MEASUREMENT_ID.includes('XXXXXXXXXX')) return; // property not configured yet -- no-op
-  analyticsLoaded = true;
-  window.dataLayer = window.dataLayer || [];
-  window.gtag = function(){ dataLayer.push(arguments); };
-  gtag('js', new Date());
-  // send_page_view:false -- this is a single-page app; switchScreen() below
-  // fires its own screen_view events instead of one pageview for the
-  // whole session.
-  gtag('config', GA_MEASUREMENT_ID, {send_page_view:false});
-  const s = document.createElement('script');
-  s.async = true;
-  s.src = 'https://www.googletagmanager.com/gtag/js?id=' + GA_MEASUREMENT_ID;
-  document.head.appendChild(s);
-  trackScreen(document.querySelector('.screen.active')?.id);
-}
 function trackScreen(id){
-  if(!analyticsLoaded || !id || typeof gtag!=='function') return;
+  if(typeof gtag !== 'function' || !id) return;
   gtag('event', 'screen_view', {screen_name: id});
 }
 
@@ -3906,7 +3912,7 @@ if(typeof twemoji !== 'undefined'){
 
   <!-- COOKIE / ANALYTICS CONSENT -->
   <div class="cookie-banner" id="cookieBanner" style="display:none">
-    <p>This site uses local storage on your device to remember your name and last-played format, and sends scores to the Honours Board to keep the global rankings — that part always happens. With your consent, it also uses Google Analytics to understand how the site gets used. No ads, no cross-site tracking. You can change your choice any time from the "Cookie settings" link in the footer.</p>
+    <p>This site uses local storage on your device to remember your name and last-played format, and sends scores to the Honours Board to keep the global rankings — that part always happens. It also uses Google Analytics to understand how the site gets used; unless you accept, no cookies are set and nothing is linked to you personally. No ads, no cross-site tracking. You can change your choice any time from the "Cookie settings" link in the footer.</p>
     <div class="confirm-btn-row">
       <button class="btn secondary" onclick="setConsentState('declined')">Decline</button>
       <button class="btn" onclick="setConsentState('accepted')">Accept</button>
