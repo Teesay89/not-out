@@ -1561,7 +1561,7 @@ function verifySeriesWin({ seed, xi: cardKeys, captainIdx, opponentId, fmt }){
       pickPOTM(code, nat); // Consumes RNG state in lockstep with client
       if(code === 'W') w++; else if(code === 'D') d++; else l++;
     }
-    return { won: w > l, drawn: w === l, record: `${w}-${d}-${l}` };
+    return { won: w > l, drawn: w === l, record: `${w}-${d}-${l}`, matchWins: w, matchDraws: d, matchLosses: l };
   } finally {
     Math.random = nativeRandom;
   }

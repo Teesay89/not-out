@@ -598,6 +598,7 @@ body.sim-active .masthead{
     <button class="btn secondary" onclick="bytRevisesLineup()">Revise lineup</button>
     <button class="btn" style="margin-top:10px" onclick="bytPlaySeries()">Play the series</button>
     <button class="btn secondary" style="margin-top:10px" onclick="showBYTCollection()">My collection</button>
+    <button class="btn secondary" style="margin-top:10px" onclick="openLeaderboard()">🏆 Honours Board</button>
     <a href="javascript:void(0)" class="back-link" style="margin-top:10px" onclick="switchScreen('scr-intro')">← Back to menu</a>
   </section>
 
@@ -732,6 +733,7 @@ body.sim-active .masthead{
       <button class="lb-pill" data-mode="t20" onclick="setLbFilter('t20')">T20</button>
       <button class="lb-pill" data-mode="represent" onclick="setLbFilter('represent')">Represent</button>
       <button class="lb-pill" data-mode="showdown" onclick="setLbFilter('showdown')">Showdown</button>
+      <button class="lb-pill" data-mode="buildteam" onclick="setLbFilter('buildteam')">Build Team</button>
     </div>
     <div id="lbBody"></div>
     <button class="btn secondary" style="margin-top:14px" onclick="closeLeaderboard()">← Back</button>
@@ -1288,7 +1290,7 @@ function setDataStatus(state, k){
 }
 
 async function startDraft(){
-  represMode = false;
+  represMode = false; bytMode = false;
   if(!DB[FMTKEY]){
     const ok = await ensureFormatLoaded(FMTKEY);
     if(!ok) return;   // setDataStatus already shows the error; stay on the intro screen
@@ -2729,6 +2731,16 @@ function confirmNameInputWithGoogle(){
    top 200 once Test/ODI/T20 moved to a 0–10,000 formula — the
    Hundred filter wasn't missing data, it just never received any. */
 async function lbLoad(filterFmt){
+  if(filterFmt === 'buildteam'){
+    // Build Your Team is sign-in-only and server-verified throughout, so
+    // there's no meaningful "device-only" fallback here the way other
+    // modes have -- if Firestore isn't reachable, the board is just empty.
+    if(!fbDB) return [];
+    try{
+      const snap = await fbDB.collection('bytLeaderboard').orderBy('wins','desc').limit(50).get();
+      return snap.docs.map(d => ({ mode:'buildteam', ...d.data() }));
+    }catch(e){ console.warn('Could not load the Build Your Team honours board.', e); return []; }
+  }
   if(fbDB){
     try{
       let query = fbDB.collection('leaderboard');
@@ -3050,7 +3062,8 @@ function lbFilteredEntries(){
   if(lbFilter==='all') return leaderboard;
   if(lbFilter==='represent') return leaderboard.filter(e => e.mode==='represent');
   if(lbFilter==='showdown') return leaderboard.filter(e => e.mode==='showdown');
-  return leaderboard.filter(e => e.mode!=='represent' && e.mode!=='showdown' && (e.format ? e.format===lbFilter : e.label===LB_FILTER_LABEL[lbFilter]));
+  if(lbFilter==='buildteam') return leaderboard.filter(e => e.mode==='buildteam');
+  return leaderboard.filter(e => e.mode!=='represent' && e.mode!=='showdown' && e.mode!=='buildteam' && (e.format ? e.format===lbFilter : e.label===LB_FILTER_LABEL[lbFilter]));
 }
 function renderLbBody(){
   const body = document.getElementById('lbBody');
@@ -3062,6 +3075,15 @@ function renderLbBody(){
   body.innerHTML = rows.map((e,i)=>{
     const d = new Date(e.date);
     const when = isNaN(d) ? '' : d.toLocaleDateString();
+    if(e.mode==='buildteam'){
+      const ud = new Date(e.updatedAt);
+      const updatedWhen = isNaN(ud) ? '' : ud.toLocaleDateString();
+      return `<div class="lb-row ${i===0?'top1':''}">
+        <span class="lb-rank">${i+1}</span>
+        <div class="lb-mid"><div class="lb-score">${escHtml(e.teamName||'Unnamed XI')}${e.squadRating!=null?` · Squad ${e.squadRating}`:''}</div><div class="lb-meta">${e.wins||0}W · ${e.draws||0}D · ${e.losses||0}L · ${updatedWhen}</div></div>
+        <span class="lb-fmt">Build Team</span>
+      </div>`;
+    }
     if(e.mode==='represent'){
       const nat = NATIONS.find(n=>n.id===e.country);
       const flag = nat ? nat.flag : '';
@@ -3111,12 +3133,12 @@ async function setLbFilter(mode){
   renderLbBody();
 }
 async function openLeaderboard(){
-  lbReturnScreen = document.getElementById('verdict').classList.contains('show') ? 'scr-season' : 'scr-intro';
-  // Represent Your Nation / Series Showdown entries never appear under "All"
-  // (different scoring scales — see lbLoad), so opening the leaderboard
-  // straight after one of those runs defaults to its own tab instead,
-  // otherwise your own just-completed score looks like it's missing.
-  lbFilter = represMode ? 'represent' : curSeriesMode ? 'showdown' : 'all';
+  lbReturnScreen = bytMode ? 'scr-byt-checkpoint' : document.getElementById('verdict').classList.contains('show') ? 'scr-season' : 'scr-intro';
+  // Represent Your Nation / Series Showdown / Build Your Team entries
+  // never appear under "All" (different scoring scales — see lbLoad), so
+  // opening the leaderboard from one of those modes defaults to its own
+  // tab instead, otherwise your own record looks like it's missing.
+  lbFilter = bytMode ? 'buildteam' : represMode ? 'represent' : curSeriesMode ? 'showdown' : 'all';
   document.querySelectorAll('.lb-pill').forEach(b=>b.classList.remove('selected'));
   const activeBtn = document.querySelector(`.lb-pill[data-mode="${lbFilter}"]`);
   if(activeBtn) activeBtn.classList.add('selected');
@@ -3177,7 +3199,7 @@ let csCombinedScore = 0;
 const ALLSTAR_OPP_BONUS = 6.05;
 
 async function showSeriesShowdownSetup(){
-  curSeriesMode = true;
+  curSeriesMode = true; bytMode = false;
   csSeries = null; csYourNat = null; csOppNat = null;
   document.getElementById('showdownSideStep').style.display = 'none';
   const grid = document.getElementById('showdownSeriesGrid');
@@ -3297,6 +3319,7 @@ function selectBYTFormat(fmt){
   document.querySelectorAll('#bytFmtRow .fmt-btn').forEach(b=>b.classList.toggle('selected', b.dataset.fmt===fmt));
 }
 function exitBuildYourTeamSetup(){
+  bytMode = false;
   switchScreen('scr-intro');
 }
 async function startBuildYourTeam(){
@@ -3503,10 +3526,10 @@ function showBYTCampaignCheckpoint(){
   switchScreen('scr-byt-checkpoint');
   const c = bytCollection.campaign;
   document.getElementById('bytCheckpointTeamName').textContent = bytCollection.teamName;
-  document.getElementById('bytCheckpointRecord').textContent = `${c.wins||0} won · ${c.draws||0} drawn · ${c.losses||0} lost`;
+  document.getElementById('bytCheckpointRecord').textContent = `${c.matchWins||0} won · ${c.matchDraws||0} drawn · ${c.matchLosses||0} lost`;
   const dailyHoursSince = bytCollection.lastDailyClaim ? (Date.now() - new Date(bytCollection.lastDailyClaim).getTime()) / 3600000 : Infinity;
   document.getElementById('bytDailyPackBtn').style.display = dailyHoursSince >= 20 ? '' : 'none';
-  const milestonesEligible = Math.floor((c.wins||0) / 10) > (bytCollection.milestonesClaimed||0);
+  const milestonesEligible = Math.floor((c.matchWins||0) / 10) > (bytCollection.milestonesClaimed||0);
   document.getElementById('bytMilestonePackBtn').style.display = milestonesEligible ? '' : 'none';
   const oppId = c.order[c.index];
   const nat = bytOpponentObj(oppId);
@@ -3755,7 +3778,7 @@ function selectSeriesShowdownSide(natId){
 }
 async function startSeriesShowdownDraft(){
   if(!csYourNat || !csOppNat) return;
-  represMode = false;
+  represMode = false; bytMode = false;
   FMTKEY = 'test'; FMT = FORMATS.test; DECADES = FMT.decades;   // representative preview format for the review screen; the campaign itself cycles all three
   if(!DB.best){
     const ok = await ensureFormatLoaded('best');
@@ -3785,7 +3808,7 @@ function selectSeriesShowdownCombinedFormat(fmt){
 }
 async function startSeriesShowdownCombinedDraft(){
   if(!csSeries) return;
-  curSeriesMode = true; csCombined = true; represMode = false;
+  curSeriesMode = true; csCombined = true; represMode = false; bytMode = false;
   FMTKEY = csCombinedFmt; FMT = FORMATS[csCombinedFmt]; DECADES = FMT.decades;
   await ensureFormatLoaded(csCombinedFmt);
   const aNat = NATIONS.find(n=>n.id===csSeries.a), bNat = NATIONS.find(n=>n.id===csSeries.b);
@@ -3795,7 +3818,7 @@ async function startSeriesShowdownCombinedDraft(){
 }
 
 async function showRepresentSetup(){
-  represMode = true;
+  represMode = true; bytMode = false;
   represCountry = null;
   represFmt = 'test';
   document.querySelectorAll('#representFmtRow .fmt-btn').forEach(b=>b.classList.remove('selected'));

@@ -367,6 +367,25 @@ function packDoc(db, uid) {
   return db.collection("packCollections").doc(uid);
 }
 
+// Build Your Team's public Honours Board: one upserted doc per user,
+// holding only the public-facing record -- never the card collection
+// itself (that stays private in packCollections).
+function bytLeaderboardDoc(db, uid) {
+  return db.collection("bytLeaderboard").doc(uid);
+}
+function computeSquadRating(cards) {
+  const keys = Object.keys(cards || {});
+  if (!keys.length) return null;
+  const pool = gamelogic.DB.best;
+  const ratings = [];
+  for (const key of keys) {
+    const p = pool.find((x) => gamelogic.cardKey(x) === key);
+    if (p) ratings.push(p.r);
+  }
+  if (!ratings.length) return null;
+  return Math.round(ratings.reduce((a, b) => a + b, 0) / ratings.length);
+}
+
 const PACK_TEAM_NAME_MAX = 30;
 
 exports.openStarterPack = onRequest(async (req, res) => {
@@ -427,9 +446,12 @@ exports.openStarterPack = onRequest(async (req, res) => {
       campaign: {
         order,
         index: 0,
-        wins: 0,
-        draws: 0,
-        losses: 0,
+        // Per-match tally across every series ever played -- drives both
+        // the public-facing record (checkpoint, Honours Board) and the
+        // every-10-match-wins milestone pack.
+        matchWins: 0,
+        matchDraws: 0,
+        matchLosses: 0,
         xi: null,
         captainIdx: null,
         fmt: String(fmt),
@@ -440,6 +462,14 @@ exports.openStarterPack = onRequest(async (req, res) => {
       updatedAt: now,
     };
     await docRef.set(doc);
+    await bytLeaderboardDoc(db, uid).set({
+      teamName: safeTeamName,
+      wins: 0,
+      draws: 0,
+      losses: 0,
+      squadRating: computeSquadRating(merged.cards),
+      updatedAt: now,
+    });
     res.status(200).json({ ok: true, collection: doc });
   } catch (err) {
     console.error("openStarterPack error:", err);
@@ -524,22 +554,31 @@ exports.claimSeriesReward = onRequest(async (req, res) => {
       spareCount = merged.spareCount;
     }
 
+    const newCampaign = {
+      order: nextOrder,
+      index: nextIndex,
+      matchWins: (campaign.matchWins || 0) + result.matchWins,
+      matchDraws: (campaign.matchDraws || 0) + result.matchDraws,
+      matchLosses: (campaign.matchLosses || 0) + result.matchLosses,
+      xi,
+      captainIdx: Number(captainIdx) || 0,
+      fmt: campaign.fmt,
+    };
     const updated = {
       cards,
       spareCount,
-      campaign: {
-        order: nextOrder,
-        index: nextIndex,
-        wins: (campaign.wins || 0) + (result.won ? 1 : 0),
-        draws: (campaign.draws || 0) + (result.drawn ? 1 : 0),
-        losses: (campaign.losses || 0) + (!result.won && !result.drawn ? 1 : 0),
-        xi,
-        captainIdx: Number(captainIdx) || 0,
-        fmt: campaign.fmt,
-      },
+      campaign: newCampaign,
       updatedAt: new Date().toISOString(),
     };
     await docRef.update(updated);
+    await bytLeaderboardDoc(db, uid).set({
+      teamName: data.teamName,
+      wins: newCampaign.matchWins,
+      draws: newCampaign.matchDraws,
+      losses: newCampaign.matchLosses,
+      squadRating: computeSquadRating(cards),
+      updatedAt: updated.updatedAt,
+    });
 
     res.status(200).json({
       ok: true,
@@ -606,7 +645,7 @@ exports.redeemDuplicates = onRequest(async (req, res) => {
   }
 });
 
-// Every 10 cumulative series wins (never reset by the 12-opponent order
+// Every 10 cumulative MATCH wins (never reset by the 12-opponent order
 // wrapping around) earns one free 6-card pack. milestonesClaimed tracks how
 // many of these have already been claimed, so eligibility is always
 // re-derived server-side from the real win count -- never trusted from
@@ -636,11 +675,11 @@ exports.claimWinMilestonePack = onRequest(async (req, res) => {
       return;
     }
     const data = snap.data();
-    const wins = (data.campaign && data.campaign.wins) || 0;
+    const matchWins = (data.campaign && data.campaign.matchWins) || 0;
     const claimed = data.milestonesClaimed || 0;
-    const eligible = Math.floor(wins / 10);
+    const eligible = Math.floor(matchWins / 10);
     if (eligible <= claimed) {
-      res.status(400).json({ ok: false, error: "No milestone pack available yet", wins, milestonesClaimed: claimed });
+      res.status(400).json({ ok: false, error: "No milestone pack available yet", matchWins, milestonesClaimed: claimed });
       return;
     }
 

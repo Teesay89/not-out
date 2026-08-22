@@ -25,5 +25,15 @@ service cloud.firestore {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow write: if false;
     }
+
+    // Build Your Team's public Honours Board entry: one doc per user
+    // (doc id == uid), holding only the public-facing record (team name,
+    // win/draw/loss, squad rating) -- never the card collection itself.
+    // Kept up to date by claimSeriesReward via the Admin SDK; same
+    // "no client writes" lockdown as everywhere else.
+    match /bytLeaderboard/{userId} {
+      allow read: if true;
+      allow write: if false;
+    }
   }
 }
