@@ -204,9 +204,14 @@ const BASE_DIFFICULTY_PENALTY = {test:0, odi:1.2, t20:0};
 function computeConditionsPenalty(nat, hasSpin, hasPace){
   const pen = CONDITIONS_PENALTY[FMTKEY] || 0;
   if(!pen) return 0;
+  // Build Your Team's decade-opponent objects carry the real nation code
+  // separately as `natId` (their own `id` is a composite like "IND_1990s");
+  // every other mode's plain NATIONS objects have no `natId`, so this falls
+  // back to `nat.id` for them exactly as before.
+  const realNatId = nat.natId || nat.id;
   let total = 0;
-  if(ASIA_NATIONS.has(nat.id) && !hasSpin) total += pen;
-  if(PACE_NATIONS.has(nat.id) && !hasPace) total += pen;
+  if(ASIA_NATIONS.has(realNatId) && !hasSpin) total += pen;
+  if(PACE_NATIONS.has(realNatId) && !hasPace) total += pen;
   return total;
 }
 function hasWorldClassBowlingType(xiList, kind){
@@ -322,7 +327,7 @@ function decideNeutral(oppA, oppB){
 }
 
 function genTestMatch(code, nat){
-  const oppLabel = nat.isAllStar ? 'All-Stars' : nat.id;
+  const oppLabel = nat.isAllStar ? 'All-Stars' : (nat.natId || nat.id);
   let score, margin, pts, yourInningsList, oppInningsList;
   if(code==='D'){
     const a1=rand(300,540), b1=rand(280,520), a2=rand(150,330), a2w=rand(4,8), b2=rand(90,260), b2w=rand(4,9);
@@ -372,7 +377,7 @@ function genTestMatch(code, nat){
 }
 
 function genWhiteBallMatch(code, nat, superOver){
-  const oppLabel = nat.isAllStar ? 'All-Stars' : nat.id;
+  const oppLabel = nat.isAllStar ? 'All-Stars' : (nat.natId || nat.id);
   const t20 = FMTKEY==='t20';
   const lo=t20?130:220, hi=t20?225:380, ov=t20?'20 ov':'50 ov';
   const weWin = code==='W';
@@ -768,11 +773,12 @@ function pickPOTM(code, nat){
     const stub={roles:real.roles, r:real.rt};
     return `${real.n} (${nat.name}) \u2014 ${potmStat(stub)}`;
   }
-  let opp=PLAYERS.filter(x=>x.c===nat.id && x.d===(FMTKEY==='hundred' ? '20s' : '2020s') && !draftedNames.has(x.n));
-  if(!opp.length) opp=PLAYERS.filter(x=>x.c===nat.id && !draftedNames.has(x.n));
+  const realNatId = nat.natId || nat.id;
+  let opp=PLAYERS.filter(x=>x.c===realNatId && x.d===(FMTKEY==='hundred' ? '20s' : '2020s') && !draftedNames.has(x.n));
+  if(!opp.length) opp=PLAYERS.filter(x=>x.c===realNatId && !draftedNames.has(x.n));
   if(!opp.length) return `their captain \u2014 match-winning knock`;
   const p=opp.sort((a,b)=>b.r-a.r)[Math.min(opp.length-1,Math.floor(Math.random()*3))];
-  return `${p.n} (${nat.id}) \u2014 ${potmStat(p)}`;
+  return `${p.n} (${realNatId}) \u2014 ${potmStat(p)}`;
 }
 
 function buildHundredTable(opponents, yourMatches){
@@ -1451,15 +1457,45 @@ function rollPack(n){
   return cards;
 }
 
-// The 12 Build Your Team opponents are the same 11 NATIONS + 1 ALLSTAR_TEAMS
-// tier used elsewhere -- this just resolves whichever id was stored in the
-// shuffled campaign order back to the real object.
+// Build Your Team's opponent pool: every (nation, decade) combination with
+// enough real players to field a legal XI (1 keeper, up to 5 bowl/ar, the
+// rest batters) becomes its own opponent, instead of a fixed 11 nations +
+// 1 all-star tier. Strength (`opp`) is derived directly from the drafted
+// XI's own average rating, so thin eras/nations naturally play weaker and
+// stacked ones naturally play stronger -- no hand-tuned per-team number.
+function buildDecadeOpponentXI(natId, decade){
+  const pool = DB.best.filter(p => p.c === natId && p.d === decade).sort((a, b) => b.r - a.r);
+  return draftXIFromPool(pool);
+}
+const decadeOpponentXICache = new Map();
+function getDecadeOpponentXI(natId, decade){
+  const key = natId + '|' + decade;
+  if(!decadeOpponentXICache.has(key)) decadeOpponentXICache.set(key, buildDecadeOpponentXI(natId, decade));
+  return decadeOpponentXICache.get(key);
+}
+let decadeOpponentsCache = null;
+function getDecadeOpponents(){
+  if(decadeOpponentsCache) return decadeOpponentsCache;
+  const list = [];
+  for(const nat of NATIONS){
+    const decades = [...new Set(DB.best.filter(p => p.c === nat.id).map(p => p.d))];
+    for(const d of decades){
+      const xi = getDecadeOpponentXI(nat.id, d);
+      // Some eras/nations simply don't have 11 real, role-legal players in
+      // this dataset (e.g. no keeper at all) -- skip those rather than
+      // fielding an illegal or under-strength side.
+      if(xi.length !== 11 || !xi.some(p => p.roles.includes('wk'))) continue;
+      const opp = Math.round(xi.reduce((s, p) => s + p.r, 0) / 11);
+      list.push({ id: nat.id + '_' + d, natId: nat.id, decade: d, name: `${nat.name} (${d})`, flag: nat.flag, opp, venues: nat.venues, isAllStar: false });
+    }
+  }
+  decadeOpponentsCache = list;
+  return list;
+}
 function resolvePackOpponent(opponentId){
-  const nat = NATIONS.find(n => n.id === opponentId);
-  if(nat) return nat;
-  const allStar = ALLSTAR_TEAMS.find(t => t.id === opponentId);
-  if(allStar) return allStar;
-  throw new Error('unknown opponent: ' + opponentId);
+  const found = getDecadeOpponents().find(o => o.id === opponentId);
+  if(!found) throw new Error('unknown opponent: ' + opponentId);
+  return found;
 }
 
 /* Hydrates a Build Your Team XI from card keys against DB.best. Ownership --
@@ -1520,8 +1556,8 @@ function verifySeriesWin({ seed, xi: cardKeys, captainIdx, opponentId, fmt }){
       const code = res.code;
       const gen = fmt === 'test' ? genTestMatch(code, nat) : genWhiteBallMatch(code, nat, res.superOver);
       const genLists = toInningsLists(gen);
-      const oppXi = nat.isAllStar ? getWorldAllStarXI(nat.id) : getOppositionXI(nat.id, 'best');
-      buildMatchScorecard(fullXi, oppXi, genLists.yourInningsList, genLists.oppInningsList, nat.isAllStar ? 'All-Stars' : nat.id); // Consumes RNG state in lockstep with client
+      const oppXi = getDecadeOpponentXI(nat.natId, nat.decade);
+      buildMatchScorecard(fullXi, oppXi, genLists.yourInningsList, genLists.oppInningsList, nat.natId); // Consumes RNG state in lockstep with client
       pickPOTM(code, nat); // Consumes RNG state in lockstep with client
       if(code === 'W') w++; else if(code === 'D') d++; else l++;
     }
@@ -1531,4 +1567,4 @@ function verifySeriesWin({ seed, xi: cardKeys, captainIdx, opponentId, fmt }){
   }
 }
 
-module.exports = { calculateScore, calculateRepresentResult, calculateSeriesShowdownResult, calculateSeriesShowdownCombinedResult, DB, mulberry32, NATIONS, ALLSTAR_TEAMS, HUNDRED_TEAMS, FORMATS, SLOTS, teamStrengths, decideMatch, decideNeutral, genTestMatch, genWhiteBallMatch, genHundredMatch, pickPOTM, buildHundredTable, getBowlingUnit, shuffle, admin, db, __setFMTKEY, __setXI, rollStarterPack, rollPack, verifySeriesWin, cardKey };
+module.exports = { calculateScore, calculateRepresentResult, calculateSeriesShowdownResult, calculateSeriesShowdownCombinedResult, DB, mulberry32, NATIONS, ALLSTAR_TEAMS, HUNDRED_TEAMS, FORMATS, SLOTS, teamStrengths, decideMatch, decideNeutral, genTestMatch, genWhiteBallMatch, genHundredMatch, pickPOTM, buildHundredTable, getBowlingUnit, shuffle, admin, db, __setFMTKEY, __setXI, rollStarterPack, rollPack, verifySeriesWin, cardKey, getDecadeOpponents };

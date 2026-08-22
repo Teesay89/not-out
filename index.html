@@ -1676,7 +1676,7 @@ function decideNeutral(oppA, oppB){
    oppWkts (combined across all of a side's innings) are kept too, since
    other code still reads them for combined-total contexts. */
 function genTestMatch(code, nat){
-  const oppLabel = nat.isAllStar ? 'All-Stars' : nat.id;
+  const oppLabel = nat.isAllStar ? 'All-Stars' : (nat.natId || nat.id);
   let score, margin, pts, yourInningsList, oppInningsList;
   if(code==='D'){
     const a1=rand(300,540), b1=rand(280,520), a2=rand(150,330), a2w=rand(4,8), b2=rand(90,260), b2w=rand(4,9);
@@ -1725,7 +1725,7 @@ function genTestMatch(code, nat){
   return {score, margin, pts: Math.round(pts), yourTotal, yourWkts, oppTotal, oppWkts, yourInningsList, oppInningsList};
 }
 function genWhiteBallMatch(code, nat, superOver){
-  const oppLabel = nat.isAllStar ? 'All-Stars' : nat.id;
+  const oppLabel = nat.isAllStar ? 'All-Stars' : (nat.natId || nat.id);
   const t20 = FMTKEY==='t20';
   const lo=t20?130:220, hi=t20?225:380, ov=t20?'20 ov':'50 ov';
   const weWin = code==='W';
@@ -1901,6 +1901,41 @@ function getWorldAllStarXI(teamId){
   if(!worldAllStarXICache.has(FMTKEY)) worldAllStarXICache.set(FMTKEY, buildAllWorldAllStarXIs());
   const tiers = worldAllStarXICache.get(FMTKEY);
   return tiers[ALLSTAR_TEAMS.findIndex(t=>t.id===teamId)];
+}
+
+// Build Your Team's opponent pool: every (nation, decade) combination with
+// enough real players to field a legal XI (1 keeper, up to 5 bowl/ar, the
+// rest batters) becomes its own opponent, instead of a fixed 11 nations +
+// 1 all-star tier. Strength (`opp`) is derived directly from the drafted
+// XI's own average rating, so thin eras/nations naturally play weaker and
+// stacked ones naturally play stronger. Byte-identical to the copy in
+// functions/gamelogic.js -- deterministic (no RNG), so client and server
+// always agree with zero lockstep risk.
+function buildDecadeOpponentXI(natId, decade){
+  const pool = DB.best.filter(p => p.c === natId && p.d === decade).sort((a, b) => b.r - a.r);
+  return draftXIFromPool(pool);
+}
+const decadeOpponentXICache = new Map();
+function getDecadeOpponentXI(natId, decade){
+  const key = natId + '|' + decade;
+  if(!decadeOpponentXICache.has(key)) decadeOpponentXICache.set(key, buildDecadeOpponentXI(natId, decade));
+  return decadeOpponentXICache.get(key);
+}
+let decadeOpponentsCache = null;
+function getDecadeOpponents(){
+  if(decadeOpponentsCache) return decadeOpponentsCache;
+  const list = [];
+  for(const nat of NATIONS){
+    const decades = [...new Set(DB.best.filter(p => p.c === nat.id).map(p => p.d))];
+    for(const d of decades){
+      const xi = getDecadeOpponentXI(nat.id, d);
+      if(xi.length !== 11 || !xi.some(p => p.roles.includes('wk'))) continue;
+      const opp = Math.round(xi.reduce((s, p) => s + p.r, 0) / 11);
+      list.push({ id: nat.id + '_' + d, natId: nat.id, decade: d, name: `${nat.name} (${d})`, flag: nat.flag, opp, venues: nat.venues, isAllStar: false });
+    }
+  }
+  decadeOpponentsCache = list;
+  return list;
 }
 
 /* ---- all-star XI (Series Showdown bonus round) ------------------------
@@ -2114,11 +2149,12 @@ function pickPOTM(code, nat){
     const p=pool[Math.min(pool.length-1, Math.floor(Math.pow(Math.random(),2)*7))];
     return `${p.n} \u2014 ${potmStat(p)}`;
   }
-  let opp=PLAYERS.filter(x=>x.c===nat.id && x.d==='2020s' && !draftedNames.has(x.n));
-  if(!opp.length) opp=PLAYERS.filter(x=>x.c===nat.id && !draftedNames.has(x.n));
+  const realNatId = nat.natId || nat.id;
+  let opp=PLAYERS.filter(x=>x.c===realNatId && x.d==='2020s' && !draftedNames.has(x.n));
+  if(!opp.length) opp=PLAYERS.filter(x=>x.c===realNatId && !draftedNames.has(x.n));
   if(!opp.length) return `their captain \u2014 match-winning knock`;
   const p=opp.sort((a,b)=>b.r-a.r)[Math.min(opp.length-1,Math.floor(Math.random()*3))];
-  return `${p.n} (${nat.id}) \u2014 ${potmStat(p)}`;
+  return `${p.n} (${realNatId}) \u2014 ${potmStat(p)}`;
 }
 
 /* The whole tour is run under a seeded RNG so it's reproducible.
@@ -2175,9 +2211,14 @@ const BASE_DIFFICULTY_PENALTY = {test:0, odi:1.2, t20:0};
 function computeConditionsPenalty(nat, hasSpin, hasPace){
   const pen = CONDITIONS_PENALTY[FMTKEY] || 0;
   if(!pen) return 0;
+  // Build Your Team's decade-opponent objects carry the real nation code
+  // separately as `natId` (their own `id` is a composite like "IND_1990s");
+  // every other mode's plain NATIONS objects have no `natId`, so this falls
+  // back to `nat.id` for them exactly as before.
+  const realNatId = nat.natId || nat.id;
   let total = 0;
-  if(ASIA_NATIONS.has(nat.id) && !hasSpin) total += pen;
-  if(PACE_NATIONS.has(nat.id) && !hasPace) total += pen;
+  if(ASIA_NATIONS.has(realNatId) && !hasSpin) total += pen;
+  if(PACE_NATIONS.has(realNatId) && !hasPace) total += pen;
   return total;
 }
 function hasWorldClassBowlingType(xiList, kind){
@@ -3197,7 +3238,7 @@ function bytOwnedList(){
   return out.sort((a,b)=>b.r-a.r);
 }
 function bytOpponentObj(id){
-  return NATIONS.find(n=>n.id===id) || ALLSTAR_TEAMS.find(t=>t.id===id);
+  return getDecadeOpponents().find(o=>o.id===id);
 }
 function bytAvgRating(list){
   const arr = (list||[]).filter(Boolean);
@@ -3476,8 +3517,8 @@ function showBYTCampaignCheckpoint(){
   document.getElementById('bytCheckpointRatings').textContent =
     `${teamRating!=null?`Team rating: ${teamRating}`:'No lineup set yet'} · Squad rating: ${squadRating!=null?squadRating:'—'}`;
   let hint;
-  if(ASIA_NATIONS.has(oppId)) hint = 'These conditions favour genuine spin — bring a world-class spinner if you can.';
-  else if(PACE_NATIONS.has(oppId)) hint = 'These conditions favour genuine pace — bring a world-class quick if you can.';
+  if(ASIA_NATIONS.has(nat.natId)) hint = 'These conditions favour genuine spin — bring a world-class spinner if you can.';
+  else if(PACE_NATIONS.has(nat.natId)) hint = 'These conditions favour genuine pace — bring a world-class quick if you can.';
   else hint = 'Neutral conditions here — no bowling type is specifically favoured.';
   document.getElementById('bytCheckpointHint').textContent = hint;
 }
@@ -3515,8 +3556,8 @@ function bytPlaySeries(){
     const code = res.code;
     const gen = FMTKEY==='test' ? genTestMatch(code, nat) : genWhiteBallMatch(code, nat, res.superOver);
     const {yourInningsList, oppInningsList} = toInningsLists(gen);
-    const oppXi = nat.isAllStar ? getWorldAllStarXI(nat.id) : getOppositionXI(nat.id, 'best');
-    const scorecard = buildMatchScorecard(fullXi, oppXi, yourInningsList, oppInningsList, nat.isAllStar ? 'All-Stars' : nat.id);
+    const oppXi = getDecadeOpponentXI(nat.natId, nat.decade);
+    const scorecard = buildMatchScorecard(fullXi, oppXi, yourInningsList, oppInningsList, nat.natId);
     const potm = pickPOTM(code, nat);
     if(code==='W') w++; else if(code==='D') d++; else l++;
     const matchNum = m+1;

@@ -411,12 +411,13 @@ exports.openStarterPack = onRequest(async (req, res) => {
     const starterCards = gamelogic.rollStarterPack();
     const merged = mergeCardsIntoCollection({}, 0, starterCards);
 
-    // The 12 opponents (11 NATIONS + 1 randomly-drawn ALLSTAR_TEAMS tier),
-    // shuffled once for this campaign -- same shape as World Tour's own
-    // stops shuffle, just persisted instead of recomputed per session.
-    const allStarTeam = gamelogic.ALLSTAR_TEAMS[Math.floor(Math.random() * gamelogic.ALLSTAR_TEAMS.length)];
-    const order = gamelogic.shuffle(gamelogic.NATIONS.map((n) => n.id));
-    order.push(allStarTeam.id);
+    // 12 opponents drawn from every (nation, decade) combination with a
+    // legal XI -- naturally uneven strength, since it's derived from who
+    // was actually available to draft that era, not a fixed per-nation
+    // number. Shuffled once for this campaign, same shape as World Tour's
+    // own stops shuffle, just persisted instead of recomputed per session.
+    const decadeOpponents = gamelogic.getDecadeOpponents();
+    const order = gamelogic.shuffle(decadeOpponents.map((o) => o.id)).slice(0, 12);
 
     const now = new Date().toISOString();
     const doc = {
@@ -508,9 +509,8 @@ exports.claimSeriesReward = onRequest(async (req, res) => {
     let nextIndex = (campaign.index || 0) + 1;
     let nextOrder = campaign.order;
     if (nextIndex >= nextOrder.length) {
-      const allStarTeam = gamelogic.ALLSTAR_TEAMS[Math.floor(Math.random() * gamelogic.ALLSTAR_TEAMS.length)];
-      nextOrder = gamelogic.shuffle(gamelogic.NATIONS.map((n) => n.id));
-      nextOrder.push(allStarTeam.id);
+      const decadeOpponents = gamelogic.getDecadeOpponents();
+      nextOrder = gamelogic.shuffle(decadeOpponents.map((o) => o.id)).slice(0, 12);
       nextIndex = 0;
     }
 
