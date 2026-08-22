@@ -625,6 +625,7 @@ body.sim-active .masthead{
 
   <p class="data-note">Curated databases: 4,521 Test, 3,196 ODI and 1,621 T20 players, each rated for his standing within his own decade and format. Era-spanning greats may appear in more than one decade but can only be drafted once per game. Test pools run 1870s–2020s, ODI 1970s–2020s, T20 2000s–2020s.</p>
   <a href="javascript:void(0)" class="info-link" onclick="reopenConsentBanner()">Cookie settings</a>
+  <p class="info-link" id="signedInStatus" style="display:none"></p>
 </div>
 
 <!-- Optional: global leaderboard via Firebase. See setup notes near
@@ -632,6 +633,7 @@ body.sim-active .masthead{
      the game falls back to a device-only leaderboard automatically. -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/12.15.0/firebase-app-compat.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/12.15.0/firebase-firestore-compat.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/firebase/12.15.0/firebase-auth-compat.min.js"></script>
 <!-- Windows desktop browsers (Segoe UI Emoji) don't render most flag
      glyphs, even though mobile does — twemoji swaps emoji text for CDN
      flag images app-wide via the MutationObserver set up near the end
@@ -2459,12 +2461,45 @@ const firebaseConfig = {
   measurementId: "G-WQBC2ZZ9Z3"
 };
 let fbDB = null;
+let fbAuth = null;
 try{
   if(firebaseConfig.apiKey !== "PASTE_YOUR_API_KEY_HERE" && typeof firebase !== 'undefined'){
     firebase.initializeApp(firebaseConfig);
     fbDB = firebase.firestore();
+    fbAuth = firebase.auth();
   }
 }catch(e){ console.warn('Firebase not configured \u2014 using a device-only leaderboard.', e); }
+
+/* Optional Google Sign-In. Entirely additive to the free-text name flow
+   below -- guest play (typing a name) keeps working exactly as before
+   whether or not this is even enabled in the Firebase console. Signing
+   in just upgrades getPlayerName() to return a verified Google display
+   name instead of prompting, and lets score submissions carry an ID
+   token the server can check (see resolveVerifiedIdentity in
+   functions/index.js). */
+function signInWithGoogle(){
+  if(!fbAuth) return Promise.reject(new Error('Sign-in is not configured on this device.'));
+  return fbAuth.signInWithPopup(new firebase.auth.GoogleAuthProvider());
+}
+function signOutOfGoogle(){
+  if(fbAuth) fbAuth.signOut();
+}
+function renderSignedInStatus(user){
+  const el = document.getElementById('signedInStatus');
+  if(!el) return;
+  if(user){
+    el.style.display = 'block';
+    el.innerHTML = `Signed in as ${escHtml(user.displayName || 'Google user')} — <a href="javascript:void(0)" onclick="signOutOfGoogle()">Sign out</a>`;
+  } else {
+    el.style.display = 'none';
+    el.innerHTML = '';
+  }
+}
+if(fbAuth) fbAuth.onAuthStateChanged(renderSignedInStatus);
+async function getAuthIdToken(){
+  if(!fbAuth || !fbAuth.currentUser) return null;
+  try{ return await fbAuth.currentUser.getIdToken(); }catch(e){ return null; }
+}
 
 const LB_KEY = 'notout_leaderboard_v1';
 const NAME_KEY = 'notout_player_name';
@@ -2483,6 +2518,9 @@ function escHtml(s){
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 function getPlayerName(){
+  if(fbAuth && fbAuth.currentUser && fbAuth.currentUser.displayName){
+    return Promise.resolve(fbAuth.currentUser.displayName);
+  }
   let name = '';
   try{ name = localStorage.getItem(NAME_KEY) || ''; }catch(e){}
   if(name) return Promise.resolve(name);
@@ -2490,6 +2528,7 @@ function getPlayerName(){
   return new Promise((resolve)=>{
     const modal = document.getElementById('nameModal');
     const input = document.getElementById('nameInput');
+    const googleBtn = document.getElementById('nameGoogleBtn');
     modal.style.display = 'flex';
     input.value = '';
     setTimeout(()=>input.focus(), 50);
@@ -2499,10 +2538,24 @@ function getPlayerName(){
       modal.style.display = 'none';
       resolve(clean);
     };
+    window.__resolvePlayerNameWithGoogle = async ()=>{
+      if(googleBtn){ googleBtn.disabled = true; googleBtn.textContent = 'Signing in…'; }
+      try{
+        await signInWithGoogle();
+        modal.style.display = 'none';
+        resolve(fbAuth.currentUser.displayName || 'Anonymous');
+      }catch(e){
+        console.warn('Google sign-in failed, falling back to guest name entry.', e);
+        if(googleBtn){ googleBtn.disabled = false; googleBtn.textContent = 'Sign in with Google'; }
+      }
+    };
   });
 }
 function confirmNameInput(){
   window.__resolvePlayerName(document.getElementById('nameInput').value);
+}
+function confirmNameInputWithGoogle(){
+  window.__resolvePlayerNameWithGoogle();
 }
 
 /* filterFmt, when given (and not 'all'), queries Firestore directly
@@ -2578,9 +2631,10 @@ const FUNCTION_URL = 'https://submitscore-n64ap7izcq-uc.a.run.app';
 const REPRESENT_FUNCTION_URL = 'https://us-central1-not-out-186a9.cloudfunctions.net/submitRepresentScore';
 async function submitVerifiedRepresentResult(playerName){
   const xiPayload = xi.map(p=>({n:p.n, d:p.d, c:p.c}));
+  const idToken = await getAuthIdToken();
   const res = await fetch(REPRESENT_FUNCTION_URL, {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({format:FMTKEY, country:represCountry, seed:runSeed, xi:xiPayload, captainIdx, name:playerName})
+    body: JSON.stringify({format:FMTKEY, country:represCountry, seed:runSeed, xi:xiPayload, captainIdx, name:playerName, idToken})
   });
   const data = await res.json();
   if(!res.ok || !data.ok) throw new Error(data.error || ('HTTP '+res.status));
@@ -2623,9 +2677,10 @@ async function showRepresentScoreAndSave(){
 const SERIES_SHOWDOWN_FUNCTION_URL = 'https://us-central1-not-out-186a9.cloudfunctions.net/submitSeriesShowdownScore';
 async function submitVerifiedSeriesShowdownResult(playerName){
   const xiPayload = xi.map(p=>({n:p.n, d:p.d, c:p.c}));
+  const idToken = await getAuthIdToken();
   const res = await fetch(SERIES_SHOWDOWN_FUNCTION_URL, {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({seed:runSeed, xi:xiPayload, captainIdx, name:playerName, yourNation:csYourNat, opponentNation:csOppNat})
+    body: JSON.stringify({seed:runSeed, xi:xiPayload, captainIdx, name:playerName, yourNation:csYourNat, opponentNation:csOppNat, idToken})
   });
   const data = await res.json();
   if(!res.ok || !data.ok) throw new Error(data.error || ('HTTP '+res.status));
@@ -2667,9 +2722,10 @@ async function showSeriesShowdownScoreAndSave(){
 const SERIES_SHOWDOWN_COMBINED_FUNCTION_URL = 'https://us-central1-not-out-186a9.cloudfunctions.net/submitSeriesShowdownCombinedScore';
 async function submitVerifiedSeriesShowdownCombinedResult(playerName){
   const xiPayload = xi.map(p=>({n:p.n, d:p.d, c:p.c}));
+  const idToken = await getAuthIdToken();
   const res = await fetch(SERIES_SHOWDOWN_COMBINED_FUNCTION_URL, {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({format:FMTKEY, seed:runSeed, xi:xiPayload, captainIdx, name:playerName, natA:csSeries.a, natB:csSeries.b})
+    body: JSON.stringify({format:FMTKEY, seed:runSeed, xi:xiPayload, captainIdx, name:playerName, natA:csSeries.a, natB:csSeries.b, idToken})
   });
   const data = await res.json();
   if(!res.ok || !data.ok) throw new Error(data.error || ('HTTP '+res.status));
@@ -2747,9 +2803,10 @@ async function submitVerifiedScore(playerName){
      decade across two different countries. Without country in the key,
      the server could silently resolve the wrong one. */
   const xiPayload = xi.map(p=>({n:p.n, d:p.d, c:p.c}));
+  const idToken = await getAuthIdToken();
   const res = await fetch(FUNCTION_URL, {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({format:FMTKEY, seed:runSeed, xi:xiPayload, captainIdx, name:playerName})
+    body: JSON.stringify({format:FMTKEY, seed:runSeed, xi:xiPayload, captainIdx, name:playerName, idToken})
   });
   const data = await res.json();
   if(!res.ok || !data.ok) throw new Error(data.error || ('HTTP '+res.status));
@@ -3893,6 +3950,8 @@ if(typeof twemoji !== 'undefined'){
     <div class="name-modal-card">
       <div class="name-modal-title">Name for the Honours Board</div>
       <p class="name-modal-sub">This is how you'll appear to everyone else</p>
+      <button class="btn secondary" id="nameGoogleBtn" style="margin-top:14px" onclick="confirmNameInputWithGoogle()">Sign in with Google</button>
+      <p class="name-modal-sub" style="margin:12px 0 4px">or enter a name manually</p>
       <input type="text" id="nameInput" class="name-modal-input" maxlength="20" placeholder="Your name" autocomplete="off">
       <button class="btn" style="margin-top:14px" onclick="confirmNameInput()">Save &amp; Continue</button>
     </div>

@@ -21,6 +21,32 @@ const FORMAT_LABELS = {
 // client-supplied score instead.
 const gamelogic = require("./gamelogic");
 
+// Optional Google Sign-In identity check. Guest play always sends just a
+// free-text name; a signed-in client ALSO sends a Firebase ID token
+// alongside it. If that token verifies, the caller's real Google display
+// name and uid are used instead of the free-text name — otherwise a
+// signed-in "verified" submission could still spoof a different display
+// name than the account that's actually authenticated. If verification
+// fails for any reason (expired token, tampering, auth not configured),
+// this falls straight back to the guest path rather than rejecting the
+// submission — signing in only ever adds a verified identity, it never
+// makes guest play stricter.
+async function resolveVerifiedIdentity(idToken, rawName) {
+  let uid = null, verifiedName = null;
+  if (idToken) {
+    try {
+      const decoded = await admin.auth().verifyIdToken(idToken);
+      uid = decoded.uid;
+      verifiedName = decoded.name || null;
+    } catch (e) {
+      console.warn("ID token verification failed, falling back to guest submission:", e.message);
+    }
+  }
+  const nameSource = verifiedName || rawName;
+  const safeName = String(nameSource).replace(/[<>&"'`]/g, '').replace(/\s+/g, ' ').trim().slice(0, 20) || "Anonymous";
+  return { uid, safeName };
+}
+
 exports.submitScore = onRequest(async (req, res) => {
   // 1. Enable CORS for website requests
   res.set("Access-Control-Allow-Origin", "*");
@@ -39,7 +65,7 @@ exports.submitScore = onRequest(async (req, res) => {
 
   try {
     // 2. Parse payload sent from index.html
-    const { format, seed, xi, captainIdx, name } = req.body || {};
+    const { format, seed, xi, captainIdx, name, idToken } = req.body || {};
 
     if (!format || seed === undefined || !xi || !name) {
       res.status(400).json({ ok: false, error: "Missing required fields" });
@@ -56,7 +82,7 @@ exports.submitScore = onRequest(async (req, res) => {
     // 4. Save verified record directly to Firestore leaderboard
     const db = admin.firestore();
     const label = FORMAT_LABELS[format] || format;
-    const safeName = String(name).replace(/[<>&"'`]/g, '').replace(/\s+/g, ' ').trim().slice(0, 20) || "Anonymous";
+    const { uid, safeName } = await resolveVerifiedIdentity(idToken, name);
 
     await db.collection("leaderboard").add({
       name: safeName,
@@ -64,7 +90,8 @@ exports.submitScore = onRequest(async (req, res) => {
       record: String(record),
       format: String(format),
       label: String(label),
-      date: new Date().toISOString()
+      date: new Date().toISOString(),
+      ...(uid ? { uid } : {})
     });
 
     // 5. Return expected response payload to frontend
@@ -105,7 +132,7 @@ exports.submitRepresentScore = onRequest(async (req, res) => {
   }
 
   try {
-    const { format, country, seed, xi, captainIdx, name } = req.body || {};
+    const { format, country, seed, xi, captainIdx, name, idToken } = req.body || {};
 
     if (!format || !country || seed === undefined || !xi || !name) {
       res.status(400).json({ ok: false, error: "Missing required fields" });
@@ -117,7 +144,7 @@ exports.submitRepresentScore = onRequest(async (req, res) => {
     const db = admin.firestore();
     const label = FORMAT_LABELS[format] || format;
     const countryName = (gamelogic.NATIONS.find((n) => n.id === country) || {}).name || country;
-    const safeName = String(name).replace(/[<>&"'`]/g, '').replace(/\s+/g, ' ').trim().slice(0, 20) || "Anonymous";
+    const { uid, safeName } = await resolveVerifiedIdentity(idToken, name);
 
     await db.collection("leaderboard").add({
       name: safeName,
@@ -129,7 +156,8 @@ exports.submitRepresentScore = onRequest(async (req, res) => {
       countryName: String(countryName),
       rank: Number(result.rank),
       points: Number(result.points),
-      date: new Date().toISOString()
+      date: new Date().toISOString(),
+      ...(uid ? { uid } : {})
       // Deliberately no 'format' field: normal leaderboard queries filter
       // with where('format','==','test'|'odi'|'t20'), and Firestore's
       // equality filter never matches a document missing that field —
@@ -176,7 +204,7 @@ exports.submitSeriesShowdownScore = onRequest(async (req, res) => {
   }
 
   try {
-    const { seed, xi, captainIdx, name, yourNation, opponentNation } = req.body || {};
+    const { seed, xi, captainIdx, name, yourNation, opponentNation, idToken } = req.body || {};
 
     if (seed === undefined || !xi || !name || !yourNation || !opponentNation) {
       res.status(400).json({ ok: false, error: "Missing required fields" });
@@ -188,7 +216,7 @@ exports.submitSeriesShowdownScore = onRequest(async (req, res) => {
     const db = admin.firestore();
     const yourNat = gamelogic.NATIONS.find((n) => n.id === yourNation) || {};
     const oppNat = gamelogic.NATIONS.find((n) => n.id === opponentNation) || {};
-    const safeName = String(name).replace(/[<>&"'`]/g, '').replace(/\s+/g, ' ').trim().slice(0, 20) || "Anonymous";
+    const { uid, safeName } = await resolveVerifiedIdentity(idToken, name);
 
     await db.collection("leaderboard").add({
       name: safeName,
@@ -200,7 +228,8 @@ exports.submitSeriesShowdownScore = onRequest(async (req, res) => {
       yourNationName: String(yourNat.name || yourNation),
       opponentNation: String(opponentNation),
       opponentNationName: String(oppNat.name || opponentNation),
-      date: new Date().toISOString()
+      date: new Date().toISOString(),
+      ...(uid ? { uid } : {})
       // Deliberately no 'format' field, same reasoning as Represent Your
       // Nation — a single draft spans Test/ODI/T20, so no single format
       // value applies, and this keeps Series Showdown out of the
@@ -244,7 +273,7 @@ exports.submitSeriesShowdownCombinedScore = onRequest(async (req, res) => {
   }
 
   try {
-    const { format, seed, xi, captainIdx, name, natA, natB } = req.body || {};
+    const { format, seed, xi, captainIdx, name, natA, natB, idToken } = req.body || {};
 
     if (!format || seed === undefined || !xi || !name || !natA || !natB) {
       res.status(400).json({ ok: false, error: "Missing required fields" });
@@ -256,7 +285,7 @@ exports.submitSeriesShowdownCombinedScore = onRequest(async (req, res) => {
     const db = admin.firestore();
     const aNat = gamelogic.NATIONS.find((n) => n.id === natA) || {};
     const bNat = gamelogic.NATIONS.find((n) => n.id === natB) || {};
-    const safeName = String(name).replace(/[<>&"'`]/g, '').replace(/\s+/g, ' ').trim().slice(0, 20) || "Anonymous";
+    const { uid, safeName } = await resolveVerifiedIdentity(idToken, name);
 
     await db.collection("leaderboard").add({
       name: safeName,
@@ -269,7 +298,8 @@ exports.submitSeriesShowdownCombinedScore = onRequest(async (req, res) => {
       natB: String(natB),
       natBName: String(bNat.name || natB),
       showdownFormat: String(format),
-      date: new Date().toISOString()
+      date: new Date().toISOString(),
+      ...(uid ? { uid } : {})
       // Deliberately no 'format' field (note the distinct 'showdownFormat'
       // name) -- Firestore's where('format','==',...) equality filter would
       // otherwise pull these into the regular Test/ODI/T20 tabs alongside
