@@ -70,3 +70,12 @@ node_modules/
 
 # Cloud Functions dependencies
 functions/node_modules/
+
+# Server-side game logic and the curated player database -- kept out of
+# this PUBLIC repo entirely (it used to be tracked here, which meant
+# anyone could clone it straight out). Still lives on disk for local
+# `firebase deploy`; version it separately in a private repo if wanted.
+functions/
+
+# Old backup snapshots, predating the functions/ split -- same reasoning.
+/Archive/

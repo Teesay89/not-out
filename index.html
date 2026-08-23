@@ -886,21 +886,23 @@ const CURRENT_SERIES = [
    PLAYER DATABASES — three formats; each player rated for his
    standing within his own decade. d: decade · roles: bat/bowl/ar/wk
    ================================================================= */
-/* Player databases now live in separate JSON files (data/test.json,
-   data/odi.json, data/t20.json, data/best.json — the last one is a
+/* Player databases (test/odi/t20/best -- the last one is a
    format-agnostic all-time/all-decade "best players" compilation, used
-   by multi-format modes like Series Showdown) and are fetched on
-   demand instead of being inlined here — keeps the page itself small
-   and only downloads the format someone actually plays. Each is cached
-   in DB[key] the first time it loads. */
+   by multi-format modes like Series Showdown) are fetched on demand from
+   the getPlayerData Cloud Function instead of being inlined here — keeps
+   the page itself small and only downloads the format someone actually
+   plays. Each is cached in DB[key] the first time it loads. */
 const DB = {};
-const DATA_DIR = 'data/';
+// Served from a Cloud Function rather than a static file in this repo --
+// see functions/index.js's getPlayerData for why (the repo is public;
+// data/*.json used to just sit there for anyone to grab in one request).
+const PLAYER_DATA_URL = 'https://us-central1-not-out-186a9.cloudfunctions.net/getPlayerData';
 const DATA_COUNTS = {test:2885, odi:2730, t20:1744};   // for the intro screen labels, before anything's fetched
 let dataLoadError = null;
 
 async function loadFormatData(k){
   if(DB[k]) return DB[k];
-  const res = await fetch(DATA_DIR + k + '.json');
+  const res = await fetch(PLAYER_DATA_URL + '?fmt=' + k);
   if(!res.ok) throw new Error('HTTP ' + res.status);
   const data = await res.json();
   DB[k] = data;
