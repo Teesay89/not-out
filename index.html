@@ -569,7 +569,7 @@ body.sim-active .masthead{
       <button class="fmt-btn" data-fmt="odi" onclick="selectBYTFormat('odi')">ODI</button>
       <button class="fmt-btn" data-fmt="t20" onclick="selectBYTFormat('t20')">T20</button>
     </div>
-    <p class="foot-note" style="margin-top:14px">This choice sets the format for every series you play with this team — pick carefully, it can't be changed later.</p>
+    <p class="foot-note" style="margin-top:14px">This sets your format to start with — you can switch to a different one every 10 series. Each format (Test, ODI, T20) has its own 20-series-a-day allowance, so you can play up to 60 series a day in total across all three.</p>
     <button class="btn" style="margin-top:10px" onclick="startBuildYourTeam()">Open my starter pack</button>
     <a href="javascript:void(0)" class="back-link" style="margin-top:10px" onclick="exitBuildYourTeamSetup()">← Back</a>
   </section>
@@ -631,13 +631,14 @@ body.sim-active .masthead{
     <button class="btn reward" id="bytDailyPackBtn" style="display:none;margin-bottom:10px" onclick="bytClaimDailyPack()">🎁 Daily pack ready — tap to claim</button>
     <button class="btn reward" id="bytMilestonePackBtn" style="display:none;margin-bottom:10px" onclick="bytClaimWinMilestone()">🏆 20-series reward ready — tap to claim</button>
     <div id="bytFormatChangeBox" style="display:none">
-      <p class="foot-note">Every 10 series you can pick a new format going forward:</p>
+      <p class="foot-note">Every 10 series you can pick a new format going forward — each has its own 20-a-day allowance:</p>
       <div class="fmt-row" id="bytFormatChangeRow">
         <button class="fmt-btn" data-fmt="test" onclick="bytChangeFormat('test')">Test</button>
         <button class="fmt-btn" data-fmt="odi" onclick="bytChangeFormat('odi')">ODI</button>
         <button class="fmt-btn" data-fmt="t20" onclick="bytChangeFormat('t20')">T20</button>
       </div>
     </div>
+    <p class="foot-note" id="bytDailyAllowance" style="text-align:center;margin-bottom:4px"></p>
     <button class="btn secondary" onclick="bytRevisesLineup()">Revise lineup</button>
     <button class="btn" id="bytPlaySeriesBtn" style="margin-top:10px" onclick="bytPlaySeries()">Play the series</button>
     <p class="foot-note" id="bytDailyCapNote" style="display:none;margin-top:6px;text-align:center">You've reached today's limit of 20 series — come back tomorrow.</p>
@@ -3546,6 +3547,13 @@ const BYT_REDEEM_URL = 'https://us-central1-not-out-186a9.cloudfunctions.net/red
 const BYT_MILESTONE_URL = 'https://us-central1-not-out-186a9.cloudfunctions.net/claimWinMilestonePack';
 const BYT_DAILY_URL = 'https://us-central1-not-out-186a9.cloudfunctions.net/claimDailyPack';
 const BYT_FORMAT_CHANGE_URL = 'https://us-central1-not-out-186a9.cloudfunctions.net/changeBYTFormat';
+const BYT_FMT_LABEL = {test:'Test', odi:'ODI', t20:'T20'};
+function bytSeriesTodayByFmt(){
+  const today = new Date().toISOString().slice(0,10);
+  return bytCollection.seriesTodayDate === today && bytCollection.seriesTodayByFmt
+    ? bytCollection.seriesTodayByFmt
+    : {test:0, odi:0, t20:0};
+}
 
 function bytCardKey(p){ return `${p.cid}_${p.d}`; }
 function bytBuildCardIndex(){
@@ -3968,14 +3976,18 @@ function showBYTCampaignCheckpoint(){
   if(formatChangeAvailable){
     document.querySelectorAll('#bytFormatChangeRow .fmt-btn').forEach(b=>b.classList.toggle('selected', b.dataset.fmt===c.fmt));
   }
-  // Same UTC-calendar-day cap the server enforces in claimSeriesReward --
-  // checked here too so the button is disabled and the reason shown
-  // BEFORE a player sinks time into a whole 5-match series, rather than
-  // only finding out it's rejected after finishing it.
-  const today = new Date().toISOString().slice(0,10);
-  const seriesTodaySoFar = bytCollection.seriesTodayDate === today ? (bytCollection.seriesToday||0) : 0;
-  const dailyCapReached = seriesTodaySoFar >= 20;
+  // Same per-format, UTC-calendar-day cap the server enforces in
+  // claimSeriesReward -- checked here too so the button is disabled and the
+  // reason shown BEFORE a player sinks time into a whole 5-match series,
+  // rather than only finding out it's rejected after finishing it. Each
+  // format (Test/ODI/T20) gets its own 20-a-day allowance, so switching
+  // format at a 10-series milestone gives a fresh cap, not a shared one.
+  const seriesTodayByFmt = bytSeriesTodayByFmt();
+  document.getElementById('bytDailyAllowance').textContent =
+    `Today: Test ${seriesTodayByFmt.test||0}/20 · ODI ${seriesTodayByFmt.odi||0}/20 · T20 ${seriesTodayByFmt.t20||0}/20`;
+  const dailyCapReached = (seriesTodayByFmt[c.fmt]||0) >= 20;
   document.getElementById('bytPlaySeriesBtn').disabled = dailyCapReached;
+  document.getElementById('bytDailyCapNote').textContent = `You've reached today's limit of 20 ${BYT_FMT_LABEL[c.fmt]} series — come back tomorrow.`;
   document.getElementById('bytDailyCapNote').style.display = dailyCapReached ? '' : 'none';
   const oppId = c.order[c.index];
   const nat = bytOpponentObj(oppId);
@@ -4000,10 +4012,9 @@ function bytPlaySeries(){
   // Same defensive re-check the button-disable in showBYTCampaignCheckpoint
   // already covers -- guards against stale state (e.g. this screen was
   // left open in a background tab since before the cap was hit).
-  const today = new Date().toISOString().slice(0,10);
-  const seriesTodaySoFar = bytCollection.seriesTodayDate === today ? (bytCollection.seriesToday||0) : 0;
-  if(seriesTodaySoFar >= 20){
-    showConfirm('Daily limit reached', "You've reached today's limit of 20 series — come back tomorrow.", 'OK');
+  const seriesTodayByFmt = bytSeriesTodayByFmt();
+  if((seriesTodayByFmt[c.fmt]||0) >= 20){
+    showConfirm('Daily limit reached', `You've reached today's limit of 20 ${BYT_FMT_LABEL[c.fmt]} series — come back tomorrow.`, 'OK');
     showBYTCampaignCheckpoint();
     return;
   }
