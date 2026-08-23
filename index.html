@@ -3547,6 +3547,7 @@ const BYT_REDEEM_URL = 'https://us-central1-not-out-186a9.cloudfunctions.net/red
 const BYT_MILESTONE_URL = 'https://us-central1-not-out-186a9.cloudfunctions.net/claimWinMilestonePack';
 const BYT_DAILY_URL = 'https://us-central1-not-out-186a9.cloudfunctions.net/claimDailyPack';
 const BYT_FORMAT_CHANGE_URL = 'https://us-central1-not-out-186a9.cloudfunctions.net/changeBYTFormat';
+const BYT_SAVE_LINEUP_URL = 'https://us-central1-not-out-186a9.cloudfunctions.net/saveBYTLineup';
 const BYT_FMT_LABEL = {test:'Test', odi:'ODI', t20:'T20'};
 function bytSeriesTodayByFmt(){
   const today = new Date().toISOString().slice(0,10);
@@ -3951,14 +3952,32 @@ function bytConfirmSquad(){
   xi = xiSlots.slice();
   showCaptainPick();
 }
-function bytConfirmLineup(){
-  bytCollection.campaign.xi = xi.map(bytCardKey);
-  bytCollection.campaign.captainIdx = captainIdx;
+async function bytConfirmLineup(){
+  const savedXi = xi.map(bytCardKey);
+  const savedCaptainIdx = captainIdx;
+  bytCollection.campaign.xi = savedXi;
+  bytCollection.campaign.captainIdx = savedCaptainIdx;
   if(bytMidSeriesChange){
     bytMidSeriesChange = false;
     showBYTMatchCheckpoint();
   } else {
     showBYTCampaignCheckpoint();
+  }
+  // Previously this only ever updated bytCollection in memory -- it got
+  // written to Firestore purely as a side effect of finishing a whole
+  // series. Leaving Build Your Team (or just reloading) before playing a
+  // new series silently reverted to whatever xi the server still had from
+  // the last COMPLETED series. Persist it for real, right away.
+  try{
+    const idToken = await getAuthIdToken();
+    const res = await fetch(BYT_SAVE_LINEUP_URL, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({idToken, xi: savedXi, captainIdx: savedCaptainIdx})
+    });
+    const data = await res.json();
+    if(!res.ok || !data.ok) throw new Error(data.error || ('HTTP '+res.status));
+  }catch(e){
+    showConfirm('Lineup not saved', `Your team change didn't save (${e.message}). It'll only apply for matches you play right now in this tab — reopen Build Your Team to try saving it again.`, 'OK');
   }
 }
 
