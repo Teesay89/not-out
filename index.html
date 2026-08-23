@@ -638,7 +638,8 @@ body.sim-active .masthead{
       </div>
     </div>
     <button class="btn secondary" onclick="bytRevisesLineup()">Revise lineup</button>
-    <button class="btn" style="margin-top:10px" onclick="bytPlaySeries()">Play the series</button>
+    <button class="btn" id="bytPlaySeriesBtn" style="margin-top:10px" onclick="bytPlaySeries()">Play the series</button>
+    <p class="foot-note" id="bytDailyCapNote" style="display:none;margin-top:6px;text-align:center">You've reached today's limit of 20 series — come back tomorrow.</p>
     <button class="btn secondary" style="margin-top:10px" onclick="showBYTCollection()">My collection</button>
     <button class="btn secondary" style="margin-top:10px" onclick="openLeaderboard()">🏆 Honours Board</button>
     <a href="javascript:void(0)" class="back-link" style="margin-top:10px" onclick="switchScreen('scr-intro')">← Back to menu</a>
@@ -3926,6 +3927,15 @@ function showBYTCampaignCheckpoint(){
   if(formatChangeAvailable){
     document.querySelectorAll('#bytFormatChangeRow .fmt-btn').forEach(b=>b.classList.toggle('selected', b.dataset.fmt===c.fmt));
   }
+  // Same UTC-calendar-day cap the server enforces in claimSeriesReward --
+  // checked here too so the button is disabled and the reason shown
+  // BEFORE a player sinks time into a whole 5-match series, rather than
+  // only finding out it's rejected after finishing it.
+  const today = new Date().toISOString().slice(0,10);
+  const seriesTodaySoFar = bytCollection.seriesTodayDate === today ? (bytCollection.seriesToday||0) : 0;
+  const dailyCapReached = seriesTodaySoFar >= 20;
+  document.getElementById('bytPlaySeriesBtn').disabled = dailyCapReached;
+  document.getElementById('bytDailyCapNote').style.display = dailyCapReached ? '' : 'none';
   const oppId = c.order[c.index];
   const nat = bytOpponentObj(oppId);
   const label = nat.isAllStar ? nat.name : nat.name;
@@ -3946,6 +3956,16 @@ function bytRevisesLineup(){
 
 function bytPlaySeries(){
   const c = bytCollection.campaign;
+  // Same defensive re-check the button-disable in showBYTCampaignCheckpoint
+  // already covers -- guards against stale state (e.g. this screen was
+  // left open in a background tab since before the cap was hit).
+  const today = new Date().toISOString().slice(0,10);
+  const seriesTodaySoFar = bytCollection.seriesTodayDate === today ? (bytCollection.seriesToday||0) : 0;
+  if(seriesTodaySoFar >= 20){
+    showConfirm('Daily limit reached', "You've reached today's limit of 20 series — come back tomorrow.", 'OK');
+    showBYTCampaignCheckpoint();
+    return;
+  }
   if(!c.xi){ showBYTSquadBuilder(); return; }
   const fullXi = c.xi.map(bytHydrate);
   if(!bytXiIsLegal(fullXi)){
