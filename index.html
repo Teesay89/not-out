@@ -2404,20 +2404,34 @@ function buildMatchScorecard(xi, oppXi, yourInningsList, oppInningsList, oppLabe
 // unaffected either way.
 function pickPOTM(code, nat, oppXi, scorecard){
   const teamLabel = code!=='L' ? 'you' : scorecard.oppLabel;
-  let bestBat = null, bestBowl = null;
+  // Aggregated per player across every innings they appear in, not just
+  // the single best individual innings -- a Test match can have up to
+  // two innings a side, and a real match award looks at the whole match
+  // (e.g. "90 & 45*", or 3 wickets in each innings for 6 in the match),
+  // not just whichever one innings happened to be biggest. This also
+  // just naturally degrades to a single figure for ODI/T20's one innings
+  // a side, so no format-specific branching is needed.
+  const battingAgg = new Map(), bowlingAgg = new Map();
   scorecard.innings.forEach(inn=>{
     if(inn.battingTeam===teamLabel){
       inn.battingCard.forEach(b=>{
         if(b.dnb) return;
-        if(!bestBat || b.runs>bestBat.runs) bestBat = b;
+        if(!battingAgg.has(b.n)) battingAgg.set(b.n, {n:b.n, runs:0, knocks:[]});
+        const agg = battingAgg.get(b.n);
+        agg.runs += b.runs;
+        agg.knocks.push(`${b.runs}${b.notOut?'*':''}`);
       });
     }
     if(inn.bowlingTeam===teamLabel){
       inn.bowlingCard.forEach(b=>{
-        if(!bestBowl || b.wkts>bestBowl.wkts || (b.wkts===bestBowl.wkts && b.runs<bestBowl.runs)) bestBowl = b;
+        if(!bowlingAgg.has(b.n)) bowlingAgg.set(b.n, {n:b.n, wkts:0, runs:0});
+        const agg = bowlingAgg.get(b.n);
+        agg.wkts += b.wkts; agg.runs += b.runs;
       });
     }
   });
+  const bestBat = [...battingAgg.values()].sort((a,b)=>b.runs-a.runs)[0];
+  const bestBowl = [...bowlingAgg.values()].sort((a,b)=>b.wkts-a.wkts || a.runs-b.runs)[0];
   if(!bestBat && !bestBowl) return `their captain \u2014 match-winning knock`;
   // A genuinely good bowling return usually outweighs a middling score --
   // translate wickets into a rough runs-equivalent so both disciplines
@@ -2425,7 +2439,7 @@ function pickPOTM(code, nat, oppXi, scorecard){
   const battingScore = bestBat ? bestBat.runs : -1;
   const bowlingScore = bestBowl ? bestBowl.wkts*30 - bestBowl.runs*0.3 : -1;
   if(bowlingScore>battingScore) return `${bestBowl.n} \u2014 ${bestBowl.wkts}-${bestBowl.runs}`;
-  return `${bestBat.n}${bestBat.notOut?'*':''} \u2014 ${bestBat.runs}`;
+  return `${bestBat.n} \u2014 ${bestBat.knocks.join(' & ')}`;
 }
 
 /* The whole tour is run under a seeded RNG so it's reproducible.
