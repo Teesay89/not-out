@@ -430,13 +430,13 @@ exports.openStarterPack = onRequest(async (req, res) => {
     const starterCards = gamelogic.rollStarterPack();
     const merged = mergeCardsIntoCollection({}, 0, starterCards);
 
-    // 12 opponents drawn from every (nation, decade) combination with a
+    // 10 opponents drawn from every (nation, decade) combination with a
     // legal XI -- naturally uneven strength, since it's derived from who
     // was actually available to draft that era, not a fixed per-nation
     // number. Shuffled once for this campaign, same shape as World Tour's
     // own stops shuffle, just persisted instead of recomputed per session.
     const decadeOpponents = gamelogic.getDecadeOpponents();
-    const order = gamelogic.shuffle(decadeOpponents.map((o) => o.id)).slice(0, 12);
+    const order = gamelogic.shuffle(decadeOpponents.map((o) => o.id)).slice(0, 10);
 
     const now = new Date().toISOString();
     const doc = {
@@ -520,7 +520,7 @@ exports.claimSeriesReward = onRequest(async (req, res) => {
 
     // The opponent must be whichever stop this campaign is actually on --
     // otherwise a client could just keep claiming the weakest team over
-    // and over instead of working through all 12.
+    // and over instead of working through the full rotation.
     const expectedOpponent = (campaign.order || [])[campaign.index || 0];
     if (opponentId !== expectedOpponent) {
       res.status(409).json({ ok: false, error: "Not your current opponent", expectedOpponent });
@@ -556,12 +556,16 @@ exports.claimSeriesReward = onRequest(async (req, res) => {
 
     // Advance to the next stop regardless of the result -- a loss doesn't
     // grant a pack, but the campaign still moves on, same as World Tour
-    // never repeating a stop. Wrapping past 12 reshuffles and starts again.
+    // never repeating a stop. Wrapping past 10 reshuffles and starts again.
+    // Also self-heals campaigns started back when the rotation was 12 stops
+    // long: rather than making an existing player wait until they'd worked
+    // through all 12, a rotation that isn't exactly 10 long reshuffles down
+    // to 10 right away, same as reaching the natural end of one.
     let nextIndex = (campaign.index || 0) + 1;
     let nextOrder = campaign.order;
-    if (nextIndex >= nextOrder.length) {
+    if (nextIndex >= nextOrder.length || nextOrder.length !== 10) {
       const decadeOpponents = gamelogic.getDecadeOpponents();
-      nextOrder = gamelogic.shuffle(decadeOpponents.map((o) => o.id)).slice(0, 12);
+      nextOrder = gamelogic.shuffle(decadeOpponents.map((o) => o.id)).slice(0, 10);
       nextIndex = 0;
     }
 

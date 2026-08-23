@@ -137,6 +137,7 @@ body{
 .fmt-hero.selected{border-color:var(--brass);box-shadow:0 0 0 1px var(--brass) inset, 0 0 18px rgba(123,95,224,.35)}
 .fmt-hero.represent-hero{border-color:var(--grass-b);background:linear-gradient(135deg,#1c3319,#122210);color:#DCEFDA;box-shadow:0 8px 22px rgba(62,107,58,.3)}
 .fmt-hero.represent-hero small{color:#9FCB9A}
+.fmt-hero.compact{margin:2px 0 8px;padding:11px 12px}
 .fmt-hero .byt-signin-note{color:var(--brass)!important;font-weight:700;margin-top:3px}
 .represent-country-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:14px 0}
 .represent-country-btn{display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 8px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--cream);cursor:pointer;font-family:'Archivo',sans-serif;font-weight:600;font-size:13px;text-align:center}
@@ -477,9 +478,9 @@ body.sim-active .masthead{
   <section class="screen active" id="scr-intro">
     <div class="intro-card">
       <h2>Choose your format</h2>
-      <button class="fmt-hero represent-hero" id="fmt-represent-hero" onclick="showRepresentSetup()"><span class="newtag">NEW</span>REPRESENT YOUR NATION<small>One country, one format — every player must be theirs. Play a round-robin league against the other ten nations and climb the table.</small></button>
-      <button class="fmt-hero represent-hero" id="fmt-showdown-hero" onclick="showSeriesShowdownSetup()"><span class="newtag">NEW</span>SERIES SHOWDOWN<small>Pick a side in a real series happening right now, draft its all-time XI, and replay it across Test, ODI and T20 against the real opponent.</small></button>
-      <button class="fmt-hero represent-hero" id="fmt-byt-hero" onclick="showBuildYourTeamSetup()"><span class="newtag">NEW</span>BUILD YOUR TEAM<small>Open card packs, build a permanent squad that's genuinely yours, and take it on the road against 137 opponents — real nations, regional All-Stars and the greatest XIs ever.</small><small class="byt-signin-note">Requires signing in</small></button>
+      <button class="fmt-hero represent-hero compact" id="fmt-represent-hero" onclick="showRepresentSetup()"><span class="newtag">NEW</span>REPRESENT YOUR NATION</button>
+      <button class="fmt-hero represent-hero compact" id="fmt-showdown-hero" onclick="showSeriesShowdownSetup()"><span class="newtag">NEW</span>SERIES SHOWDOWN</button>
+      <button class="fmt-hero represent-hero compact" id="fmt-byt-hero" onclick="showBuildYourTeamSetup()"><span class="newtag">NEW</span>BUILD YOUR TEAM<small class="byt-signin-note">Requires signing in</small></button>
       <p id="dataStatus" class="data-status" style="display:none"></p>
       <h2 style="margin-top:18px">Classic Mode</h2>
       <div class="fmt-row">
@@ -510,7 +511,7 @@ body.sim-active .masthead{
     <div class="slot-callout">
       <div class="eyebrow">Represent Your Nation</div>
       <h2>Pick your country</h2>
-      <p>One nation, one format — every player in your XI has to be theirs.</p>
+      <p>One country, one format — every player must be theirs. Play a round-robin league against the other ten nations and climb the table.</p>
     </div>
     <div class="fmt-row" id="representFmtRow">
       <button class="fmt-btn selected" data-fmt="test" onclick="selectRepresentFormat('test')">Test<small>16 decades</small></button>
@@ -527,7 +528,7 @@ body.sim-active .masthead{
     <div class="slot-callout">
       <div class="eyebrow">Series Showdown</div>
       <h2>Pick a series</h2>
-      <p>One squad, every decade — draft the best of one nation and take on the other, across Test, ODI and T20.</p>
+      <p>Pick a side in a real series happening right now, draft its all-time XI, and replay it across Test, ODI and T20 against the real opponent.</p>
     </div>
     <div class="represent-country-grid" id="showdownSeriesGrid"></div>
     <div id="showdownSideStep" style="display:none">
@@ -559,7 +560,7 @@ body.sim-active .masthead{
     <div class="slot-callout">
       <div class="eyebrow">Build Your Team</div>
       <h2>Name your team</h2>
-      <p>Sign in, open your first pack, and take your XI on the road — win a series, earn a pack, grow your squad.</p>
+      <p>Open card packs, build a permanent squad that's genuinely yours, and take it on the road against 137 opponents — real nations, regional All-Stars and the greatest XIs ever. Sign in to save your progress.</p>
     </div>
     <input type="text" id="bytTeamNameInput" class="name-modal-input" maxlength="30" placeholder="Your team's name" autocomplete="off">
     <div class="fmt-row" id="bytFmtRow" style="margin-top:14px">
@@ -668,7 +669,7 @@ body.sim-active .masthead{
     </div>
     <div class="pcard" id="bytReviewPotmCard" style="cursor:default;margin-bottom:14px"></div>
     <div class="pick-grid" id="bytReviewMatchList"></div>
-    <button class="btn" style="margin-top:10px" onclick="bytFinalizeSeries()">Continue</button>
+    <button class="btn" id="bytSeriesReviewContinueBtn" style="margin-top:10px" onclick="bytFinalizeSeries()">Continue</button>
   </section>
 
   <!-- BUILD YOUR TEAM: SERIES RESULT -->
@@ -3952,7 +3953,18 @@ function showBYTSeriesReview(){
   </div>`).join('');
 }
 
+let bytFinalizingSeries = false;
 async function bytFinalizeSeries(){
+  // A double-tap (easy to do on mobile right as the screen changes) used to
+  // fire this twice: the first request would succeed and advance the
+  // server's campaign to the next opponent, then the second -- still
+  // carrying the now-stale opponentId -- got rejected with "Not your
+  // current opponent", surfacing a scary error even though the series had
+  // already been recorded correctly. Guard against re-entry instead.
+  if(bytFinalizingSeries) return;
+  bytFinalizingSeries = true;
+  const btn = document.getElementById('bytSeriesReviewContinueBtn');
+  if(btn) btn.disabled = true;
   const idToken = await getAuthIdToken();
   try{
     const res = await fetch(BYT_CLAIM_URL, {
@@ -3997,6 +4009,9 @@ async function bytFinalizeSeries(){
   }catch(e){
     await showConfirm('Could not verify series', e.message, 'OK');
     showBYTCampaignCheckpoint();
+  }finally{
+    bytFinalizingSeries = false;
+    if(btn) btn.disabled = false;
   }
 }
 function bytShowRewardThenCheckpoint(){
