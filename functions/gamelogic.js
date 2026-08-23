@@ -492,6 +492,26 @@ const ALLSTAR_TEAMS = [
    and buildAllStarXI too, factored out here since this is the first
    spot that needs to run it more than once in a row (all ten tiers,
    see buildAllWorldAllStarXIs below). */
+// Proper maximum bipartite matching (Kuhn's algorithm) between the 11
+// slots and a candidate pool, so every placement genuinely respects
+// SLOTS[i].fits -- unlike a greedy "first open slot" fallback, which could
+// shove a specialist bowler into an opening slot (or a top-order batter
+// down into a "Bowler" slot) whenever its best-fit pass left a slot
+// uncovered, exactly backwards for batting-order realism. Returns an
+// 11-length array with a null for any slot that genuinely can't be filled
+// from this pool -- callers already treat anything short of 11 as "not a
+// legal team" and discard it, same as before.
+function kuhnAssignSlots(candidates, slotIdx, matchOf, visited){
+  for(let ci=0; ci<candidates.length; ci++){
+    if(visited[ci] || !SLOTS[slotIdx].fits(candidates[ci])) continue;
+    visited[ci] = true;
+    if(matchOf[ci]===-1 || kuhnAssignSlots(candidates, matchOf[ci], matchOf, visited)){
+      matchOf[ci] = slotIdx;
+      return true;
+    }
+  }
+  return false;
+}
 function draftXIFromPool(candidates){
   const drafted = [], used = new Set();
   const keeper = candidates.find(p=>p.roles.includes('wk'));
@@ -508,17 +528,12 @@ function draftXIFromPool(candidates){
     if(used.has(p.n)) continue;
     drafted.push(p); used.add(p.n);
   }
+  const matchOf = new Array(drafted.length).fill(-1);
+  for(let slotIdx=0; slotIdx<11; slotIdx++){
+    kuhnAssignSlots(drafted, slotIdx, matchOf, new Array(drafted.length).fill(false));
+  }
   const xiSlots = new Array(11).fill(null);
-  drafted.forEach(p=>{
-    let bestSlot=-1, bestPen=Infinity;
-    for(let i=0;i<11;i++){
-      if(xiSlots[i] || !SLOTS[i].fits(p)) continue;
-      const pen = positionPenalty(p, i+1);
-      if(pen<bestPen){ bestPen=pen; bestSlot=i; }
-    }
-    if(bestSlot===-1) bestSlot = xiSlots.findIndex(s=>!s);
-    if(bestSlot>=0) xiSlots[bestSlot] = p;
-  });
+  drafted.forEach((p,ci)=>{ if(matchOf[ci]!==-1) xiSlots[matchOf[ci]] = p; });
   return xiSlots.filter(Boolean);
 }
 /* All ten tiers are drafted together in ONE pass, strongest (99) first,
@@ -548,6 +563,20 @@ function getWorldAllStarXI(teamId){
   if(!worldAllStarXICache.has(FMTKEY)) worldAllStarXICache.set(FMTKEY, buildAllWorldAllStarXIs());
   const tiers = worldAllStarXICache.get(FMTKEY);
   return tiers[ALLSTAR_TEAMS.findIndex(t=>t.id===teamId)];
+}
+// The ten tiers draft together from one shared, globally-shrinking pool
+// (see buildAllWorldAllStarXIs), so a deep tier can occasionally find the
+// remaining talent short of a strict role it needs (e.g. no genuine
+// specialist bowler left for a "Bowler"-only slot) -- same legitimate
+// scarcity that legally excludes a thin BYT nation/decade from its own
+// opponent pool. Filtered out here rather than fielded illegally, exactly
+// like getDecadeOpponents already does for nations/regions. Deterministic
+// (no RNG), so client and server always agree on which tiers are valid.
+function getValidAllStarTeams(){
+  return ALLSTAR_TEAMS.filter(t => {
+    const xi = getWorldAllStarXI(t.id);
+    return xi && xi.length === 11 && xi.some(p => p.roles.includes('wk'));
+  });
 }
 
 function buildAllStarXI(natId, poolKey){
@@ -614,11 +643,18 @@ function buildInningsPair(battingXi, bowlingXi, total, wkts){
     const p = battingXi[i], pos = i+1;
     const pureBowler = p.roles.includes('bowl') && !p.roles.includes('ar');
     let w;
-    if(pureBowler) w = 0.15 + Math.random()*0.15;
+    // A single Math.random() draw either way, same as before -- only the
+    // formula around it changed, so this stays in lockstep with the
+    // client's identical copy. Pure bowlers get a small weight that still
+    // tapers further down the order (a bowler forced to open is still
+    // weak, but No.11 specifically should almost never post a score).
+    // Everyone else's weight now spreads much more steeply by position --
+    // batters up top clearly outscore the tail, not just on average.
+    if(pureBowler) w = Math.max(0.03, 0.22 - pos*0.012) + Math.random()*0.10;
     else {
       const effR = Math.max(1, p.r - positionPenalty(p, pos));
-      const posMult = pos<=3?1.15:pos<=6?1.0:pos<=8?0.55:0.3;
-      w = Math.max(0.05, (effR/90)*posMult) * (0.5+Math.random());
+      const posMult = pos<=2?1.3:pos===3?1.2:pos<=5?1.0:pos===6?0.85:pos===7?0.55:pos===8?0.35:0.18;
+      w = Math.max(0.03, (effR/90)*posMult) * (0.6+Math.random()*0.8);
     }
     weights.push(w);
   }
@@ -1325,7 +1361,8 @@ function calculateScore({ format, seed, xi: clientXi, captainIdx }) {
     // positioned right after the nations shuffle, same as the client, to
     // stay in lockstep.
     const stops = shuffle(NATIONS.slice());
-    const allStarTeam = ALLSTAR_TEAMS[Math.floor(Math.random() * ALLSTAR_TEAMS.length)];
+    const validAllStarTeams = getValidAllStarTeams();
+    const allStarTeam = validAllStarTeams[Math.floor(Math.random() * validAllStarTeams.length)];
     stops.push(allStarTeam);
     let w = 0, d = 0, l = 0;
     let totalSeriesWon = 0, totalSweeps = 0, marginSum = 0, marginCount = 0;
@@ -1522,7 +1559,7 @@ function getDecadeOpponents(){
       list.push({ id: region.id + '_' + d, natId: region.id, decade: d, name: `${region.name} (${d})`, flag: region.flag, opp, venues: region.venues, isAllStar: false, isRegional: true });
     }
   }
-  for(const team of ALLSTAR_TEAMS){
+  for(const team of getValidAllStarTeams()){
     list.push({ id: team.id, natId: team.id, name: team.name, flag: team.flag, opp: team.opp, venues: team.venues, isAllStar: true });
   }
   decadeOpponentsCache = list;

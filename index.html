@@ -654,8 +654,8 @@ body.sim-active .masthead{
       <p id="bytMatchResultBody"></p>
       <p class="foot-note" id="bytMatchSeriesTally" style="margin-top:6px"></p>
     </div>
-    <button class="btn secondary" onclick="bytViewLastMatchScorecard()">📋 View scorecard</button>
-    <button class="btn secondary" style="margin-top:10px" onclick="bytChangeTeamMidSeries()">Change team</button>
+    <div id="bytMatchScorecardInline" style="margin-bottom:14px"></div>
+    <button class="btn secondary" onclick="bytChangeTeamMidSeries()">Change team</button>
     <button class="btn" id="bytNextGameBtn" style="margin-top:10px" onclick="bytPlayOneMatch()">Next game</button>
     <button class="btn" id="bytSeriesReviewBtn" style="margin-top:10px;display:none" onclick="showBYTSeriesReview()">Series Review</button>
   </section>
@@ -668,6 +668,7 @@ body.sim-active .masthead{
       <p id="bytReviewRecord"></p>
     </div>
     <div class="pcard" id="bytReviewPotmCard" style="cursor:default;margin-bottom:14px"></div>
+    <div id="bytReviewStats" style="margin-bottom:14px"></div>
     <div class="pick-grid" id="bytReviewMatchList"></div>
     <button class="btn" id="bytSeriesReviewContinueBtn" style="margin-top:10px" onclick="bytFinalizeSeries()">Continue</button>
   </section>
@@ -1941,6 +1942,26 @@ const ALLSTAR_TEAMS = [
    and buildAllStarXI too, factored out here since this is the first
    spot that needs to run it more than once in a row (all ten tiers,
    see buildAllWorldAllStarXIs below). */
+// Proper maximum bipartite matching (Kuhn's algorithm) between the 11
+// slots and a candidate pool, so every placement genuinely respects
+// SLOTS[i].fits -- unlike a greedy "first open slot" fallback, which could
+// shove a specialist bowler into an opening slot (or a top-order batter
+// down into a "Bowler" slot) whenever its best-fit pass left a slot
+// uncovered, exactly backwards for batting-order realism. Returns an
+// 11-length array with a null for any slot that genuinely can't be filled
+// from this pool -- callers already treat anything short of 11 as "not a
+// legal team" and discard it, same as before.
+function kuhnAssignSlots(candidates, slotIdx, matchOf, visited){
+  for(let ci=0; ci<candidates.length; ci++){
+    if(visited[ci] || !SLOTS[slotIdx].fits(candidates[ci])) continue;
+    visited[ci] = true;
+    if(matchOf[ci]===-1 || kuhnAssignSlots(candidates, matchOf[ci], matchOf, visited)){
+      matchOf[ci] = slotIdx;
+      return true;
+    }
+  }
+  return false;
+}
 function draftXIFromPool(candidates){
   const drafted = [], used = new Set();
   const keeper = candidates.find(p=>p.roles.includes('wk'));
@@ -1957,17 +1978,12 @@ function draftXIFromPool(candidates){
     if(used.has(p.n)) continue;
     drafted.push(p); used.add(p.n);
   }
+  const matchOf = new Array(drafted.length).fill(-1);
+  for(let slotIdx=0; slotIdx<11; slotIdx++){
+    kuhnAssignSlots(drafted, slotIdx, matchOf, new Array(drafted.length).fill(false));
+  }
   const xiSlots = new Array(11).fill(null);
-  drafted.forEach(p=>{
-    let bestSlot=-1, bestPen=Infinity;
-    for(let i=0;i<11;i++){
-      if(xiSlots[i] || !SLOTS[i].fits(p)) continue;
-      const pen = positionPenalty(p, i+1);
-      if(pen<bestPen){ bestPen=pen; bestSlot=i; }
-    }
-    if(bestSlot===-1) bestSlot = xiSlots.findIndex(s=>!s);
-    if(bestSlot>=0) xiSlots[bestSlot] = p;
-  });
+  drafted.forEach((p,ci)=>{ if(matchOf[ci]!==-1) xiSlots[matchOf[ci]] = p; });
   return xiSlots.filter(Boolean);
 }
 /* All ten tiers are drafted together in ONE pass, strongest (99) first,
@@ -1997,6 +2013,20 @@ function getWorldAllStarXI(teamId){
   if(!worldAllStarXICache.has(FMTKEY)) worldAllStarXICache.set(FMTKEY, buildAllWorldAllStarXIs());
   const tiers = worldAllStarXICache.get(FMTKEY);
   return tiers[ALLSTAR_TEAMS.findIndex(t=>t.id===teamId)];
+}
+// The ten tiers draft together from one shared, globally-shrinking pool
+// (see buildAllWorldAllStarXIs), so a deep tier can occasionally find the
+// remaining talent short of a strict role it needs (e.g. no genuine
+// specialist bowler left for a "Bowler"-only slot) -- same legitimate
+// scarcity that legally excludes a thin BYT nation/decade from its own
+// opponent pool. Filtered out here rather than fielded illegally, exactly
+// like getDecadeOpponents already does for nations/regions. Deterministic
+// (no RNG), so client and server always agree on which tiers are valid.
+function getValidAllStarTeams(){
+  return ALLSTAR_TEAMS.filter(t => {
+    const xi = getWorldAllStarXI(t.id);
+    return xi && xi.length === 11 && xi.some(p => p.roles.includes('wk'));
+  });
 }
 
 // Build Your Team's opponent pool: every (nation, decade) combination with
@@ -2063,7 +2093,7 @@ function getDecadeOpponents(){
       list.push({ id: region.id + '_' + d, natId: region.id, decade: d, name: `${region.name} (${d})`, flag: region.flag, opp, venues: region.venues, isAllStar: false, isRegional: true });
     }
   }
-  for(const team of ALLSTAR_TEAMS){
+  for(const team of getValidAllStarTeams()){
     list.push({ id: team.id, natId: team.id, name: team.name, flag: team.flag, opp: team.opp, venues: team.venues, isAllStar: true });
   }
   decadeOpponentsCache = list;
@@ -2160,11 +2190,18 @@ function buildInningsPair(battingXi, bowlingXi, total, wkts){
     const p = battingXi[i], pos = i+1;
     const pureBowler = p.roles.includes('bowl') && !p.roles.includes('ar');
     let w;
-    if(pureBowler) w = 0.15 + Math.random()*0.15;
+    // A single Math.random() draw either way, same as before -- only the
+    // formula around it changed, so this stays in lockstep with the
+    // server's identical copy. Pure bowlers get a small weight that still
+    // tapers further down the order (a bowler forced to open is still
+    // weak, but No.11 specifically should almost never post a score).
+    // Everyone else's weight now spreads much more steeply by position --
+    // batters up top clearly outscore the tail, not just on average.
+    if(pureBowler) w = Math.max(0.03, 0.22 - pos*0.012) + Math.random()*0.10;
     else {
       const effR = Math.max(1, p.r - positionPenalty(p, pos));
-      const posMult = pos<=3?1.15:pos<=6?1.0:pos<=8?0.55:0.3;
-      w = Math.max(0.05, (effR/90)*posMult) * (0.5+Math.random());
+      const posMult = pos<=2?1.3:pos===3?1.2:pos<=5?1.0:pos===6?0.85:pos===7?0.55:pos===8?0.35:0.18;
+      w = Math.max(0.03, (effR/90)*posMult) * (0.6+Math.random()*0.8);
     }
     weights.push(w);
   }
@@ -2407,7 +2444,8 @@ function startSeason(){
   // RNG draw, positioned right after the nations shuffle so client and
   // server stay in lockstep.
   const stops = shuffle(NATIONS.slice());
-  const allStarTeam = ALLSTAR_TEAMS[Math.floor(Math.random()*ALLSTAR_TEAMS.length)];
+  const validAllStarTeams = getValidAllStarTeams();
+  const allStarTeam = validAllStarTeams[Math.floor(Math.random()*validAllStarTeams.length)];
   stops.push(allStarTeam);
 
   const hasSpin = hasWorldClassBowlingType(xi, 'spin');
@@ -2686,6 +2724,23 @@ function selectInnings(idx){
   currentInningsIdx = idx;
   renderScorecardModal();
 }
+// One innings' batting + bowling tables -- factored out of
+// renderScorecardModal so an inline (non-modal) scorecard can reuse the
+// exact same markup, just stacked across every innings instead of tabbed.
+function inningsCardHtml(inn){
+  const battingRows = inn.battingCard.map(b=>{
+    if(b.dnb) return `<tr style="opacity:.45"><td>${b.n}</td><td colspan="3">did not bat</td></tr>`;
+    if(b.notOut) return `<tr><td>${b.n}</td><td>not out</td><td></td><td>${b.runs}</td></tr>`;
+    return `<tr><td>${b.n}</td><td>${dismissalDesc(b)}</td><td>${b.bowler?`b ${b.bowler}`:''}</td><td>${b.runs}</td></tr>`;
+  }).join('');
+  const bowlingRows = inn.bowlingCard.map(b=>
+    `<tr><td>${b.n}</td><td>${b.overs}</td><td>${b.runs}</td><td>${b.wkts}</td></tr>`
+  ).join('');
+  return `<h3 style="margin-top:2px">${inn.battingTeam==='you'?'Your':inn.battingTeam+"'s"} innings</h3>
+     <table class="stat-table"><tr><th>Player</th><th>Dismissal</th><th>Bowler</th><th>Runs</th></tr>${battingRows}</table>
+     <h3>${inn.bowlingTeam==='you'?'Your':inn.bowlingTeam+"'s"} bowling</h3>
+     <table class="stat-table"><tr><th>Player</th><th>Ov</th><th>Runs</th><th>Wkts</th></tr>${bowlingRows}</table>`;
+}
 function renderScorecardModal(){
   const sc = currentScorecard;
   if(!sc) return;
@@ -2698,21 +2753,7 @@ function renderScorecardModal(){
   ).join('')}</div>` : '';
 
   const inn = sc.innings[currentInningsIdx] || sc.innings[0];
-  const battingRows = inn.battingCard.map(b=>{
-    if(b.dnb) return `<tr style="opacity:.45"><td>${b.n}</td><td colspan="3">did not bat</td></tr>`;
-    if(b.notOut) return `<tr><td>${b.n}</td><td>not out</td><td></td><td>${b.runs}</td></tr>`;
-    return `<tr><td>${b.n}</td><td>${dismissalDesc(b)}</td><td>${b.bowler?`b ${b.bowler}`:''}</td><td>${b.runs}</td></tr>`;
-  }).join('');
-  const bowlingRows = inn.bowlingCard.map(b=>
-    `<tr><td>${b.n}</td><td>${b.overs}</td><td>${b.runs}</td><td>${b.wkts}</td></tr>`
-  ).join('');
-
-  document.getElementById('scorecardModalBody').innerHTML =
-    `${tabsHtml}
-     <h3 style="margin-top:2px">${inn.battingTeam==='you'?'Your':inn.battingTeam+"'s"} innings</h3>
-     <table class="stat-table"><tr><th>Player</th><th>Dismissal</th><th>Bowler</th><th>Runs</th></tr>${battingRows}</table>
-     <h3>${inn.bowlingTeam==='you'?'Your':inn.bowlingTeam+"'s"} bowling</h3>
-     <table class="stat-table"><tr><th>Player</th><th>Ov</th><th>Runs</th><th>Wkts</th></tr>${bowlingRows}</table>`;
+  document.getElementById('scorecardModalBody').innerHTML = tabsHtml + inningsCardHtml(inn);
 }
 function closeScorecardModal(){
   document.getElementById('scorecardModal').style.display = 'none';
@@ -3463,6 +3504,11 @@ async function showBuildYourTeamSetup(){
         bytMode = true;
         bytOwnedPlayers = bytOwnedList();
         FMTKEY = bytCollection.campaign.fmt; FMT = FORMATS[FMTKEY]; DECADES = FMT.decades;
+        // getValidAllStarTeams() (via getDecadeOpponents(), called from the
+        // checkpoint screen) needs DB[FMTKEY], a different pool from the
+        // DB.best already loaded above -- BYT's own opponent generation only
+        // ever touched DB.best before, so this load was never needed until now.
+        await ensureFormatLoaded(FMTKEY);
         showBYTCampaignCheckpoint();
         return;
       }
@@ -3493,6 +3539,9 @@ async function startBuildYourTeam(){
     bytCollection = data.collection;
     bytMode = true;
     FMTKEY = fmt; FMT = FORMATS[fmt]; DECADES = FMT.decades;
+    // See the matching comment in showBuildYourTeamSetup() -- getValidAllStarTeams()
+    // needs DB[FMTKEY] loaded, a different pool from DB.best.
+    await ensureFormatLoaded(FMTKEY);
     bytOwnedPlayers = bytOwnedList();
     showBYTPackReveal(bytOwnedPlayers.slice(), 'Your Starter Pack', showBYTSquadBuilder);
   }catch(e){
@@ -3906,9 +3955,12 @@ function showBYTMatchCheckpoint(){
   const done = bytCurrentMatchNum >= 5;
   document.getElementById('bytNextGameBtn').style.display = done ? 'none' : '';
   document.getElementById('bytSeriesReviewBtn').style.display = done ? '' : 'none';
-}
-function bytViewLastMatchScorecard(){
-  showMatchScorecard(bytCurrentMatchNum);
+  // Shown directly on the page rather than behind a "View scorecard"
+  // click -- every innings stacked in order rather than tabbed, since
+  // there's no need to save space on a screen that's otherwise mostly
+  // empty. Test matches carry up to 4 innings; ODI/T20 just 2.
+  document.getElementById('bytMatchScorecardInline').innerHTML =
+    m.scorecard.innings.map(inn => `<div class="pcard" style="cursor:default;text-align:left;display:block;margin-bottom:10px">${inningsCardHtml(inn)}</div>`).join('');
 }
 function bytChangeTeamMidSeries(){
   bytMidSeriesChange = true;
@@ -3933,6 +3985,77 @@ function bytComputeSeriesReview(){
   }
   return { potmName, potmCount };
 }
+// Series-long batting/bowling stats, aggregated from the real per-match
+// scorecards already stored on bytMatches -- same principle as Classic
+// mode's computeSquadStats, but aggregated by PLAYER NAME rather than XI
+// slot index, since "Change team" mid-series means a different player can
+// occupy the same slot from one match to the next.
+function bytComputeSeriesStats(){
+  const battingAgg = new Map(), bowlingAgg = new Map();
+  bytMatches.forEach(m=>{
+    if(!m || !m.scorecard) return;
+    m.scorecard.innings.filter(inn=>inn.battingTeam==='you').forEach(inn=>{
+      inn.battingCard.forEach(b=>{
+        if(b.dnb) return;
+        if(!battingAgg.has(b.n)) battingAgg.set(b.n, {n:b.n, inns:0, no:0, runs:0, hs:0, h:0, f:0});
+        const agg = battingAgg.get(b.n);
+        agg.inns++;
+        if(b.notOut) agg.no++;
+        agg.runs += b.runs;
+        if(b.runs>agg.hs) agg.hs = b.runs;
+        if(b.runs>=100) agg.h++;
+        else if(b.runs>=50) agg.f++;
+      });
+    });
+    m.scorecard.innings.filter(inn=>inn.bowlingTeam==='you').forEach(inn=>{
+      inn.bowlingCard.forEach(b=>{
+        if(!bowlingAgg.has(b.n)) bowlingAgg.set(b.n, {n:b.n, wkts:0, runs:0, overs:0, bbw:0, bbr:0, five:0});
+        const agg = bowlingAgg.get(b.n);
+        agg.wkts += b.wkts; agg.runs += b.runs; agg.overs += b.overs;
+        if(b.wkts>=5) agg.five++;
+        if(b.wkts>agg.bbw || (b.wkts===agg.bbw && b.runs<agg.bbr)){ agg.bbw=b.wkts; agg.bbr=b.runs; }
+      });
+    });
+  });
+  const test = FMTKEY==='test', t20 = FMTKEY==='t20';
+  const batting = [...battingAgg.values()].map(agg=>{
+    const p = bytOwnedPlayers.find(x=>x.n===agg.n);
+    const sr = !test && p ? (t20 ? Math.round(105 + (p.r-80)*2.2 + Math.random()*12)
+                                 : Math.round(72 + (p.r-80)*1.4 + Math.random()*8)) : null;
+    return {n:agg.n, inns:agg.inns, no:agg.no, runs:agg.runs, hs:agg.hs,
+            ave: agg.runs/(Math.max(1,agg.inns-agg.no)), h:agg.h, f:agg.f, sr};
+  }).sort((a,b)=>b.runs-a.runs);
+  const bowling = [...bowlingAgg.values()].map(agg=>{
+    const ave = agg.wkts>0 ? agg.runs/agg.wkts : 0;
+    const econ = test ? null : (agg.overs>0 ? agg.runs/agg.overs : 0);
+    return {n:agg.n, wkts:agg.wkts, ave, bb:`${agg.bbw}-${agg.bbr}`, five:agg.five, econ, overs:agg.overs};
+  }).sort((a,b)=>b.wkts-a.wkts);
+  return {batting, bowling};
+}
+function bytRenderSeriesStats(){
+  const {batting, bowling} = bytComputeSeriesStats();
+  const test = FMTKEY==='test', t20 = FMTKEY==='t20';
+  const batHead = test ? ['Player','Inns','NO','Runs','HS','Ave','100s','50s']
+                       : ['Player','Inns','Runs','HS','Ave','SR', t20?'50s':'100/50'];
+  const batRows = batting.map(b=>{
+    const cells = test ? [b.inns,b.no,b.runs,b.hs,b.ave.toFixed(1),b.h,b.f]
+                       : [b.inns,b.runs,b.hs,b.ave.toFixed(1),b.sr, t20?b.f:`${b.h}/${b.f}`];
+    return `<tr><td>${b.n}</td>${cells.map(c=>`<td>${c}</td>`).join('')}</tr>`;
+  }).join('');
+  const bowlHead = test ? ['Player','Ov','Wkts','Ave','BBI','5WI']
+                        : ['Player','Ov','Wkts','Ave','Econ','BBI'];
+  const bowlRows = bowling.map(b=>{
+    const aveStr = b.wkts>0 ? b.ave.toFixed(1) : '-';
+    const cells = test ? [b.overs,b.wkts,aveStr,b.bb,b.five]
+                       : [b.overs,b.wkts,aveStr,b.econ.toFixed(2),b.bb];
+    return `<tr><td>${b.n}</td>${cells.map(c=>`<td>${c}</td>`).join('')}</tr>`;
+  }).join('');
+  document.getElementById('bytReviewStats').innerHTML =
+    `<h3>Series batting · ${bytMatches.length} match${bytMatches.length===1?'':'es'}</h3>
+     <table class="stat-table"><tr>${batHead.map(h=>`<th>${h}</th>`).join('')}</tr>${batRows}</table>
+     <h3>Series bowling</h3>
+     <table class="stat-table"><tr>${bowlHead.map(h=>`<th>${h}</th>`).join('')}</tr>${bowlRows}</table>`;
+}
 function showBYTSeriesReview(){
   switchScreen('scr-byt-series-review');
   const nat = bytSeriesOpponent;
@@ -3946,6 +4069,7 @@ function showBYTSeriesReview(){
   potmBox.innerHTML = potmName
     ? `<span class="who"><span class="nm">🏅 Player of the Series</span><span class="rl">${potmName} — Player of the Match ${potmCount} time${potmCount===1?'':'s'}</span></span>`
     : `<span class="who"><span class="nm">🏅 Player of the Series</span><span class="rl">No standout performance this series.</span></span>`;
+  bytRenderSeriesStats();
   const grid = document.getElementById('bytReviewMatchList');
   grid.innerHTML = bytMatches.map((m,i)=>`<div class="pcard" style="cursor:pointer" onclick="showMatchScorecard(${i+1})">
     <span class="who"><span class="nm">Match ${i+1}</span><span class="rl">${m.score} — ${m.margin}</span></span>
@@ -4172,6 +4296,8 @@ async function bytChangeFormat(fmt){
     const data = await res.json();
     if(!res.ok || !data.ok) throw new Error(data.error || ('HTTP '+res.status));
     bytCollection.campaign.fmt = data.fmt;
+    FMTKEY = data.fmt; FMT = FORMATS[FMTKEY]; DECADES = FMT.decades;
+    await ensureFormatLoaded(FMTKEY);
     showBYTCampaignCheckpoint();
   }catch(e){
     await showConfirm('Could not change format', e.message, 'OK');
