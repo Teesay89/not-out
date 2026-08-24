@@ -644,7 +644,7 @@ body.sim-active .masthead{
     <p class="foot-note" id="bytDailyCapNote" style="display:none;margin-top:6px;text-align:center">You've reached today's limit of 20 series — come back tomorrow.</p>
     <button class="btn secondary" style="margin-top:10px" onclick="showBYTCollection()">My collection</button>
     <button class="btn secondary" style="margin-top:10px" onclick="openLeaderboard()">🏆 Honours Board</button>
-    <a href="javascript:void(0)" class="back-link" style="margin-top:10px" onclick="switchScreen('scr-intro')">← Back to menu</a>
+    <a href="javascript:void(0)" class="back-link" style="margin-top:10px" onclick="returnToIntro()">← Back to menu</a>
   </section>
 
   <!-- BUILD YOUR TEAM: PER-MATCH CHECKPOINT -- shown after every one of the
@@ -1238,9 +1238,16 @@ function showConfirm(title, body, actionLabel){
 function resolveConfirm(val){ window.__resolveConfirm(val); }
 function openInfoModal(){ document.getElementById('infoModal').style.display = 'flex'; }
 function closeInfoModal(){ document.getElementById('infoModal').style.display = 'none'; }
-async function restartDraft(){
-  const ok = await showConfirm('Restart the draft?', 'This clears your picks so far.', 'Restart');
-  if(!ok) return;
+// The draft screen (scr-draft) and its picking state (xiSlots/picksMade/
+// draftedNames/etc) are shared globals reused by every mode that drafts an
+// XI here -- Classic, Represent Your Nation, both Series Showdown drafts,
+// AND Build Your Team's own squad builder. Starting any FRESH draft must
+// never inherit picks left over from whichever of those a player was in
+// right before -- e.g. leaving Build Your Team mid-squad-builder and
+// starting a Classic draft used to show that half-built club XI already
+// sitting in the slots. Every draft-starting function below calls this
+// first so a new draft always genuinely starts from a clean slate.
+function resetDraftState(){
   xiSlots = new Array(11).fill(null);
   picksMade = 0;
   xi = [];
@@ -1253,6 +1260,11 @@ async function restartDraft(){
   document.getElementById('drawCard').hidden = true;
   document.getElementById('redrawBtn').style.display = 'none';
   document.getElementById('drawBtn').disabled = false;
+}
+async function restartDraft(){
+  const ok = await showConfirm('Restart the draft?', 'This clears your picks so far.', 'Restart');
+  if(!ok) return;
+  resetDraftState();
   renderBoard();
   window.scrollTo({top:0});
 }
@@ -1328,12 +1340,31 @@ async function selectFormat(k){
   GROUPS = NATIONS;   // drafting is always by real nation, whatever the format
   eraFilter = 'all';
   renderEraFilterRow();
+  syncClassicFormatDisplay();
+  await ensureFormatLoaded(k);
+}
+/* Re-syncs the Classic-mode format buttons/copy on #scr-intro to whatever
+   FMTKEY currently holds. Needed on its own (not just inside selectFormat)
+   because FMTKEY is a global shared with other modes -- e.g. Build Your
+   Team changes it while its own setup is active -- so the intro screen's
+   buttons can otherwise go on showing "Test" selected (its hardcoded
+   initial HTML state) even after FMTKEY has silently become something
+   else, letting a Start tap launch a draft in the wrong format. */
+function syncClassicFormatDisplay(){
   document.querySelectorAll('.fmt-btn,.fmt-hero').forEach(b=>b.classList.remove('selected'));
-  document.getElementById('fmt-'+k).classList.add('selected');
+  const btn = document.getElementById('fmt-'+FMTKEY);
+  if(btn) btn.classList.add('selected');
   document.getElementById('mastSub').textContent = `Cricket World Domination · All-era ${FMT.label} XI`;
   document.getElementById('challengeBullet').innerHTML = '<b>Beat them all, at their place.</b> Your XI tours the world: a five-match series against each of today’s eleven international sides, played across <b>real grounds in their country</b>, before a five-match finale at Lord’s against a randomly-drawn World All-Star XI — sixty matches in total. Win matches, win series, sweep one 5-0 — that’s what separates a good tour from a legendary one.';
   document.getElementById('tourBtn').textContent = 'Start the world tour · 60 away matches';
-  await ensureFormatLoaded(k);
+}
+/* Every entry point that lands back on #scr-intro must go through here so
+   FMTKEY's display never lies (see syncClassicFormatDisplay) and no mode
+   flag is left set from whichever mode the player was just in. */
+function returnToIntro(){
+  bytMode = false; represMode = false; curSeriesMode = false;
+  syncClassicFormatDisplay();
+  switchScreen('scr-intro');
 }
 /* Renders the era-filter row for whichever format is currently
    selected. Empty for T20 (no tiers defined), which the CSS then
@@ -1392,11 +1423,12 @@ function setDataStatus(state, k){
 }
 
 async function startDraft(){
-  represMode = false; bytMode = false;
+  represMode = false; bytMode = false; curSeriesMode = false;
   if(!DB[FMTKEY]){
     const ok = await ensureFormatLoaded(FMTKEY);
     if(!ok) return;   // setDataStatus already shows the error; stay on the intro screen
   }
+  resetDraftState();
   switchScreen('scr-draft');
   renderBoard();
 }
@@ -3701,8 +3733,7 @@ async function showSeriesShowdownSetup(){
   await ensureFormatLoaded('best');
 }
 function exitSeriesShowdownSetup(){
-  curSeriesMode = false;
-  switchScreen('scr-intro');
+  returnToIntro();
 }
 
 /* ================= BUILD YOUR TEAM =================
@@ -3838,8 +3869,7 @@ function selectBYTFormat(fmt){
   document.querySelectorAll('#bytFmtRow .fmt-btn').forEach(b=>b.classList.toggle('selected', b.dataset.fmt===fmt));
 }
 function exitBuildYourTeamSetup(){
-  bytMode = false;
-  switchScreen('scr-intro');
+  returnToIntro();
 }
 async function startBuildYourTeam(){
   const teamNameRaw = document.getElementById('bytTeamNameInput').value;
@@ -4712,6 +4742,7 @@ async function startSeriesShowdownDraft(){
   buildPlayerIndex();
   const nat = NATIONS.find(n=>n.id===csYourNat), oppNat = NATIONS.find(n=>n.id===csOppNat);
   document.getElementById('mastSub').textContent = `Series Showdown · ${nat.name} v ${oppNat.name} · Test, ODI & T20`;
+  resetDraftState();
   switchScreen('scr-draft');
   renderBoard();
 }
@@ -4737,6 +4768,7 @@ async function startSeriesShowdownCombinedDraft(){
   await ensureFormatLoaded(csCombinedFmt);
   const aNat = NATIONS.find(n=>n.id===csSeries.a), bNat = NATIONS.find(n=>n.id===csSeries.b);
   document.getElementById('mastSub').textContent = `Series Showdown · Combined ${aNat.name}/${bNat.name} XI · ${FMT.label}`;
+  resetDraftState();
   switchScreen('scr-draft');
   renderBoard();
 }
@@ -4756,8 +4788,7 @@ async function showRepresentSetup(){
   renderRepresentCountryGrid();
 }
 function exitRepresentSetup(){
-  represMode = false;
-  switchScreen('scr-intro');
+  returnToIntro();
 }
 async function selectRepresentFormat(fmt){
   represFmt = fmt;
@@ -4805,6 +4836,7 @@ async function startRepresentDraft(){
   }
   const nat = NATIONS.find(n=>n.id===represCountry);
   document.getElementById('mastSub').textContent = `Represent ${nat.name} \u00b7 ${FMT.label}`;
+  resetDraftState();
   switchScreen('scr-draft');
   renderBoard();
 }
@@ -5563,14 +5595,7 @@ function draftAgain(){
 
   revealTimers.forEach(clearTimeout); revealTimers=[]; revealIdx=0;
 
-  xiSlots = new Array(11).fill(null);
-  picksMade = 0;
-  xi = [];
-  currentPair = null;
-  captainIdx = -1;
-  draftedNames = new Set();
-  drawing = false;
-  redoLeft = 1;
+  resetDraftState();
 
   tourStops = [];
   representMatches = [];
@@ -5586,10 +5611,6 @@ function draftAgain(){
   tourTotals = null;
   runScore = 0;
 
-  document.getElementById('pickGrid').innerHTML = '';
-  document.getElementById('drawCard').hidden = true;
-  document.getElementById('redrawBtn').style.display = 'none';
-  document.getElementById('drawBtn').disabled = false;
   document.getElementById('miniSheet').innerHTML = '';
   document.getElementById('fixtures').innerHTML = '';
   document.getElementById('squadStats').innerHTML = '';
@@ -5604,7 +5625,7 @@ function draftAgain(){
   } else if(curSeriesMode){
     switchScreen('scr-showdown-setup');
   } else {
-    switchScreen('scr-intro');
+    returnToIntro();
   }
   window.scrollTo({top:0});
 }
