@@ -3031,7 +3031,10 @@ function inningsCardHtml(inn){
   const rr = trueOvers>0 ? (inn.total/trueOvers).toFixed(2) : '0.00';
   const totalLine = inn.wkts>=10 ? `${inn.total} all out` : `${inn.total}/${inn.wkts}`;
   const totalRow = inn.overs!=null ? `<tr style="font-weight:700;color:var(--brass);border-top:1px solid var(--line)"><td>Total</td><td colspan="2">${inn.overs} Ov (RR: ${rr})</td><td>${totalLine}</td></tr>` : '';
-  const bowlingRows = inn.bowlingCard.map(b=>
+  // A bowler who never sent a delivery this innings (0 overs -- can happen
+  // when the innings ends before every bowler in the unit got a turn)
+  // doesn't belong on a real scorecard's bowling figures at all.
+  const bowlingRows = inn.bowlingCard.filter(b=>b.overs>0).map(b=>
     `<tr><td>${b.n}</td><td>${b.overs}</td><td>${b.runs}</td><td>${b.wkts}</td></tr>`
   ).join('');
   const oversTxt = inn.overs!=null ? ` · ${inn.overs} ov` : '';
