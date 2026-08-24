@@ -655,6 +655,7 @@ body.sim-active .masthead{
       <div class="eyebrow" id="bytMatchOppLabel">vs Opponent</div>
       <h2 id="bytMatchResultTitle">Match 1 of 5</h2>
       <p id="bytMatchResultBody"></p>
+      <p class="foot-note" id="bytMatchTossLine" style="margin-top:4px;display:none"></p>
       <p class="foot-note" id="bytMatchVenue" style="margin-top:4px"></p>
       <p class="foot-note" id="bytMatchSeriesTally" style="margin-top:6px"></p>
     </div>
@@ -1780,75 +1781,102 @@ function decideNeutral(oppA, oppB){
    other code still reads them for combined-total contexts. */
 function genTestMatch(code, nat){
   const oppLabel = nat.isAllStar ? 'All-Stars' : (nat.natId || nat.id);
-  let score, margin, pts, yourInningsList, oppInningsList;
+
+  // Toss + bat/bowl decision -- pure 50/50 on both, independent of the
+  // match's eventual result (a team can elect to bat and still lose, or
+  // elect to field and still win, same as real cricket). This also fixes
+  // which side's innings the scorecard shows first: previously "you" was
+  // always displayed ahead of the opponent at every round regardless of
+  // who actually batted first, which could show the team that lost
+  // batting 1st and 3rd ahead of the winner's declaration -- an
+  // impossible sequence. Every innings below carries an explicit
+  // chronological `order` (1st-4th of the MATCH) that buildMatchScorecard
+  // sorts by, so the display always matches whoever really batted first.
+  const tossWonByYou = Math.random()<0.5;
+  const battedFirstIsYou = Math.random()<0.5;
+  const tossWinnerName = tossWonByYou ? 'You' : oppLabel;
+  const tossLine = `${tossWinnerName} won the toss and chose to ${tossWonByYou===battedFirstIsYou?'bat':'bowl'} first`;
+  const p1Name = battedFirstIsYou ? 'You' : oppLabel;
+  const p2Name = battedFirstIsYou ? oppLabel : 'You';
+
+  let score, margin, pts, p1List, p2List, followOnLine = null;
   if(code==='D'){
-    const a1=rand(300,540), b1=rand(280,520), a2=rand(150,330), a2w=rand(4,8), b2=rand(90,260), b2w=rand(4,9);
-    // Every Test innings gets a realistic, score-scaled finish -- modern
-    // Test overs average roughly 88/87/69/70 across the four innings of a
-    // match, each as a range (not a fixed number) so it never reads as
-    // formulaic, and a bigger score within that range means more overs.
-    const a1Balls = pickScaledFinishBalls(a1, 360, 78, 98);
-    const b1Balls = pickScaledFinishBalls(b1, 330, 77, 97);
-    const a2Balls = pickScaledFinishBalls(a2, 260, 61, 77);
-    const b2Balls = pickScaledFinishBalls(b2, 220, 65, 75);
-    score=`You ${b1} & ${b2}/${b2w} \u00b7 ${oppLabel} ${a1} & ${a2}/${a2w}d`;
-    margin=pickOne(['drawn \u2014 last pair survive','drawn \u2014 flat pitch wins','drawn \u2014 nine down at stumps']);
+    const p1a=rand(300,540), p1b=rand(150,330), p1bw=rand(4,8);
+    const p2a=rand(280,520), p2b=rand(90,260), p2bw=rand(4,9);
+    const p1aBalls = oversForInningsOrder(p1a, 1), p1bBalls = oversForInningsOrder(p1b, 3);
+    const p2aBalls = oversForInningsOrder(p2a, 2), p2bBalls = oversForInningsOrder(p2b, 4);
+    score = `${p1Name} ${p1a} & ${p1b}/${p1bw}d \u00b7 ${p2Name} ${p2a} & ${p2b}/${p2bw}`;
+    margin = pickOne(['drawn \u2014 last pair survive','drawn \u2014 flat pitch wins','drawn \u2014 nine down at stumps']);
     pts = 35;
-    yourInningsList = [{total:b1, wkts:10, finishBalls:b1Balls}, {total:b2, wkts:b2w, finishBalls:b2Balls}];
-    oppInningsList = [{total:a1, wkts:10, finishBalls:a1Balls}, {total:a2, wkts:a2w, finishBalls:a2Balls}];
+    p1List = [{total:p1a, wkts:10, finishBalls:p1aBalls, order:1}, {total:p1b, wkts:p1bw, finishBalls:p1bBalls, order:3}];
+    p2List = [{total:p2a, wkts:10, finishBalls:p2aBalls, order:2}, {total:p2b, wkts:p2bw, finishBalls:p2bBalls, order:4}];
   } else {
     const weWin = code==='W';
-    const style = Math.random()<0.18?'inn':(Math.random()<0.5?'runs':'wkts');
-    if(style==='inn'){
-      const big=rand(440,660), x1=rand(120,300), x2=rand(80,Math.max(90,big-x1-15));
-      const bigBalls = pickScaledFinishBalls(big, 360, 78, 98);
-      const x1Balls = pickScaledFinishBalls(x1, 330, 77, 97);
-      const x2Balls = pickScaledFinishBalls(x2, 260, 61, 77);
-      const gap=Math.max(5,big-x1-x2);
-      score = weWin ? `You ${big}d \u00b7 ${oppLabel} ${x1} & ${x2}` : `${oppLabel} ${big}d \u00b7 You ${x1} & ${x2}`;
-      margin = `${weWin?'won':'lost'} by an innings & ${gap} runs`;
-      pts = weWin ? 190 : -160;
-      const winnerList = [{total:big, wkts:9, finishBalls:bigBalls}], loserList = [{total:x1, wkts:10, finishBalls:x1Balls}, {total:x2, wkts:10, finishBalls:x2Balls}];
-      if(weWin){ yourInningsList=winnerList; oppInningsList=loserList; }
-      else { oppInningsList=winnerList; yourInningsList=loserList; }
-    } else if(style==='runs'){
-      const f1=rand(260,500), f2=rand(140,330), R=rand(25,260);
-      const f1Balls = pickScaledFinishBalls(f1, 360, 78, 98);
-      const f2Balls = pickScaledFinishBalls(f2, 330, 77, 97);
-      const c1=rand(120,Math.max(140,Math.min(360,f1+f2-R-60))), c2=Math.max(40,f1+f2-c1-R);
-      const c1Balls = pickScaledFinishBalls(c1, 260, 61, 77);
-      const c2Balls = pickScaledFinishBalls(c2, 220, 65, 75);
-      score = weWin ? `You ${f1} & ${f2}d \u00b7 ${oppLabel} ${c1} & ${c2}`
-                    : `${oppLabel} ${f1} & ${f2}d \u00b7 You ${c1} & ${c2}`;
-      margin = `${weWin?'won':'lost'} by ${R} runs`;
-      pts = weWin ? 100 + clamp(R/3, 5, 85) : -(70 + clamp(R/4, 5, 60));
-      const winnerList = [{total:f1, wkts:10, finishBalls:f1Balls}, {total:f2, wkts:9, finishBalls:f2Balls}], loserList = [{total:c1, wkts:10, finishBalls:c1Balls}, {total:c2, wkts:10, finishBalls:c2Balls}];
-      if(weWin){ yourInningsList=winnerList; oppInningsList=loserList; }
-      else { oppInningsList=winnerList; yourInningsList=loserList; }
+    // Whichever side is P1 (batted first) structurally determines which
+    // margin types are even possible: P1 can only win by defending a
+    // target (runs) or by innings (via a genuine follow-on, only when
+    // eligible); P2 can only win by successfully chasing one down
+    // (wickets) -- exactly like real cricket. This keeps the toss outcome
+    // and the match's eventual shape mutually consistent, instead of
+    // picking a margin style independent of who actually batted first.
+    const p1Wins = weWin === battedFirstIsYou;
+    let marginType, magnitude, oversTxt = '';
+    if(p1Wins){
+      const p1First = rand(260,500), p2First = rand(120,360);
+      const p1FirstBalls = oversForInningsOrder(p1First, 1);
+      const p2FirstBalls = oversForInningsOrder(p2First, 2);
+      // The Follow-On: if P1 leads by 200+ runs after both sides complete
+      // their first innings, P1's captain may enforce it, forcing P2 to
+      // bat again immediately -- not guaranteed even when eligible, since
+      // captains sometimes prefer batting again themselves instead.
+      const lead = p1First - p2First;
+      const followOnEligible = lead >= 200;
+      const enforceFollowOn = followOnEligible && Math.random() < 0.7;
+      if(enforceFollowOn){
+        const p2Second = rand(120,300);
+        const p2SecondBalls = oversForInningsOrder(p2Second, 3);
+        const gap = Math.max(1, p1First - p2First - p2Second);
+        marginType = 'inn'; magnitude = gap;
+        followOnLine = `${p1Name} enforced the follow-on after leading by ${lead} runs on first innings`;
+        score = `${p1Name} ${p1First}d \u00b7 ${p2Name} ${p2First} & ${p2Second}`;
+        p1List = [{total:p1First, wkts:9, finishBalls:p1FirstBalls, order:1}];
+        p2List = [{total:p2First, wkts:10, finishBalls:p2FirstBalls, order:2}, {total:p2Second, wkts:10, finishBalls:p2SecondBalls, order:3}];
+      } else {
+        const p1Second = rand(140,330), R = rand(25,260);
+        const p2Second = Math.max(40, (p1First+p1Second) - p2First - R);
+        const p1SecondBalls = oversForInningsOrder(p1Second, 3);
+        const p2SecondBalls = oversForInningsOrder(p2Second, 4);
+        marginType = 'runs'; magnitude = R;
+        score = `${p1Name} ${p1First} & ${p1Second}d \u00b7 ${p2Name} ${p2First} & ${p2Second}`;
+        p1List = [{total:p1First, wkts:10, finishBalls:p1FirstBalls, order:1}, {total:p1Second, wkts:9, finishBalls:p1SecondBalls, order:3}];
+        p2List = [{total:p2First, wkts:10, finishBalls:p2FirstBalls, order:2}, {total:p2Second, wkts:10, finishBalls:p2SecondBalls, order:4}];
+      }
     } else {
-      const a1=rand(180,400), b1=rand(150,420), a2=rand(140,360);
-      const a1Balls = pickScaledFinishBalls(a1, 360, 78, 98);
-      const b1Balls = pickScaledFinishBalls(b1, 330, 77, 97);
-      const a2Balls = pickScaledFinishBalls(a2, 260, 61, 77);
-      const chase=Math.max(30,a1+a2-b1+1), w=rand(2,8);
+      const p1First = rand(180,400), p1Second = rand(140,360), p2First = rand(150,420);
+      const chase = Math.max(30, p1First+p1Second-p2First+1), w = rand(2,8);
+      const p1FirstBalls = oversForInningsOrder(p1First, 1);
+      const p1SecondBalls = oversForInningsOrder(p1Second, 3);
+      const p2FirstBalls = oversForInningsOrder(p2First, 2);
       // A chase that WINS must have finished within its innings -- Tests
-      // have no overs cap, so this is scaled by the runs it actually took
-      // rather than a format quota, same as every other Test innings here.
-      const chaseFinishBalls = pickScaledFinishBalls(chase, 220, 65, 75);
-      const oversTxt = formatOversText(chaseFinishBalls);
-      score = weWin ? `${oppLabel} ${a1} & ${a2} \u00b7 You ${b1} & ${chase}/${10-w} (${oversTxt})`
-                    : `You ${a1} & ${a2} \u00b7 ${oppLabel} ${b1} & ${chase}/${10-w} (${oversTxt})`;
-      margin = `${weWin?'won':'lost'} by ${w} wickets`;
-      pts = weWin ? 100 + clamp(w*10, 20, 80) : -(70 + clamp(w*8, 15, 60));
-      const fullList = [{total:a1, wkts:10, finishBalls:a1Balls}, {total:a2, wkts:10, finishBalls:a2Balls}], chaseList = [{total:b1, wkts:10, finishBalls:b1Balls}, {total:chase, wkts:10-w, finishBalls:chaseFinishBalls}];
-      if(weWin){ yourInningsList=chaseList; oppInningsList=fullList; }
-      else { oppInningsList=chaseList; yourInningsList=fullList; }
+      // have no overs cap, so this is scaled by the runs it actually took.
+      const chaseFinishBalls = oversForInningsOrder(chase, 4);
+      oversTxt = formatOversText(chaseFinishBalls);
+      marginType = 'wkts'; magnitude = w;
+      score = `${p1Name} ${p1First} & ${p1Second} \u00b7 ${p2Name} ${p2First} & ${chase}/${10-w} (${oversTxt})`;
+      p1List = [{total:p1First, wkts:10, finishBalls:p1FirstBalls, order:1}, {total:p1Second, wkts:10, finishBalls:p1SecondBalls, order:3}];
+      p2List = [{total:p2First, wkts:10, finishBalls:p2FirstBalls, order:2}, {total:chase, wkts:10-w, finishBalls:chaseFinishBalls, order:4}];
     }
+    margin = `${weWin?'won':'lost'} by ${marginType==='inn' ? `an innings & ${magnitude} runs` : marginType==='runs' ? `${magnitude} runs` : `${magnitude} wickets`}`;
+    pts = weWin
+      ? (marginType==='inn' ? 190 : marginType==='runs' ? 100+clamp(magnitude/3,5,85) : 100+clamp(magnitude*10,20,80))
+      : -(marginType==='inn' ? 160 : marginType==='runs' ? 70+clamp(magnitude/4,5,60) : 70+clamp(magnitude*8,15,60));
   }
+  const yourInningsList = battedFirstIsYou ? p1List : p2List;
+  const oppInningsList = battedFirstIsYou ? p2List : p1List;
   const sum = (list)=>list.reduce((a,e)=>a+e.total,0);
   const yourTotal = sum(yourInningsList), oppTotal = sum(oppInningsList);
   const yourWkts = yourInningsList[yourInningsList.length-1].wkts, oppWkts = oppInningsList[oppInningsList.length-1].wkts;
-  return {score, margin, pts: Math.round(pts), yourTotal, yourWkts, oppTotal, oppWkts, yourInningsList, oppInningsList};
+  return {score, margin, pts: Math.round(pts), yourTotal, yourWkts, oppTotal, oppWkts, yourInningsList, oppInningsList, tossLine, followOnLine};
 }
 function genWhiteBallMatch(code, nat, superOver){
   const oppLabel = nat.isAllStar ? 'All-Stars' : (nat.natId || nat.id);
@@ -2501,16 +2529,22 @@ function buildMatchScorecard(xi, oppXi, yourInningsList, oppInningsList, oppLabe
   const n = Math.max(yourInningsList.length, oppInningsList.length);
   for(let i=0;i<n;i++){
     if(yourInningsList[i]){
-      const {total, wkts, finishBalls} = yourInningsList[i];
+      const {total, wkts, finishBalls, order} = yourInningsList[i];
       const {battingCard, bowlingCard, overs, extras, extrasBreakdown} = buildInningsPair(xi, oppXi, total, wkts, finishBalls);
-      innings.push({ battingTeam:'you', battingCard, bowlingTeam: oppLabel, bowlingCard, total, wkts, overs, extras, extrasBreakdown });
+      innings.push({ battingTeam:'you', battingCard, bowlingTeam: oppLabel, bowlingCard, total, wkts, overs, extras, extrasBreakdown, order });
     }
     if(oppInningsList[i]){
-      const {total, wkts, finishBalls} = oppInningsList[i];
+      const {total, wkts, finishBalls, order} = oppInningsList[i];
       const {battingCard, bowlingCard, overs, extras, extrasBreakdown} = buildInningsPair(oppXi, xi, total, wkts, finishBalls);
-      innings.push({ battingTeam: oppLabel, battingCard, bowlingTeam:'you', bowlingCard, total, wkts, overs, extras, extrasBreakdown });
+      innings.push({ battingTeam: oppLabel, battingCard, bowlingTeam:'you', bowlingCard, total, wkts, overs, extras, extrasBreakdown, order });
     }
   }
+  // Test innings carry an explicit chronological `order` (1st-4th innings
+  // of the MATCH, not just "this side's own 1st/2nd") -- sort by it so the
+  // scorecard always shows whoever actually batted first, first, whatever
+  // the toss decided and regardless of who ultimately won. White-ball
+  // innings never set `order`, so this is a no-op there.
+  if(innings.length && innings.every(inn=>inn.order!=null)) innings.sort((a,b)=>a.order-b.order);
   return { innings, oppLabel };
 }
 
@@ -2705,6 +2739,7 @@ function startSeason(){
       const {yourInningsList, oppInningsList} = toInningsLists(gen);
       const oppXi = nat.isAllStar ? getWorldAllStarXI(nat.id) : getOppositionXI(nat.id);
       const scorecard = buildMatchScorecard(xi, oppXi, yourInningsList, oppInningsList, nat.isAllStar ? 'All-Stars' : nat.id);
+      scorecard.tossLine = gen.tossLine; scorecard.followOnLine = gen.followOnLine;
       const potm = pickPOTM(code, nat, oppXi, scorecard);
       if(code==='W'){
         w++;
@@ -2990,6 +3025,13 @@ function renderScorecardModal(){
   const multi = sc.innings.length > 1;
 
   document.getElementById('scorecardModalSub').textContent = sc.innings.map(inningsLabel).join(' · ');
+  const tossEl = document.getElementById('scorecardModalToss');
+  if(sc.tossLine){
+    tossEl.textContent = sc.followOnLine ? `${sc.tossLine}. ${sc.followOnLine}.` : `${sc.tossLine}.`;
+    tossEl.style.display = '';
+  } else {
+    tossEl.style.display = 'none';
+  }
 
   const tabsHtml = multi ? `<div class="scorecard-tabs">${sc.innings.map((inn,i)=>
     `<button class="scorecard-tab${i===currentInningsIdx?' active':''}" onclick="selectInnings(${i})">${inn.battingTeam==='you'?'You':inn.battingTeam} bat${sc.innings.filter(x=>x.battingTeam===inn.battingTeam).length>1 ? ' ('+(sc.innings.slice(0,i+1).filter(x=>x.battingTeam===inn.battingTeam).length===1?'1st':'2nd')+')' : ''}</button>`
@@ -4230,6 +4272,7 @@ function bytPlayOneMatch(){
   const {yourInningsList, oppInningsList} = toInningsLists(gen);
   const oppXi = getBYTOpponentXI(nat);
   const scorecard = buildMatchScorecard(fullXi, oppXi, yourInningsList, oppInningsList, nat.isAllStar ? 'All-Stars' : nat.natId);
+  scorecard.tossLine = gen.tossLine; scorecard.followOnLine = gen.followOnLine;
   const potm = pickPOTM(code, nat, oppXi, scorecard);
   Math.random = nativeRandom;
 
@@ -4252,6 +4295,13 @@ function showBYTMatchCheckpoint(){
   const codeWord = m.code==='W' ? 'Won' : m.code==='D' ? 'Drawn' : 'Lost';
   document.getElementById('bytMatchResultTitle').textContent = `Match ${bytCurrentMatchNum} of 5 — ${codeWord}`;
   document.getElementById('bytMatchResultBody').textContent = `${m.score} — ${m.margin} · POTM: ${m.potm}`;
+  const tossEl = document.getElementById('bytMatchTossLine');
+  if(m.tossLine){
+    tossEl.textContent = m.followOnLine ? `${m.tossLine}. ${m.followOnLine}.` : `${m.tossLine}.`;
+    tossEl.style.display = '';
+  } else {
+    tossEl.style.display = 'none';
+  }
   document.getElementById('bytMatchVenue').textContent = m.isHome ? `🏠 Home — ${m.venue}` : `✈️ Away — ${m.venue}`;
   document.getElementById('bytMatchSeriesTally').textContent = `Series so far: ${bytSeriesW}–${bytSeriesD}–${bytSeriesL}`;
   const done = bytCurrentMatchNum >= 5;
@@ -4862,6 +4912,7 @@ function startRepresentLeague(){
       const {yourInningsList, oppInningsList} = toInningsLists(gen);
       const oppXi = getOppositionXI(opp.id);
       const scorecard = buildMatchScorecard(xi, oppXi, yourInningsList, oppInningsList, opp.id);
+      scorecard.tossLine = gen.tossLine; scorecard.followOnLine = gen.followOnLine;
       const potm = pickPOTM(code, opp, oppXi, scorecard);
       if(code==='W'){w++;} else if(code==='D'){d++;} else if(code==='T'){t++;} else {l++;}
       if(code!=='W') streakAlive = false;
@@ -4897,6 +4948,7 @@ function startRepresentLeague(){
     const finalLists = toInningsLists(finalGen);
     const finalOppXi = getOppositionXI(finalOppNat.id);
     finalScorecard = buildMatchScorecard(xi, finalOppXi, finalLists.yourInningsList, finalLists.oppInningsList, finalOppNat.id);
+    finalScorecard.tossLine = finalGen.tossLine; finalScorecard.followOnLine = finalGen.followOnLine;
     finalPotm = pickPOTM(finalCode, finalOppNat, finalOppXi, finalScorecard);
   } else {
     finalCode = decideRepresentFinal(aNat.opp, bNat.opp).code; // relative to A; no gen/potm \u2014 you're not involved
@@ -5041,6 +5093,7 @@ function startSeriesShowdown(){
       const gen = FMTKEY==='test' ? genTestMatch(code, oppNat) : genWhiteBallMatch(code, oppNat, res.superOver);
       const {yourInningsList, oppInningsList} = toInningsLists(gen);
       const scorecard = buildMatchScorecard(xi, oppXi, yourInningsList, oppInningsList, oppNat.id);
+      scorecard.tossLine = gen.tossLine; scorecard.followOnLine = gen.followOnLine;
       const potm = pickPOTM(code, oppNat, oppXi, scorecard);
       if(code==='W'){
         w++;
@@ -5163,6 +5216,7 @@ function startSeriesShowdownCombined(){
       const {yourInningsList, oppInningsList} = toInningsLists(gen);
       const oppXi = getOppositionXI(nat.id);
       const scorecard = buildMatchScorecard(xi, oppXi, yourInningsList, oppInningsList, nat.id);
+      scorecard.tossLine = gen.tossLine; scorecard.followOnLine = gen.followOnLine;
       const potm = pickPOTM(code, nat, oppXi, scorecard);
       if(code==='W'){
         w++;
@@ -5450,6 +5504,15 @@ function pickScaledFinishBalls(runs, refRuns, minOvers, maxOvers){
   const extraBalls = Math.floor(Math.random()*6);
   return wholeOvers*6 + extraBalls;
 }
+// Overs bucket for "innings N of the MATCH" (1st/2nd/3rd/4th chronologically),
+// independent of which side is batting in that slot -- the same real-world
+// average-overs profile (~88/87/69/70) applies regardless of who won the
+// toss or who's ultimately winning the match.
+const INNINGS_ORDER_OVERS_PARAMS = {1:[360,78,98], 2:[330,77,97], 3:[260,61,77], 4:[220,65,75]};
+function oversForInningsOrder(runs, order){
+  const p = INNINGS_ORDER_OVERS_PARAMS[order];
+  return pickScaledFinishBalls(runs, p[0], p[1], p[2]);
+}
 // Splits a total extras figure into the four real-cricket sub-categories
 // (byes, leg-byes, no-balls, wides) with a realistic-but-randomised mix --
 // wides are typically the largest single component, no-balls the smallest.
@@ -5652,6 +5715,7 @@ if(typeof twemoji !== 'undefined'){
     <div class="name-modal-card scorecard-modal-card">
       <div class="name-modal-title" id="scorecardModalTitle">Match</div>
       <p class="name-modal-sub" id="scorecardModalSub"></p>
+      <p class="foot-note" id="scorecardModalToss" style="display:none;margin-bottom:8px"></p>
       <div class="info-modal-body" id="scorecardModalBody"></div>
       <button class="btn" style="margin-top:16px" onclick="closeScorecardModal()">Close</button>
     </div>
