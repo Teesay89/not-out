@@ -1783,46 +1783,64 @@ function genTestMatch(code, nat){
   let score, margin, pts, yourInningsList, oppInningsList;
   if(code==='D'){
     const a1=rand(300,540), b1=rand(280,520), a2=rand(150,330), a2w=rand(4,8), b2=rand(90,260), b2w=rand(4,9);
+    // Every Test innings gets a realistic, score-scaled finish -- modern
+    // Test overs average roughly 88/87/69/70 across the four innings of a
+    // match, each as a range (not a fixed number) so it never reads as
+    // formulaic, and a bigger score within that range means more overs.
+    const a1Balls = pickScaledFinishBalls(a1, 360, 78, 98);
+    const b1Balls = pickScaledFinishBalls(b1, 330, 77, 97);
+    const a2Balls = pickScaledFinishBalls(a2, 260, 61, 77);
+    const b2Balls = pickScaledFinishBalls(b2, 220, 65, 75);
     score=`You ${b1} & ${b2}/${b2w} \u00b7 ${oppLabel} ${a1} & ${a2}/${a2w}d`;
     margin=pickOne(['drawn \u2014 last pair survive','drawn \u2014 flat pitch wins','drawn \u2014 nine down at stumps']);
     pts = 35;
-    yourInningsList = [{total:b1, wkts:10}, {total:b2, wkts:b2w}];
-    oppInningsList = [{total:a1, wkts:10}, {total:a2, wkts:a2w}];
+    yourInningsList = [{total:b1, wkts:10, finishBalls:b1Balls}, {total:b2, wkts:b2w, finishBalls:b2Balls}];
+    oppInningsList = [{total:a1, wkts:10, finishBalls:a1Balls}, {total:a2, wkts:a2w, finishBalls:a2Balls}];
   } else {
     const weWin = code==='W';
     const style = Math.random()<0.18?'inn':(Math.random()<0.5?'runs':'wkts');
     if(style==='inn'){
       const big=rand(440,660), x1=rand(120,300), x2=rand(80,Math.max(90,big-x1-15));
+      const bigBalls = pickScaledFinishBalls(big, 360, 78, 98);
+      const x1Balls = pickScaledFinishBalls(x1, 330, 77, 97);
+      const x2Balls = pickScaledFinishBalls(x2, 260, 61, 77);
       const gap=Math.max(5,big-x1-x2);
       score = weWin ? `You ${big}d \u00b7 ${oppLabel} ${x1} & ${x2}` : `${oppLabel} ${big}d \u00b7 You ${x1} & ${x2}`;
       margin = `${weWin?'won':'lost'} by an innings & ${gap} runs`;
       pts = weWin ? 190 : -160;
-      const winnerList = [{total:big, wkts:9}], loserList = [{total:x1, wkts:10}, {total:x2, wkts:10}];
+      const winnerList = [{total:big, wkts:9, finishBalls:bigBalls}], loserList = [{total:x1, wkts:10, finishBalls:x1Balls}, {total:x2, wkts:10, finishBalls:x2Balls}];
       if(weWin){ yourInningsList=winnerList; oppInningsList=loserList; }
       else { oppInningsList=winnerList; yourInningsList=loserList; }
     } else if(style==='runs'){
       const f1=rand(260,500), f2=rand(140,330), R=rand(25,260);
+      const f1Balls = pickScaledFinishBalls(f1, 360, 78, 98);
+      const f2Balls = pickScaledFinishBalls(f2, 330, 77, 97);
       const c1=rand(120,Math.max(140,Math.min(360,f1+f2-R-60))), c2=Math.max(40,f1+f2-c1-R);
+      const c1Balls = pickScaledFinishBalls(c1, 260, 61, 77);
+      const c2Balls = pickScaledFinishBalls(c2, 220, 65, 75);
       score = weWin ? `You ${f1} & ${f2}d \u00b7 ${oppLabel} ${c1} & ${c2}`
                     : `${oppLabel} ${f1} & ${f2}d \u00b7 You ${c1} & ${c2}`;
       margin = `${weWin?'won':'lost'} by ${R} runs`;
       pts = weWin ? 100 + clamp(R/3, 5, 85) : -(70 + clamp(R/4, 5, 60));
-      const winnerList = [{total:f1, wkts:10}, {total:f2, wkts:9}], loserList = [{total:c1, wkts:10}, {total:c2, wkts:10}];
+      const winnerList = [{total:f1, wkts:10, finishBalls:f1Balls}, {total:f2, wkts:9, finishBalls:f2Balls}], loserList = [{total:c1, wkts:10, finishBalls:c1Balls}, {total:c2, wkts:10, finishBalls:c2Balls}];
       if(weWin){ yourInningsList=winnerList; oppInningsList=loserList; }
       else { oppInningsList=winnerList; yourInningsList=loserList; }
     } else {
       const a1=rand(180,400), b1=rand(150,420), a2=rand(140,360);
+      const a1Balls = pickScaledFinishBalls(a1, 360, 78, 98);
+      const b1Balls = pickScaledFinishBalls(b1, 330, 77, 97);
+      const a2Balls = pickScaledFinishBalls(a2, 260, 61, 77);
       const chase=Math.max(30,a1+a2-b1+1), w=rand(2,8);
-      // A chase that WINS must have finished within its innings -- estimated
-      // from a plausible Test scoring rate rather than the format's overs
-      // running out, since Tests have no overs cap.
-      const chaseFinishBalls = pickTestChaseFinishBalls(chase);
+      // A chase that WINS must have finished within its innings -- Tests
+      // have no overs cap, so this is scaled by the runs it actually took
+      // rather than a format quota, same as every other Test innings here.
+      const chaseFinishBalls = pickScaledFinishBalls(chase, 220, 65, 75);
       const oversTxt = formatOversText(chaseFinishBalls);
       score = weWin ? `${oppLabel} ${a1} & ${a2} \u00b7 You ${b1} & ${chase}/${10-w} (${oversTxt})`
                     : `You ${a1} & ${a2} \u00b7 ${oppLabel} ${b1} & ${chase}/${10-w} (${oversTxt})`;
       margin = `${weWin?'won':'lost'} by ${w} wickets`;
       pts = weWin ? 100 + clamp(w*10, 20, 80) : -(70 + clamp(w*8, 15, 60));
-      const fullList = [{total:a1, wkts:10}, {total:a2, wkts:10}], chaseList = [{total:b1, wkts:10}, {total:chase, wkts:10-w, finishBalls:chaseFinishBalls}];
+      const fullList = [{total:a1, wkts:10, finishBalls:a1Balls}, {total:a2, wkts:10, finishBalls:a2Balls}], chaseList = [{total:b1, wkts:10, finishBalls:b1Balls}, {total:chase, wkts:10-w, finishBalls:chaseFinishBalls}];
       if(weWin){ yourInningsList=chaseList; oppInningsList=fullList; }
       else { oppInningsList=chaseList; yourInningsList=fullList; }
     }
@@ -1846,16 +1864,27 @@ function genWhiteBallMatch(code, nat, superOver){
     return {score:`You ${x}/${w1} (${ov}) \u00b7 ${oppLabel} ${x}/${w2} (${ov})`, margin:line, pts: weWin?115:-75,
             yourTotal:x, yourWkts:w1, oppTotal:x, oppWkts:w2};
   }
+  const allOutRefRuns = t20 ? 110 : 200, allOutMinOvers = t20 ? 8 : 25, allOutMaxOvers = t20 ? 20 : 50;
   if(Math.random()<0.5){
     const first=rand(lo+30,hi), R=rand(t20?4:8, t20?60:130), chase=Math.max(40,first-R);
     const bonus = clamp(R*runMult, 5, 85);
     const firstWkts = rand(3,8);
+    // The chasing/losing side here is ALWAYS bowled out short of the target
+    // -- give it a realistic mid-over finish, scaled by how many runs it
+    // managed before folding, same idea as a winning chase's overs. Clamped
+    // to the format's actual ball count -- pickScaledFinishBalls's own
+    // maxOvers clamp only bounds the WHOLE-overs part, so a high score can
+    // still add a partial over on top that overshoots the format's hard cap
+    // (impossible: there's no 21st over in a T20 to be partway through).
+    const chaseFinishBalls = Math.min(allOutMaxOvers*6, pickScaledFinishBalls(chase, allOutRefRuns, allOutMinOvers, allOutMaxOvers));
+    const oversTxt = formatOversText(chaseFinishBalls);
     const fielded = weWin ? {yourTotal:first, yourWkts:firstWkts, oppTotal:chase, oppWkts:10}
                           : {oppTotal:first, oppWkts:firstWkts, yourTotal:chase, yourWkts:10};
-    return {score: weWin?`You ${first}/${firstWkts} (${ov}) \u00b7 ${oppLabel} ${chase} all out`
-                        :`${oppLabel} ${first}/${firstWkts} (${ov}) \u00b7 You ${chase} all out`,
+    return {score: weWin?`You ${first}/${firstWkts} (${ov}) \u00b7 ${oppLabel} ${chase} all out (${oversTxt})`
+                        :`${oppLabel} ${first}/${firstWkts} (${ov}) \u00b7 You ${chase} all out (${oversTxt})`,
             margin:`${weWin?'won':'lost'} by ${first-chase} runs`,
-            pts: Math.round(weWin ? 100+bonus : -(65+bonus*0.7)), ...fielded};
+            pts: Math.round(weWin ? 100+bonus : -(65+bonus*0.7)), ...fielded,
+            chaseFinishBalls, chaseSide: weWin?'opp':'you'};
   } else {
     const first=rand(lo,hi-25), w=rand(1,8);
     const bonus = clamp(w*11, 15, 85);
@@ -1865,13 +1894,20 @@ function genWhiteBallMatch(code, nat, superOver){
     // innings) using every single one.
     const finishBalls = pickChaseFinishBalls(t20?20:50, w);
     const oversTxt = formatOversText(finishBalls);
+    // The first-batting side here can ALSO end up bowled out (firstWkts can
+    // hit 10) -- give that entry its own realistic mid-over finish too,
+    // independent of the chasing side's, same as any other all-out innings.
+    const firstAllOut = firstWkts===10;
+    const firstFinishBalls = firstAllOut ? Math.min(allOutMaxOvers*6, pickScaledFinishBalls(first, allOutRefRuns, allOutMinOvers, allOutMaxOvers)) : null;
+    const firstOversTxt = firstAllOut ? formatOversText(firstFinishBalls) : ov;
     const fielded = weWin ? {oppTotal:first, oppWkts:firstWkts, yourTotal:chase, yourWkts:10-w}
                           : {yourTotal:first, yourWkts:firstWkts, oppTotal:chase, oppWkts:10-w};
-    return {score: weWin?`${oppLabel} ${first}/${firstWkts} (${ov}) \u00b7 You ${chase}/${10-w} (${oversTxt})`
-                        :`You ${first}/${firstWkts} (${ov}) \u00b7 ${oppLabel} ${chase}/${10-w} (${oversTxt})`,
+    return {score: weWin?`${oppLabel} ${first}/${firstWkts} (${firstOversTxt}) \u00b7 You ${chase}/${10-w} (${oversTxt})`
+                        :`You ${first}/${firstWkts} (${firstOversTxt}) \u00b7 ${oppLabel} ${chase}/${10-w} (${oversTxt})`,
             margin:`${weWin?'won':'lost'} by ${w} wickets`,
             pts: Math.round(weWin ? 100+bonus : -(65+bonus*0.6)), ...fielded,
-            chaseFinishBalls: finishBalls, chaseSide: weWin?'you':'opp'};
+            chaseFinishBalls: finishBalls, chaseSide: weWin?'you':'opp',
+            firstFinishBalls, firstSide: weWin?'opp':'you'};
   }
 }
 
@@ -2237,13 +2273,14 @@ function buildInningsPair(battingXi, bowlingXi, total, wkts, finishBalls){
   const test = FMTKEY==='test', t20 = FMTKEY==='t20';
   const battersUsed = Math.min(battingXi.length, wkts+1);
 
-  // Extras (wides, no-balls, byes, leg-byes bundled into one figure, same as
-  // a real scorecard's single "Extras" line) -- a small, varying share of
+  // Extras (byes, leg-byes, no-balls, wides) -- a small, varying share of
   // the innings total, carved OUT of it so the authoritative match result
   // (decided elsewhere from `total`) never changes; only the split between
-  // "runs off the bat" and "extras" does.
+  // "runs off the bat" and "extras" does. Broken down by type to match a
+  // real scorecard's "Extras 20 (b 8, lb 3, nb 2, w 7)" line.
   const extrasPct = 0.02 + Math.random()*0.05;
   const extras = total>4 ? Math.min(total-1, Math.round(total*extrasPct)) : 0;
+  const extrasBreakdown = splitExtras(extras);
   const battingTotal = total - extras;
 
   const weights = [];
@@ -2440,7 +2477,7 @@ function buildInningsPair(battingXi, bowlingXi, total, wkts, finishBalls){
   const inningsBalls = finishBalls!=null ? finishBalls : oversDistBalls.reduce((a,b)=>a+b,0);
   const overs = ballsToOversNum(inningsBalls);
 
-  return { battingCard, bowlingCard, overs, extras };
+  return { battingCard, bowlingCard, overs, extras, extrasBreakdown };
 }
 /* Test's gen already carries yourInningsList/oppInningsList (1-2 entries
    each); ODI/T20/tie only ever have a single innings per side, so wrap
@@ -2453,6 +2490,10 @@ function toInningsLists(gen){
     if(gen.chaseSide==='you') yourEntry.finishBalls = gen.chaseFinishBalls;
     else oppEntry.finishBalls = gen.chaseFinishBalls;
   }
+  if(gen.firstFinishBalls!=null){
+    if(gen.firstSide==='you') yourEntry.finishBalls = gen.firstFinishBalls;
+    else oppEntry.finishBalls = gen.firstFinishBalls;
+  }
   return { yourInningsList:[yourEntry], oppInningsList:[oppEntry] };
 }
 function buildMatchScorecard(xi, oppXi, yourInningsList, oppInningsList, oppLabel){
@@ -2461,13 +2502,13 @@ function buildMatchScorecard(xi, oppXi, yourInningsList, oppInningsList, oppLabe
   for(let i=0;i<n;i++){
     if(yourInningsList[i]){
       const {total, wkts, finishBalls} = yourInningsList[i];
-      const {battingCard, bowlingCard, overs, extras} = buildInningsPair(xi, oppXi, total, wkts, finishBalls);
-      innings.push({ battingTeam:'you', battingCard, bowlingTeam: oppLabel, bowlingCard, total, wkts, overs, extras });
+      const {battingCard, bowlingCard, overs, extras, extrasBreakdown} = buildInningsPair(xi, oppXi, total, wkts, finishBalls);
+      innings.push({ battingTeam:'you', battingCard, bowlingTeam: oppLabel, bowlingCard, total, wkts, overs, extras, extrasBreakdown });
     }
     if(oppInningsList[i]){
       const {total, wkts, finishBalls} = oppInningsList[i];
-      const {battingCard, bowlingCard, overs, extras} = buildInningsPair(oppXi, xi, total, wkts, finishBalls);
-      innings.push({ battingTeam: oppLabel, battingCard, bowlingTeam:'you', bowlingCard, total, wkts, overs, extras });
+      const {battingCard, bowlingCard, overs, extras, extrasBreakdown} = buildInningsPair(oppXi, xi, total, wkts, finishBalls);
+      innings.push({ battingTeam: oppLabel, battingCard, bowlingTeam:'you', bowlingCard, total, wkts, overs, extras, extrasBreakdown });
     }
   }
   return { innings, oppLabel };
@@ -2922,13 +2963,24 @@ function inningsCardHtml(inn){
     if(b.dnb) return `<tr style="opacity:.45"><td>${b.n}</td><td colspan="3">did not bat</td></tr>`;
     if(b.notOut) return `<tr><td>${b.n}</td><td>not out</td><td></td><td>${b.runs}</td></tr>`;
     return `<tr><td>${b.n}</td><td>${dismissalDesc(b)}</td><td>${b.bowler?`b ${b.bowler}`:''}</td><td>${b.runs}</td></tr>`;
-  }).join('') + (inn.extras ? `<tr style="opacity:.7"><td>Extras</td><td colspan="2"></td><td>${inn.extras}</td></tr>` : '');
+  }).join('');
+  const eb = inn.extrasBreakdown;
+  const extrasParts = eb ? [eb.b?`b ${eb.b}`:null, eb.lb?`lb ${eb.lb}`:null, eb.nb?`nb ${eb.nb}`:null, eb.w?`w ${eb.w}`:null].filter(Boolean).join(', ') : '';
+  const extrasRow = inn.extras ? `<tr style="opacity:.7"><td>Extras</td><td colspan="2">${extrasParts}</td><td>${inn.extras}</td></tr>` : '';
+  // Total row -- runs/wkts plus overs and run rate, computed from the exact
+  // balls total (not the "N.B" display number literally as a decimal), so
+  // the rate is mathematically correct: 131.2 overs = 131 + 2/6, not 131.2.
+  const wholeOv = Math.floor(inn.overs||0), extraBalls = Math.round(((inn.overs||0)-wholeOv)*10);
+  const trueOvers = wholeOv + extraBalls/6;
+  const rr = trueOvers>0 ? (inn.total/trueOvers).toFixed(2) : '0.00';
+  const totalLine = inn.wkts>=10 ? `${inn.total} all out` : `${inn.total}/${inn.wkts}`;
+  const totalRow = inn.overs!=null ? `<tr style="font-weight:700;color:var(--brass);border-top:1px solid var(--line)"><td>Total</td><td colspan="2">${inn.overs} Ov (RR: ${rr})</td><td>${totalLine}</td></tr>` : '';
   const bowlingRows = inn.bowlingCard.map(b=>
     `<tr><td>${b.n}</td><td>${b.overs}</td><td>${b.runs}</td><td>${b.wkts}</td></tr>`
   ).join('');
   const oversTxt = inn.overs!=null ? ` · ${inn.overs} ov` : '';
   return `<h3 style="margin-top:2px">${inn.battingTeam==='you'?'Your':inn.battingTeam+"'s"} innings${oversTxt}</h3>
-     <table class="stat-table"><tr><th>Player</th><th>Dismissal</th><th>Bowler</th><th>Runs</th></tr>${battingRows}</table>
+     <table class="stat-table"><tr><th>Player</th><th>Dismissal</th><th>Bowler</th><th>Runs</th></tr>${battingRows}${extrasRow}${totalRow}</table>
      <h3>${inn.bowlingTeam==='you'?'Your':inn.bowlingTeam+"'s"} bowling</h3>
      <table class="stat-table"><tr><th>Player</th><th>Ov</th><th>Runs</th><th>Wkts</th></tr>${bowlingRows}</table>`;
 }
@@ -5382,14 +5434,39 @@ function pickChaseFinishBalls(oversCap, wicketsInHand){
   const extraBalls = Math.floor(Math.random()*6);
   return wholeOvers*6 + extraBalls;
 }
-// Test cricket has no overs cap, so a winning run-chase there is instead
-// estimated from a plausible scoring rate -- the "landed on the last ball of
-// an over" 1-in-6 chance (extraBalls===0) still falls out naturally.
-function pickTestChaseFinishBalls(chaseRuns){
-  const runRate = 2.6 + Math.random()*1.4;
-  const wholeOvers = Math.max(1, Math.round(Math.max(8, chaseRuns/runRate)));
+// Shared "how long did this innings actually take" model, used for every
+// Test innings (there's no overs cap to lean on there) and for a white-ball
+// innings that gets bowled out before using its full quota. A team that
+// scores more tends to have batted longer, so the result is positioned
+// within [minOvers,maxOvers] by how `runs` compares to `refRuns` (a rough
+// "typical" total for that slot) -- then a random spread on top of that
+// (not just a straight formula) keeps every instance genuinely different,
+// and clamping to the range keeps it realistic even for extreme scores.
+function pickScaledFinishBalls(runs, refRuns, minOvers, maxOvers){
+  const scoreRatio = clamp(runs/refRuns, 0.4, 1.6);
+  const center = minOvers + (maxOvers-minOvers) * clamp((scoreRatio-0.4)/1.0, 0, 1);
+  const spread = (maxOvers-minOvers) * 0.15;
+  const wholeOvers = Math.round(clamp(center + (Math.random()-0.5)*2*spread, minOvers, maxOvers));
   const extraBalls = Math.floor(Math.random()*6);
   return wholeOvers*6 + extraBalls;
+}
+// Splits a total extras figure into the four real-cricket sub-categories
+// (byes, leg-byes, no-balls, wides) with a realistic-but-randomised mix --
+// wides are typically the largest single component, no-balls the smallest.
+function splitExtras(extras){
+  if(extras<=0) return {b:0, lb:0, nb:0, w:0};
+  const weights = [0.10+Math.random()*0.15, 0.10+Math.random()*0.15, 0.05+Math.random()*0.10, 0.30+Math.random()*0.20]; // b, lb, nb, w
+  const wsum = weights.reduce((a,b)=>a+b,0);
+  const dist = weights.map(x=>Math.round(extras*x/wsum));
+  let drift = extras - dist.reduce((a,b)=>a+b,0);
+  let i = 0, guard = 0;
+  while(drift!==0 && guard<40){
+    const idx = i%4;
+    if(drift>0){ dist[idx]++; drift--; }
+    else if(dist[idx]>0){ dist[idx]--; drift++; }
+    i++; guard++;
+  }
+  return {b:dist[0], lb:dist[1], nb:dist[2], w:dist[3]};
 }
 function escAttr(s){return s.replace(/"/g,'&quot;');}
 function draftAgain(){
