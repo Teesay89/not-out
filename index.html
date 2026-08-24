@@ -1722,7 +1722,11 @@ function dragTouchEnd(e){
   }
 }
 
-function showReview(){
+async function showReview(){
+  if(captainIdx===-1){
+    await showConfirm('Pick a captain', 'Tap the C badge next to a player to make them captain before continuing.', 'OK');
+    return;
+  }
   switchScreen('scr-review');
   const rows = document.getElementById('xiRows');
   rows.innerHTML = xi.map((p,i)=>{
