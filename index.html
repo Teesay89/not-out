@@ -1779,6 +1779,14 @@ function decideNeutral(oppA, oppB){
    scorecard's innings need to be built from. yourTotal/yourWkts/oppTotal/
    oppWkts (combined across all of a side's innings) are kept too, since
    other code still reads them for combined-total contexts. */
+// A team's innings ends either all out (all 10 wickets down) or by their
+// OWN declaration (stopped early, with wickets in hand, usually to set up
+// a target or leave more time to bowl) -- only a genuine declaration gets
+// the "d" suffix on the scorecard; everything else really did lose all 10.
+function pickInningsEnd(declareChance){
+  const declared = Math.random() < declareChance;
+  return { declared, wkts: declared ? rand(4,9) : 10 };
+}
 function genTestMatch(code, nat){
   const oppLabel = nat.isAllStar ? 'All-Stars' : (nat.natId || nat.id);
 
@@ -1801,14 +1809,18 @@ function genTestMatch(code, nat){
 
   let score, margin, pts, p1List, p2List, followOnLine = null;
   if(code==='D'){
-    const p1a=rand(300,540), p1b=rand(150,330), p1bw=rand(4,8);
+    const p1a=rand(300,540), p1b=rand(150,330);
+    // P1's second innings here is the classic "declare to leave time to
+    // bowl" situation, but far from guaranteed -- they can just as easily
+    // be bowled out themselves before ever getting the chance.
+    const p1bEnd = pickInningsEnd(0.4);
     const p2a=rand(280,520), p2b=rand(90,260), p2bw=rand(4,9);
     const p1aBalls = oversForInningsOrder(p1a, 1), p1bBalls = oversForInningsOrder(p1b, 3);
     const p2aBalls = oversForInningsOrder(p2a, 2), p2bBalls = oversForInningsOrder(p2b, 4);
-    score = `${p1Name} ${p1a} & ${p1b}/${p1bw}d \u00b7 ${p2Name} ${p2a} & ${p2b}/${p2bw}`;
+    score = `${p1Name} ${p1a} & ${p1b}${p1bEnd.declared?`/${p1bEnd.wkts}d`:''} \u00b7 ${p2Name} ${p2a} & ${p2b}/${p2bw}`;
     margin = pickOne(['drawn \u2014 last pair survive','drawn \u2014 flat pitch wins','drawn \u2014 nine down at stumps']);
     pts = 35;
-    p1List = [{total:p1a, wkts:10, finishBalls:p1aBalls, order:1}, {total:p1b, wkts:p1bw, finishBalls:p1bBalls, order:3}];
+    p1List = [{total:p1a, wkts:10, finishBalls:p1aBalls, order:1}, {total:p1b, wkts:p1bEnd.wkts, finishBalls:p1bBalls, order:3}];
     p2List = [{total:p2a, wkts:10, finishBalls:p2aBalls, order:2}, {total:p2b, wkts:p2bw, finishBalls:p2bBalls, order:4}];
   } else {
     const weWin = code==='W';
@@ -1833,22 +1845,31 @@ function genTestMatch(code, nat){
       const followOnEligible = lead >= 200;
       const enforceFollowOn = followOnEligible && Math.random() < 0.7;
       if(enforceFollowOn){
+        // P1's own first innings, here, is usually just bowled out in the
+        // normal course of play -- there's rarely a reason to declare
+        // before you've even seen the opposition bat, though it does
+        // happen occasionally (weather, a very late start, etc.).
+        const p1FirstEnd = pickInningsEnd(0.2);
         const p2Second = rand(120,300);
         const p2SecondBalls = oversForInningsOrder(p2Second, 3);
         const gap = Math.max(1, p1First - p2First - p2Second);
         marginType = 'inn'; magnitude = gap;
         followOnLine = `${p1Name} enforced the follow-on after leading by ${lead} runs on first innings`;
-        score = `${p1Name} ${p1First}d \u00b7 ${p2Name} ${p2First} & ${p2Second}`;
-        p1List = [{total:p1First, wkts:9, finishBalls:p1FirstBalls, order:1}];
+        score = `${p1Name} ${p1First}${p1FirstEnd.declared?`/${p1FirstEnd.wkts}d`:''} \u00b7 ${p2Name} ${p2First} & ${p2Second}`;
+        p1List = [{total:p1First, wkts:p1FirstEnd.wkts, finishBalls:p1FirstBalls, order:1}];
         p2List = [{total:p2First, wkts:10, finishBalls:p2FirstBalls, order:2}, {total:p2Second, wkts:10, finishBalls:p2SecondBalls, order:3}];
       } else {
         const p1Second = rand(140,330), R = rand(25,260);
+        // The classic "declare to set a target and leave time to bowl"
+        // situation, but still only around half the time -- the bowling
+        // side can easily wrap P1's second innings up first.
+        const p1SecondEnd = pickInningsEnd(0.55);
         const p2Second = Math.max(40, (p1First+p1Second) - p2First - R);
         const p1SecondBalls = oversForInningsOrder(p1Second, 3);
         const p2SecondBalls = oversForInningsOrder(p2Second, 4);
         marginType = 'runs'; magnitude = R;
-        score = `${p1Name} ${p1First} & ${p1Second}d \u00b7 ${p2Name} ${p2First} & ${p2Second}`;
-        p1List = [{total:p1First, wkts:10, finishBalls:p1FirstBalls, order:1}, {total:p1Second, wkts:9, finishBalls:p1SecondBalls, order:3}];
+        score = `${p1Name} ${p1First} & ${p1Second}${p1SecondEnd.declared?`/${p1SecondEnd.wkts}d`:''} \u00b7 ${p2Name} ${p2First} & ${p2Second}`;
+        p1List = [{total:p1First, wkts:10, finishBalls:p1FirstBalls, order:1}, {total:p1Second, wkts:p1SecondEnd.wkts, finishBalls:p1SecondBalls, order:3}];
         p2List = [{total:p2First, wkts:10, finishBalls:p2FirstBalls, order:2}, {total:p2Second, wkts:10, finishBalls:p2SecondBalls, order:4}];
       }
     } else {
