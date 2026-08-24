@@ -1813,11 +1813,16 @@ function genTestMatch(code, nat){
     } else {
       const a1=rand(180,400), b1=rand(150,420), a2=rand(140,360);
       const chase=Math.max(30,a1+a2-b1+1), w=rand(2,8);
-      score = weWin ? `${oppLabel} ${a1} & ${a2} \u00b7 You ${b1} & ${chase}/${10-w}`
-                    : `You ${a1} & ${a2} \u00b7 ${oppLabel} ${b1} & ${chase}/${10-w}`;
+      // A chase that WINS must have finished within its innings -- estimated
+      // from a plausible Test scoring rate rather than the format's overs
+      // running out, since Tests have no overs cap.
+      const chaseFinishBalls = pickTestChaseFinishBalls(chase);
+      const oversTxt = formatOversText(chaseFinishBalls);
+      score = weWin ? `${oppLabel} ${a1} & ${a2} \u00b7 You ${b1} & ${chase}/${10-w} (${oversTxt})`
+                    : `You ${a1} & ${a2} \u00b7 ${oppLabel} ${b1} & ${chase}/${10-w} (${oversTxt})`;
       margin = `${weWin?'won':'lost'} by ${w} wickets`;
       pts = weWin ? 100 + clamp(w*10, 20, 80) : -(70 + clamp(w*8, 15, 60));
-      const fullList = [{total:a1, wkts:10}, {total:a2, wkts:10}], chaseList = [{total:b1, wkts:10}, {total:chase, wkts:10-w}];
+      const fullList = [{total:a1, wkts:10}, {total:a2, wkts:10}], chaseList = [{total:b1, wkts:10}, {total:chase, wkts:10-w, finishBalls:chaseFinishBalls}];
       if(weWin){ yourInningsList=chaseList; oppInningsList=fullList; }
       else { oppInningsList=chaseList; yourInningsList=fullList; }
     }
@@ -1855,12 +1860,18 @@ function genWhiteBallMatch(code, nat, superOver){
     const first=rand(lo,hi-25), w=rand(1,8);
     const bonus = clamp(w*11, 15, 85);
     const firstWkts = rand(5,10), chase=first+rand(1,6);
+    // A chase that WINS must have got there within the format's overs --
+    // almost always with some to spare, only rarely (last ball of the
+    // innings) using every single one.
+    const finishBalls = pickChaseFinishBalls(t20?20:50, w);
+    const oversTxt = formatOversText(finishBalls);
     const fielded = weWin ? {oppTotal:first, oppWkts:firstWkts, yourTotal:chase, yourWkts:10-w}
                           : {yourTotal:first, yourWkts:firstWkts, oppTotal:chase, oppWkts:10-w};
-    return {score: weWin?`${oppLabel} ${first}/${firstWkts} (${ov}) \u00b7 You ${chase}/${10-w}`
-                        :`You ${first}/${firstWkts} (${ov}) \u00b7 ${oppLabel} ${chase}/${10-w}`,
+    return {score: weWin?`${oppLabel} ${first}/${firstWkts} (${ov}) \u00b7 You ${chase}/${10-w} (${oversTxt})`
+                        :`You ${first}/${firstWkts} (${ov}) \u00b7 ${oppLabel} ${chase}/${10-w} (${oversTxt})`,
             margin:`${weWin?'won':'lost'} by ${w} wickets`,
-            pts: Math.round(weWin ? 100+bonus : -(65+bonus*0.6)), ...fielded};
+            pts: Math.round(weWin ? 100+bonus : -(65+bonus*0.6)), ...fielded,
+            chaseFinishBalls: finishBalls, chaseSide: weWin?'you':'opp'};
   }
 }
 
@@ -2101,9 +2112,16 @@ function getRegionalOpponentXI(regionId, decade){
   }
   return regionalOpponentXICache.get(key);
 }
-let decadeOpponentsCache = null;
+// Keyed by FMTKEY, not a single flat value -- the World All-Star tiers
+// folded into this list (via getValidAllStarTeams) depend on DB[FMTKEY], so
+// a cache that ignored format would freeze in whichever format happened to
+// call this first and silently keep serving that stale list to every later
+// call for a DIFFERENT format for the rest of this process's lifetime (a
+// real risk server-side, where a warm Cloud Functions instance can go on to
+// handle many different users' requests in different formats).
+const decadeOpponentsCache = new Map();
 function getDecadeOpponents(){
-  if(decadeOpponentsCache) return decadeOpponentsCache;
+  if(decadeOpponentsCache.has(FMTKEY)) return decadeOpponentsCache.get(FMTKEY);
   const list = [];
   const allDecades = [...new Set(DB.best.map(p => p.d))];
   for(const nat of NATIONS){
@@ -2130,7 +2148,7 @@ function getDecadeOpponents(){
   for(const team of getValidAllStarTeams()){
     list.push({ id: team.id, natId: team.id, name: team.name, flag: team.flag, opp: team.opp, venues: team.venues, isAllStar: true });
   }
-  decadeOpponentsCache = list;
+  decadeOpponentsCache.set(FMTKEY, list);
   return list;
 }
 // Single dispatcher for "the real 11 players this opponent puts on the
@@ -2215,9 +2233,18 @@ function getAllStarXI(natId, poolKey){
    bowling card's wicket tally can be a little less than the innings'
    total wickets whenever a run out occurred. */
 const DISMISSAL_TYPES = ['b','c','lbw','st','run out','c&b'];
-function buildInningsPair(battingXi, bowlingXi, total, wkts){
+function buildInningsPair(battingXi, bowlingXi, total, wkts, finishBalls){
   const test = FMTKEY==='test', t20 = FMTKEY==='t20';
   const battersUsed = Math.min(battingXi.length, wkts+1);
+
+  // Extras (wides, no-balls, byes, leg-byes bundled into one figure, same as
+  // a real scorecard's single "Extras" line) -- a small, varying share of
+  // the innings total, carved OUT of it so the authoritative match result
+  // (decided elsewhere from `total`) never changes; only the split between
+  // "runs off the bat" and "extras" does.
+  const extrasPct = 0.02 + Math.random()*0.05;
+  const extras = total>4 ? Math.min(total-1, Math.round(total*extrasPct)) : 0;
+  const battingTotal = total - extras;
 
   const weights = [];
   for(let i=0;i<battersUsed;i++){
@@ -2240,9 +2267,9 @@ function buildInningsPair(battingXi, bowlingXi, total, wkts){
     weights.push(w);
   }
   const wsum = weights.reduce((a,b)=>a+b,0) || 1;
-  const scores = weights.map(w=>Math.max(0, Math.round(total*w/wsum)));
-  let drift = total - scores.reduce((a,b)=>a+b,0);
-  if(scores.length){ scores[0] = Math.max(0, scores[0]+drift); drift = total - scores.reduce((a,b)=>a+b,0); if(drift) scores[scores.length-1] = Math.max(0, scores[scores.length-1]+drift); }
+  const scores = weights.map(w=>Math.max(0, Math.round(battingTotal*w/wsum)));
+  let drift = battingTotal - scores.reduce((a,b)=>a+b,0);
+  if(scores.length){ scores[0] = Math.max(0, scores[0]+drift); drift = battingTotal - scores.reduce((a,b)=>a+b,0); if(drift) scores[scores.length-1] = Math.max(0, scores[scores.length-1]+drift); }
 
   const outIdx = [];
   const types = new Array(battersUsed).fill(null);
@@ -2274,16 +2301,63 @@ function buildInningsPair(battingXi, bowlingXi, total, wkts){
   // too, if the XI only carries 5 bowling options total) rather than an
   // even rating-blind split. Test has no over cap, so keeps its
   // free-ranging spell length.
-  const oversDist = (()=>{
-    if(test) return bowlUnit.map(()=> Math.max(2, Math.round(3+Math.random()*20)));
-    const cap = t20?4:10;
+  // In balls, always -- "N.B" cricket notation is only ever derived from
+  // this at the very end (ballsToOversNum), never carried through the
+  // arithmetic itself.
+  const perBowlerCapOvers = t20?4:10;
+  const oversDistBalls = (()=>{
+    if(finishBalls!=null){
+      // This is the decisive chase-finish innings -- the bowling card must
+      // sum to EXACTLY the balls the chase actually took, not the format's
+      // full quota, with whichever bowler was mid-over when the winning
+      // run landed showing that as a genuine partial over.
+      const targetWholeOvers = Math.floor(finishBalls/6);
+      const leftoverBalls = finishBalls - targetWholeOvers*6;
+      let wholeOvers;
+      if(test){
+        // Same free-random shape as the unconstrained case below, just
+        // corrected afterward to sum to exactly what this finish needs.
+        wholeOvers = bowlUnit.map(()=> Math.max(1, Math.round(3+Math.random()*15)));
+        let diff = targetWholeOvers - wholeOvers.reduce((a,b)=>a+b,0);
+        let g = 0;
+        while(diff!==0 && wholeOvers.length && g<400){
+          const i = g % wholeOvers.length;
+          if(diff>0){ wholeOvers[i]++; diff--; }
+          else if(wholeOvers[i]>1){ wholeOvers[i]--; diff++; }
+          g++;
+        }
+      } else {
+        const bowlRating = p => p.bwr!=null ? p.bwr : p.r;
+        const order = bowlUnit.map((p,i)=>i).sort((a,b)=>bowlRating(bowlUnit[b])-bowlRating(bowlUnit[a]));
+        wholeOvers = new Array(bowlUnit.length).fill(0);
+        let remaining = targetWholeOvers;
+        for(const idx of order){
+          if(remaining<=0) break;
+          wholeOvers[idx] = Math.min(perBowlerCapOvers, remaining);
+          remaining -= wholeOvers[idx];
+        }
+        let i = 0;
+        while(remaining>0 && order.length){
+          wholeOvers[order[i % order.length]]++;
+          remaining--;
+          i++;
+        }
+      }
+      // Whoever gets the leftover partial-over balls must still have room
+      // under the format's per-bowler cap (white ball only -- Test has none)
+      // for one more (partial) over, same as a real spell just continuing.
+      const candidates = wholeOvers.map((o,i)=>i).filter(i=> wholeOvers[i]>0 && (test || wholeOvers[i]<perBowlerCapOvers));
+      const finisherIdx = candidates.length ? pickOne(candidates) : wholeOvers.findIndex(o=>o>0);
+      return wholeOvers.map((o,i)=> o*6 + (i===finisherIdx ? leftoverBalls : 0));
+    }
+    if(test) return bowlUnit.map(()=> Math.max(2, Math.round(3+Math.random()*20)) * 6);
     const bowlRating = p => p.bwr!=null ? p.bwr : p.r;
     const order = bowlUnit.map((p,i)=>i).sort((a,b)=>bowlRating(bowlUnit[b])-bowlRating(bowlUnit[a]));
     const dist = new Array(bowlUnit.length).fill(0);
     let remaining = totalOvers;
     for(const idx of order){
       if(remaining<=0) break;
-      dist[idx] = Math.min(cap, remaining);
+      dist[idx] = Math.min(perBowlerCapOvers, remaining);
       remaining -= dist[idx];
     }
     // Pathological case only: an under-strength bowling unit whose
@@ -2298,8 +2372,9 @@ function buildInningsPair(battingXi, bowlingXi, total, wkts){
       remaining--;
       i++;
     }
-    return dist;
+    return dist.map(o=>o*6);
   })();
+  const oversDist = oversDistBalls.map(ballsToOversNum);
   const bowlWeights = bowlUnit.map((p,i)=>{
     const isAR = p.roles.includes('ar') && !p.roles.includes('bowl');
     const partTime = !!(partTimer && p.n===partTimer.n);
@@ -2362,31 +2437,37 @@ function buildInningsPair(battingXi, bowlingXi, total, wkts){
   }
   const bowlingCard = bowlUnit.map((p,i)=>({n:p.n, overs:oversDist[i], runs:runsDist[i], wkts:wktsDist[i]}));
 
-  return { battingCard, bowlingCard };
+  const inningsBalls = finishBalls!=null ? finishBalls : oversDistBalls.reduce((a,b)=>a+b,0);
+  const overs = ballsToOversNum(inningsBalls);
+
+  return { battingCard, bowlingCard, overs, extras };
 }
 /* Test's gen already carries yourInningsList/oppInningsList (1-2 entries
    each); ODI/T20/tie only ever have a single innings per side, so wrap
    their flat yourTotal/yourWkts/oppTotal/oppWkts into the same shape. */
 function toInningsLists(gen){
   if(gen.yourInningsList) return {yourInningsList: gen.yourInningsList, oppInningsList: gen.oppInningsList};
-  return {
-    yourInningsList: [{total:gen.yourTotal, wkts:gen.yourWkts}],
-    oppInningsList: [{total:gen.oppTotal, wkts:gen.oppWkts}],
-  };
+  const yourEntry = {total:gen.yourTotal, wkts:gen.yourWkts};
+  const oppEntry = {total:gen.oppTotal, wkts:gen.oppWkts};
+  if(gen.chaseFinishBalls!=null){
+    if(gen.chaseSide==='you') yourEntry.finishBalls = gen.chaseFinishBalls;
+    else oppEntry.finishBalls = gen.chaseFinishBalls;
+  }
+  return { yourInningsList:[yourEntry], oppInningsList:[oppEntry] };
 }
 function buildMatchScorecard(xi, oppXi, yourInningsList, oppInningsList, oppLabel){
   const innings = [];
   const n = Math.max(yourInningsList.length, oppInningsList.length);
   for(let i=0;i<n;i++){
     if(yourInningsList[i]){
-      const {total, wkts} = yourInningsList[i];
-      const {battingCard, bowlingCard} = buildInningsPair(xi, oppXi, total, wkts);
-      innings.push({ battingTeam:'you', battingCard, bowlingTeam: oppLabel, bowlingCard, total, wkts });
+      const {total, wkts, finishBalls} = yourInningsList[i];
+      const {battingCard, bowlingCard, overs, extras} = buildInningsPair(xi, oppXi, total, wkts, finishBalls);
+      innings.push({ battingTeam:'you', battingCard, bowlingTeam: oppLabel, bowlingCard, total, wkts, overs, extras });
     }
     if(oppInningsList[i]){
-      const {total, wkts} = oppInningsList[i];
-      const {battingCard, bowlingCard} = buildInningsPair(oppXi, xi, total, wkts);
-      innings.push({ battingTeam: oppLabel, battingCard, bowlingTeam:'you', bowlingCard, total, wkts });
+      const {total, wkts, finishBalls} = oppInningsList[i];
+      const {battingCard, bowlingCard, overs, extras} = buildInningsPair(oppXi, xi, total, wkts, finishBalls);
+      innings.push({ battingTeam: oppLabel, battingCard, bowlingTeam:'you', bowlingCard, total, wkts, overs, extras });
     }
   }
   return { innings, oppLabel };
@@ -2818,7 +2899,7 @@ function showMatchScorecard(matchNum){
   document.getElementById('scorecardModal').style.display = 'flex';
 }
 function inningsLabel(inn){
-  return `${inn.battingTeam==='you'?'You':inn.battingTeam} ${inn.total}${inn.wkts<10?`/${inn.wkts}`:''}`;
+  return `${inn.battingTeam==='you'?'You':inn.battingTeam} ${inn.total}${inn.wkts<10?`/${inn.wkts}`:''}${inn.overs!=null?` (${inn.overs} ov)`:''}`;
 }
 function dismissalDesc(b){
   if(b.out==='b') return '';
@@ -2841,11 +2922,12 @@ function inningsCardHtml(inn){
     if(b.dnb) return `<tr style="opacity:.45"><td>${b.n}</td><td colspan="3">did not bat</td></tr>`;
     if(b.notOut) return `<tr><td>${b.n}</td><td>not out</td><td></td><td>${b.runs}</td></tr>`;
     return `<tr><td>${b.n}</td><td>${dismissalDesc(b)}</td><td>${b.bowler?`b ${b.bowler}`:''}</td><td>${b.runs}</td></tr>`;
-  }).join('');
+  }).join('') + (inn.extras ? `<tr style="opacity:.7"><td>Extras</td><td colspan="2"></td><td>${inn.extras}</td></tr>` : '');
   const bowlingRows = inn.bowlingCard.map(b=>
     `<tr><td>${b.n}</td><td>${b.overs}</td><td>${b.runs}</td><td>${b.wkts}</td></tr>`
   ).join('');
-  return `<h3 style="margin-top:2px">${inn.battingTeam==='you'?'Your':inn.battingTeam+"'s"} innings</h3>
+  const oversTxt = inn.overs!=null ? ` · ${inn.overs} ov` : '';
+  return `<h3 style="margin-top:2px">${inn.battingTeam==='you'?'Your':inn.battingTeam+"'s"} innings${oversTxt}</h3>
      <table class="stat-table"><tr><th>Player</th><th>Dismissal</th><th>Bowler</th><th>Runs</th></tr>${battingRows}</table>
      <h3>${inn.bowlingTeam==='you'?'Your':inn.bowlingTeam+"'s"} bowling</h3>
      <table class="stat-table"><tr><th>Player</th><th>Ov</th><th>Runs</th><th>Wkts</th></tr>${bowlingRows}</table>`;
@@ -5271,6 +5353,44 @@ function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random
 function rand(a,b){return a+Math.floor(Math.random()*(b-a+1));}
 function clamp(x,a,b){return Math.max(a,Math.min(b,x));}
 function pickOne(a){return a[Math.floor(Math.random()*a.length)];}
+// Overs helpers shared by the chase-finish and bowling-card logic below.
+// Balls are the source of truth internally (a clean integer); "N.B" cricket
+// notation (e.g. 17.2 = 17 overs + 2 balls) is only ever derived from that
+// for storage/display, avoiding any decimal drift.
+function ballsToOversNum(balls){
+  const whole = Math.floor(balls/6), extra = balls - whole*6;
+  return extra===0 ? whole : +(whole + extra/10).toFixed(1);
+}
+function formatOversText(balls){
+  const whole = Math.floor(balls/6), extra = balls - whole*6;
+  return extra===0 ? `${whole} ov` : `${whole}.${extra} ov`;
+}
+// A team batting second and winning must have got there within its overs
+// allowance -- almost always with some to spare, only rarely (last ball of
+// the innings) using every single one. `wicketsInHand` (how comfortable the
+// win margin was) skews how much cushion of unused overs is left: more
+// wickets in hand tends to mean a bigger gap to the cap.
+function pickChaseFinishBalls(oversCap, wicketsInHand){
+  // A genuine last-ball-of-the-innings thriller -- used every ball
+  // available. Kept explicitly rare (~6%) rather than an emergent
+  // side-effect of the comfort-scaled spread below.
+  if(Math.random()<0.06) return oversCap*6;
+  const comfort = clamp(wicketsInHand/8, 0.15, 1);
+  const maxShortOvers = Math.max(1, Math.round(oversCap * (0.2 + comfort*0.6)));
+  const shortOvers = 1 + Math.floor(Math.random()*maxShortOvers); // always >=1 -- the rare full-cap case above owns that outcome
+  const wholeOvers = Math.max(0, oversCap-shortOvers);
+  const extraBalls = Math.floor(Math.random()*6);
+  return wholeOvers*6 + extraBalls;
+}
+// Test cricket has no overs cap, so a winning run-chase there is instead
+// estimated from a plausible scoring rate -- the "landed on the last ball of
+// an over" 1-in-6 chance (extraBalls===0) still falls out naturally.
+function pickTestChaseFinishBalls(chaseRuns){
+  const runRate = 2.6 + Math.random()*1.4;
+  const wholeOvers = Math.max(1, Math.round(Math.max(8, chaseRuns/runRate)));
+  const extraBalls = Math.floor(Math.random()*6);
+  return wholeOvers*6 + extraBalls;
+}
 function escAttr(s){return s.replace(/"/g,'&quot;');}
 function draftAgain(){
   /* instant reset \u2014 no page reload, so no re-downloading the Firebase
