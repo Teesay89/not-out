@@ -3523,7 +3523,7 @@ const OUT_REVIEWS = [
   'Reviewed by 3rd Umpire \u2014 Catch Camera confirms \u2014 Out',
   'Reviewed by 3rd Umpire \u2014 Run Out Camera confirms \u2014 Out',
 ];
-/* "On the Honours Board" = ranks inside the top 15 for its board — the
+/* "On the Honours Board" = ranks inside the top 50 for its board — the
    exact slice renderLbBody() actually renders, so a player told they
    made it will really see themselves there when they open the board.
    modeEntries must already be scoped to this specific board (via
@@ -3540,7 +3540,7 @@ async function honoursBoardRank(mode, score, record){
   };
 }
 function honoursBoardTagHTML(modeIdx, overallIdx, modeName){
-  if(modeIdx<0 || modeIdx>=15) return '';
+  if(modeIdx<0 || modeIdx>=50) return '';
   const rankLine = modeIdx===0 ? `New Honours Board record for ${modeName}!` : `#${modeIdx+1} on the ${modeName} board.`;
   const overallLine = (overallIdx>=0 && overallIdx<15) ? ` Currently #${overallIdx+1} overall.` : '';
   return `<div class="honours-tag">🏆 Congratulations — you're on the Honours Board! ${rankLine}${overallLine}</div>`;
@@ -3591,7 +3591,7 @@ function lbFilteredEntries(){
 }
 function renderLbBody(){
   const body = document.getElementById('lbBody');
-  const rows = lbFilteredEntries().slice(0,15);
+  const rows = lbFilteredEntries().slice(0,50);
   if(!rows.length){
     body.innerHTML = '<div class="lb-empty">No scores yet for this mode \u2014 be the first.</div>';
     return;
