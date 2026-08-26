@@ -990,6 +990,21 @@ function pickRandomStats(p, count){
   return avail.slice(0,count).map(sf=>sf.fmt(p.stats[sf.key]));
 }
 
+/* Fixed (non-random) decade stat line for the draft pool card: total runs
+   for that decade if he can bat, total wickets if he can bowl, both for
+   an all-rounder -- unlike pickRandomStats this never varies between
+   renders, so a player's card always shows the same headline number. */
+function decadeStatsText(p){
+  if(!p.stats) return '';
+  const parts = [];
+  const isAR = p.roles.includes('ar');
+  const showRuns = isAR || !p.roles.includes('bowl');
+  const showWkts = isAR || p.roles.includes('bowl');
+  if(showRuns && p.stats.runs!=null) parts.push(`${p.stats.runs.toLocaleString()} runs`);
+  if(showWkts && p.stats.wickets!=null) parts.push(`${p.stats.wickets} wkt${p.stats.wickets===1?'':'s'}`);
+  return parts.join(' · ');
+}
+
 /* ================= STATE ================= */
 let xiSlots = new Array(11).fill(null);   // batting order 1–11, filled in any order
 let picksMade = 0;
@@ -1038,14 +1053,20 @@ let eraFilter = 'all';
 let DECADES = FORMATS.test.decades;
 const DECADE_LABEL = {'1870s':'The 1870s', '1880s':'The 1880s', '1890s':'The 1890s', '1900s':'The 1900s', '1910s':'The 1910s', '1920s':'The 1920s', '1930s':'The 1930s', '1940s':'The 1940s', '1950s':'The 1950s', '1960s':'The 1960s', '1970s':'The 1970s', '1980s':'The 1980s', '1990s':'The 1990s', '2000s':'The 2000s', '2010s':'The 2010s', '2020s':'The 2020s'};
 const CAPTAINS_DB = [{"n":"Ricky Ponting","c":"AUS","fmt":"odi","d":"2000s","rt":99,"cid":"2230"},{"n":"Clive Lloyd","c":"WI","fmt":"odi","d":"1980s","rt":99,"cid":"1286"},{"n":"Rohit Sharma","c":"IND","fmt":"t20","d":"2020s","rt":99,"cid":"48405"},{"n":"Hansie Cronje","c":"SA","fmt":"odi","d":"1990s","rt":99,"cid":"2010"},{"n":"Virat Kohli","c":"IND","fmt":"odi","d":"2010s","rt":99,"cid":"49752"},{"n":"Ricky Ponting","c":"AUS","fmt":"test","d":"2000s","rt":99,"cid":"2230"},{"n":"Michael Clarke","c":"AUS","fmt":"odi","d":"2010s","rt":99,"cid":"8876"},{"n":"Steve Waugh","c":"AUS","fmt":"test","d":"2000s","rt":99,"cid":"1795"},{"n":"Rohit Sharma","c":"IND","fmt":"odi","d":"2020s","rt":99,"cid":"48405"},{"n":"Viv Richards","c":"WI","fmt":"odi","d":"1980s","rt":99,"cid":"1435"},{"n":"Eoin Morgan","c":"ENG","fmt":"odi","d":"2010s","rt":99,"cid":"47055"},{"n":"Graeme Smith","c":"SA","fmt":"odi","d":"2000s","rt":99,"cid":"10406"},{"n":"Warwick Armstrong","c":"AUS","fmt":"test","d":"1920s","rt":99,"cid":"254"},{"n":"Shaun Pollock","c":"SA","fmt":"odi","d":"2000s","rt":99,"cid":"2228"},{"n":"Allan Border","c":"AUS","fmt":"odi","d":"1990s","rt":98,"cid":"1572"},{"n":"Wasim Akram","c":"PAK","fmt":"odi","d":"1990s","rt":98,"cid":"1775"},{"n":"Tom Latham","c":"NZ","fmt":"odi","d":"2020s","rt":98,"cid":"59148"},{"n":"Virat Kohli","c":"IND","fmt":"test","d":"2010s","rt":98,"cid":"49752"},{"n":"Lord Hawke","c":"ENG","fmt":"test","d":"1890s","rt":98,"cid":"189"},{"n":"Allan Border","c":"AUS","fmt":"odi","d":"1980s","rt":98,"cid":"1572"},{"n":"Mahela Jayawardene","c":"SL","fmt":"odi","d":"2000s","rt":98,"cid":"6315"},{"n":"Faf du Plessis","c":"SA","fmt":"t20","d":"2010s","rt":98,"cid":"46933"},{"n":"Inzamam-ul-Haq","c":"PAK","fmt":"odi","d":"2000s","rt":98,"cid":"2034"},{"n":"Waqar Younis","c":"PAK","fmt":"odi","d":"2000s","rt":98,"cid":"1935"},{"n":"Imran Khan","c":"PAK","fmt":"odi","d":"1980s","rt":98,"cid":"1383"},{"n":"AB de Villiers","c":"SA","fmt":"odi","d":"2010s","rt":98,"cid":"46533"},{"n":"George Bailey","c":"AUS","fmt":"odi","d":"2010s","rt":98,"cid":"35384"},{"n":"Harry Trott","c":"AUS","fmt":"test","d":"1890s","rt":98,"cid":"109"},{"n":"MS Dhoni","c":"IND","fmt":"odi","d":"2000s","rt":98,"cid":"7593"},{"n":"Babar Azam","c":"PAK","fmt":"odi","d":"2020s","rt":98,"cid":"56880"},{"n":"Babar Azam","c":"PAK","fmt":"t20","d":"2020s","rt":98,"cid":"56880"},{"n":"Brendon McCullum","c":"NZ","fmt":"odi","d":"2010s","rt":98,"cid":"10384"},{"n":"Mashrafe Mortaza","c":"BAN","fmt":"odi","d":"2010s","rt":96,"cid":"24672"},{"n":"Vic Richardson","c":"AUS","fmt":"test","d":"1930s","rt":96,"cid":"446"},{"n":"Lindsay Hassett","c":"AUS","fmt":"test","d":"1940s","rt":96,"cid":"706"},{"n":"MS Dhoni","c":"IND","fmt":"t20","d":"2010s","rt":96,"cid":"7593"},{"n":"Daren Sammy","c":"WI","fmt":"t20","d":"2010s","rt":96,"cid":"44829"},{"n":"Sanath Jayasuriya","c":"SL","fmt":"odi","d":"2000s","rt":96,"cid":"1988"},{"n":"MS Dhoni","c":"IND","fmt":"odi","d":"2010s","rt":96,"cid":"7593"},{"n":"Arthur Shrewsbury","c":"ENG","fmt":"test","d":"1880s","rt":96,"cid":"62"},{"n":"W.G. Grace","c":"ENG","fmt":"test","d":"1880s","rt":96,"cid":"43"},{"n":"Marvan Atapattu","c":"SL","fmt":"odi","d":"2000s","rt":96,"cid":"1979"},{"n":"Mohammad Azharuddin","c":"IND","fmt":"odi","d":"1990s","rt":96,"cid":"1774"},{"n":"Sourav Ganguly","c":"IND","fmt":"odi","d":"2000s","rt":96,"cid":"2024"},{"n":"Sarfaraz Ahmed","c":"PAK","fmt":"odi","d":"2010s","rt":96,"cid":"48983"},{"n":"Donald Bradman","c":"AUS","fmt":"test","d":"1930s","rt":96,"cid":"492"},{"n":"Viv Richards","c":"WI","fmt":"test","d":"1980s","rt":96,"cid":"1435"},{"n":"Dasun Shanaka","c":"SL","fmt":"odi","d":"2020s","rt":96,"cid":"61690"},{"n":"Richie Richardson","c":"WI","fmt":"odi","d":"1990s","rt":96,"cid":"1744"},{"n":"Rahul Dravid","c":"IND","fmt":"odi","d":"2000s","rt":96,"cid":"2281"},{"n":"Percy Chapman","c":"ENG","fmt":"test","d":"1920s","rt":96,"cid":"431"},{"n":"Kane Williamson","c":"NZ","fmt":"odi","d":"2010s","rt":96,"cid":"51088"},{"n":"Mark Taylor","c":"AUS","fmt":"odi","d":"1990s","rt":96,"cid":"1922"},{"n":"Arjuna Ranatunga","c":"SL","fmt":"odi","d":"1990s","rt":96,"cid":"1666"},{"n":"Peter May","c":"ENG","fmt":"test","d":"1950s","rt":96,"cid":"900"},{"n":"Kapil Dev","c":"IND","fmt":"odi","d":"1980s","rt":94,"cid":"1568"},{"n":"Graeme Smith","c":"SA","fmt":"test","d":"2000s","rt":94,"cid":"10406"},{"n":"Jos Buttler","c":"ENG","fmt":"t20","d":"2020s","rt":94,"cid":"53271"},{"n":"Michael Vaughan","c":"ENG","fmt":"odi","d":"2000s","rt":94,"cid":"4709"},{"n":"Douglas Jardine","c":"ENG","fmt":"test","d":"1930s","rt":94,"cid":"480"},{"n":"Donald Bradman","c":"AUS","fmt":"test","d":"1940s","rt":94,"cid":"492"},{"n":"Frank Worrell","c":"WI","fmt":"test","d":"1960s","rt":94,"cid":"821"},{"n":"Misbah-ul-Haq","c":"PAK","fmt":"odi","d":"2010s","rt":94,"cid":"19596"},{"n":"Allan Steel","c":"ENG","fmt":"test","d":"1880s","rt":94,"cid":"52"},{"n":"Alastair Cook","c":"ENG","fmt":"odi","d":"2010s","rt":94,"cid":"45788"},{"n":"Bill Woodfull","c":"AUS","fmt":"test","d":"1930s","rt":94,"cid":"452"},{"n":"Eoin Morgan","c":"ENG","fmt":"t20","d":"2010s","rt":94,"cid":"47055"},{"n":"C.B. Fry","c":"ENG","fmt":"test","d":"1910s","rt":94,"cid":"187"},{"n":"Arthur Carr","c":"ENG","fmt":"test","d":"1920s","rt":94,"cid":"417"},{"n":"Geoff Howarth","c":"NZ","fmt":"odi","d":"1980s","rt":94,"cid":"1444"},{"n":"Percy Sherwell","c":"SA","fmt":"test","d":"1900s","rt":94,"cid":"290"},{"n":"Mark Taylor","c":"AUS","fmt":"test","d":"1990s","rt":94,"cid":"1922"},{"n":"Hansie Cronje","c":"SA","fmt":"test","d":"1990s","rt":94,"cid":"2010"},{"n":"Michael Vaughan","c":"ENG","fmt":"test","d":"2000s","rt":94,"cid":"4709"},{"n":"Michael Clarke","c":"AUS","fmt":"test","d":"2010s","rt":94,"cid":"8876"},{"n":"Courtney Walsh","c":"WI","fmt":"odi","d":"1990s","rt":94,"cid":"1765"},{"n":"Daniel Vettori","c":"NZ","fmt":"odi","d":"2000s","rt":94,"cid":"4380"},{"n":"Graham Gooch","c":"ENG","fmt":"odi","d":"1990s","rt":94,"cid":"1446"},{"n":"Steven Smith","c":"AUS","fmt":"odi","d":"2010s","rt":94,"cid":"50281"},{"n":"Lindsay Hassett","c":"AUS","fmt":"test","d":"1950s","rt":94,"cid":"706"},{"n":"Nasser Hussain","c":"ENG","fmt":"odi","d":"2000s","rt":94,"cid":"1952"},{"n":"Angelo Mathews","c":"SL","fmt":"odi","d":"2010s","rt":94,"cid":"47023"},{"n":"Monty Noble","c":"AUS","fmt":"test","d":"1900s","rt":94,"cid":"219"},{"n":"Aaron Finch","c":"AUS","fmt":"t20","d":"2020s","rt":92,"cid":"35812"},{"n":"Stephen Fleming","c":"NZ","fmt":"odi","d":"1990s","rt":92,"cid":"2121"},{"n":"Brian Lara","c":"WI","fmt":"odi","d":"2000s","rt":92,"cid":"1982"},{"n":"Brian Lara","c":"WI","fmt":"odi","d":"1990s","rt":92,"cid":"1982"},{"n":"Martin Crowe","c":"NZ","fmt":"odi","d":"1990s","rt":92,"cid":"1669"},{"n":"William Porterfield","c":"IRE","fmt":"odi","d":"2010s","rt":92,"cid":"47403"},{"n":"Stephen Fleming","c":"NZ","fmt":"odi","d":"2000s","rt":92,"cid":"2121"},{"n":"Carl Hooper","c":"WI","fmt":"odi","d":"2000s","rt":92,"cid":"1873"},{"n":"Allan Border","c":"AUS","fmt":"test","d":"1990s","rt":92,"cid":"1572"},{"n":"Misbah-ul-Haq","c":"PAK","fmt":"test","d":"2010s","rt":92,"cid":"19596"},{"n":"William Porterfield","c":"IRE","fmt":"t20","d":"2010s","rt":92,"cid":"47403"},{"n":"Bill Lawry","c":"AUS","fmt":"test","d":"1960s","rt":92,"cid":"1150"},{"n":"Johnny Douglas","c":"ENG","fmt":"test","d":"1910s","rt":92,"cid":"334"},{"n":"Leonard Hutton","c":"ENG","fmt":"test","d":"1950s","rt":92,"cid":"694"},{"n":"Clem Hill","c":"AUS","fmt":"test","d":"1910s","rt":92,"cid":"210"},{"n":"Imran Khan","c":"PAK","fmt":"odi","d":"1990s","rt":92,"cid":"1383"},{"n":"MD Shanaka","c":"SL","fmt":"t20","d":"2020s","rt":92,"cid":"114674"},{"n":"Gubby Allen","c":"ENG","fmt":"test","d":"1930s","rt":92,"cid":"559"},{"n":"Jack Cheetham","c":"SA","fmt":"test","d":"1950s","rt":92,"cid":"852"},{"n":"Kim Hughes","c":"AUS","fmt":"odi","d":"1980s","rt":92,"cid":"1530"},{"n":"W.G. Grace","c":"ENG","fmt":"test","d":"1890s","rt":92,"cid":"43"},{"n":"Habibul Bashar","c":"BAN","fmt":"odi","d":"2000s","rt":92,"cid":"2204"},{"n":"Javed Miandad","c":"PAK","fmt":"odi","d":"1980s","rt":92,"cid":"1504"},{"n":"Sourav Ganguly","c":"IND","fmt":"test","d":"2000s","rt":92,"cid":"2024"},{"n":"Joe Darling","c":"AUS","fmt":"test","d":"1900s","rt":92,"cid":"172"},{"n":"Alastair Cook","c":"ENG","fmt":"test","d":"2010s","rt":92,"cid":"45788"},{"n":"MS Dhoni","c":"IND","fmt":"test","d":"2010s","rt":92,"cid":"7593"},{"n":"Ivo Bligh","c":"ENG","fmt":"test","d":"1880s","rt":92,"cid":"67"},{"n":"Herbie Collins","c":"AUS","fmt":"test","d":"1920s","rt":92,"cid":"373"},{"n":"James Lillywhite (jnr)","c":"ENG","fmt":"test","d":"1870s","rt":90,"cid":"16"},{"n":"Arthur Gilligan","c":"ENG","fmt":"test","d":"1920s","rt":90,"cid":"420"},{"n":"John Goddard","c":"WI","fmt":"test","d":"1940s","rt":90,"cid":"805"},{"n":"Bob Simpson","c":"AUS","fmt":"test","d":"1960s","rt":90,"cid":"1060"},{"n":"Stephen Fleming","c":"NZ","fmt":"test","d":"2000s","rt":90,"cid":"2121"},{"n":"Ian Johnson","c":"AUS","fmt":"test","d":"1950s","rt":90,"cid":"736"},{"n":"Kepler Wessels","c":"SA","fmt":"odi","d":"1990s","rt":90,"cid":"1693"},{"n":"Andy Balbirnie","c":"IRE","fmt":"t20","d":"2020s","rt":90,"cid":"52628"},{"n":"Jeff Crowe","c":"NZ","fmt":"odi","d":"1980s","rt":90,"cid":"1698"},{"n":"Stanley Jackson","c":"ENG","fmt":"test","d":"1890s","rt":90,"cid":"164"},{"n":"Hugh Trumble","c":"AUS","fmt":"test","d":"1900s","rt":90,"cid":"140"},{"n":"Stanley Jackson","c":"ENG","fmt":"test","d":"1900s","rt":90,"cid":"164"},{"n":"Frederick Fane","c":"ENG","fmt":"test","d":"1900s","rt":90,"cid":"285"},{"n":"Percy Sherwell","c":"SA","fmt":"test","d":"1910s","rt":90,"cid":"290"},{"n":"Frank Mann","c":"ENG","fmt":"test","d":"1920s","rt":90,"cid":"423"},{"n":"Daren Sammy","c":"WI","fmt":"odi","d":"2010s","rt":90,"cid":"44829"},{"n":"Clive Lloyd","c":"WI","fmt":"test","d":"1970s","rt":90,"cid":"1286"},{"n":"Gerry Alexander","c":"WI","fmt":"test","d":"1950s","rt":90,"cid":"1056"},{"n":"Alec Stewart","c":"ENG","fmt":"odi","d":"1990s","rt":90,"cid":"1953"},{"n":"Alistair Campbell","c":"ZIM","fmt":"odi","d":"1990s","rt":90,"cid":"2045"},{"n":"Jack Blackham","c":"AUS","fmt":"test","d":"1890s","rt":90,"cid":"3"},{"n":"Andrew Stoddart","c":"ENG","fmt":"test","d":"1890s","rt":90,"cid":"106"},{"n":"Dave Gregory","c":"AUS","fmt":"test","d":"1870s","rt":90,"cid":"9"},{"n":"Syd Gregory","c":"AUS","fmt":"test","d":"1910s","rt":90,"cid":"138"},{"n":"Percy Chapman","c":"ENG","fmt":"test","d":"1930s","rt":90,"cid":"431"},{"n":"Pelham Warner","c":"ENG","fmt":"test","d":"1900s","rt":90,"cid":"233"},{"n":"Billy Murdoch","c":"AUS","fmt":"test","d":"1880s","rt":90,"cid":"24"},{"n":"Andy Balbirnie","c":"IRE","fmt":"odi","d":"2020s","rt":90,"cid":"52628"},{"n":"Sachin Tendulkar","c":"IND","fmt":"odi","d":"1990s","rt":85,"cid":"1934"},{"n":"Chris Gayle","c":"WI","fmt":"odi","d":"2000s","rt":85,"cid":"7568"},{"n":"Mike Smith","c":"ENG","fmt":"test","d":"1960s","rt":85,"cid":"1077"},{"n":"Imran Khan","c":"PAK","fmt":"test","d":"1980s","rt":85,"cid":"1383"},{"n":"John Goddard","c":"WI","fmt":"test","d":"1950s","rt":85,"cid":"805"},{"n":"Trevor Goddard","c":"SA","fmt":"test","d":"1960s","rt":85,"cid":"1018"},{"n":"George Giffen","c":"AUS","fmt":"test","d":"1890s","rt":85,"cid":"57"},{"n":"George Mann","c":"ENG","fmt":"test","d":"1940s","rt":85,"cid":"841"},{"n":"Mohammad Azharuddin","c":"IND","fmt":"test","d":"1990s","rt":85,"cid":"1774"},{"n":"Ted Dexter","c":"ENG","fmt":"test","d":"1960s","rt":85,"cid":"1080"},{"n":"Elton Chigumbura","c":"ZIM","fmt":"odi","d":"2010s","rt":85,"cid":"45252"},{"n":"Norman Yardley","c":"ENG","fmt":"test","d":"1940s","rt":85,"cid":"720"},{"n":"Jason Holder","c":"WI","fmt":"odi","d":"2010s","rt":85,"cid":"59339"},{"n":"Colin Cowdrey","c":"ENG","fmt":"test","d":"1960s","rt":85,"cid":"998"},{"n":"Joe Darling","c":"AUS","fmt":"test","d":"1890s","rt":85,"cid":"172"},{"n":"Jack Ryder","c":"AUS","fmt":"test","d":"1920s","rt":85,"cid":"381"},{"n":"Herby Wade","c":"SA","fmt":"test","d":"1930s","rt":85,"cid":"662"},{"n":"Heath Streak","c":"ZIM","fmt":"odi","d":"2000s","rt":85,"cid":"2108"},{"n":"Richie Benaud","c":"AUS","fmt":"test","d":"1960s","rt":85,"cid":"919"},{"n":"Nummy Deane","c":"SA","fmt":"test","d":"1920s","rt":85,"cid":"432"},{"n":"Jackie Grant","c":"WI","fmt":"test","d":"1930s","rt":85,"cid":"562"},{"n":"Abdul Kardar","c":"PAK","fmt":"test","d":"1950s","rt":85,"cid":"750"},{"n":"Wally Hammond","c":"ENG","fmt":"test","d":"1930s","rt":85,"cid":"458"},{"n":"Graham Dowling","c":"NZ","fmt":"test","d":"1960s","rt":85,"cid":"1176"},{"n":"Arjuna Ranatunga","c":"SL","fmt":"test","d":"1990s","rt":85,"cid":"1666"},{"n":"Allan Border","c":"AUS","fmt":"test","d":"1980s","rt":80,"cid":"1572"},{"n":"Archie MacLaren","c":"ENG","fmt":"test","d":"1900s","rt":80,"cid":"177"},{"n":"Mike Atherton","c":"ENG","fmt":"test","d":"1990s","rt":80,"cid":"1928"},{"n":"Percy McDonnell","c":"AUS","fmt":"test","d":"1880s","rt":80,"cid":"46"},{"n":"Garry Sobers","c":"WI","fmt":"test","d":"1960s","rt":80,"cid":"985"},{"n":"Dudley Nourse","c":"SA","fmt":"test","d":"1940s","rt":80,"cid":"659"},{"n":"Mansur Ali Khan Pataudi","c":"IND","fmt":"test","d":"1960s","rt":80,"cid":"1175"},{"n":"Freddie Brown","c":"ENG","fmt":"test","d":"1950s","rt":80,"cid":"576"},{"n":"Jock Cameron","c":"SA","fmt":"test","d":"1930s","rt":80,"cid":"455"},{"n":"Bob Wyatt","c":"ENG","fmt":"test","d":"1930s","rt":80,"cid":"465"},{"n":"Nari Contractor","c":"IND","fmt":"test","d":"1960s","rt":80,"cid":"1032"},{"n":"Walter Hadlee","c":"NZ","fmt":"test","d":"1940s","rt":80,"cid":"693"},{"n":"Jeffrey Stollmeyer","c":"WI","fmt":"test","d":"1950s","rt":80,"cid":"726"},{"n":"Duleep Mendis","c":"SL","fmt":"odi","d":"1980s","rt":75,"cid":"1665"},{"n":"Lala Amarnath","c":"IND","fmt":"test","d":"1940s","rt":75,"cid":"623"},{"n":"Herbie Taylor","c":"SA","fmt":"test","d":"1910s","rt":75,"cid":"350"},{"n":"Alan Melville","c":"SA","fmt":"test","d":"1930s","rt":75,"cid":"716"},{"n":"Alan Melville","c":"SA","fmt":"test","d":"1940s","rt":75,"cid":"716"},{"n":"Herbie Taylor","c":"SA","fmt":"test","d":"1920s","rt":75,"cid":"350"},{"n":"Tom Lowry","c":"NZ","fmt":"test","d":"1930s","rt":75,"cid":"528"},{"n":"Curly Page","c":"NZ","fmt":"test","d":"1930s","rt":75,"cid":"531"},{"n":"Vijay Hazare","c":"IND","fmt":"test","d":"1950s","rt":75,"cid":"748"},{"n":"John Reid","c":"NZ","fmt":"test","d":"1960s","rt":75,"cid":"860"}];
-function isEliteCaptain(p, fmtKey){
+function isEliteCaptain(p){
   if(!p) return null;
   /* Matched on Cricketer ID, not name — names in the player database
      use Cricinfo's abbreviated style ("SR Waugh"), while this list was
      originally built with full names ("Steve Waugh"). Matching on ID
      survives any future naming-convention changes; c.n is kept purely
-     for the display text in the note below. */
-  return CAPTAINS_DB.find(c=>c.cid===p.cid && c.c===p.c && c.fmt===fmtKey && c.d===p.d) || null;
+     for the display text in the note below.
+     Deliberately ignores CAPTAINS_DB's own `fmt` field — a genuine
+     real-world captaincy record for this exact country/decade counts
+     in every format that player gets drafted into, not just the one
+     his entry happens to be tagged with (many great captains only have
+     one format entry simply because that's the format the record was
+     sourced for, not because their leadership was format-specific). */
+  return CAPTAINS_DB.find(c=>c.cid===p.cid && c.c===p.c && c.d===p.d) || null;
 }
 
 
@@ -1156,15 +1177,17 @@ function showSquad(pair){
   grid.innerHTML = `<div class="squad-head"><span>${pair.nat.name} · ${DECADE_LABEL[pair.dec]}</span><span>${pool.length} available</span></div>` +
     pool.map(p=>{
       const typeTxt = playerTypeLabel(p);
-      const statsTxt = pickRandomStats(p, 3).join(' · ');
+      const statsTxt = decadeStatsText(p);
+      const capMatch = isEliteCaptain(p);
       return `
     <button class="pcard" onclick="showPositions(this.dataset.n, this.dataset.d, this.dataset.c)" data-n="${escAttr(p.n)}" data-d="${p.d}" data-c="${p.c}">
       <span class="flag">${pair.nat.flag}</span>
       <span class="who">
         <span class="nm">${p.n} <span class="decade">'${p.d}</span></span>
-        <span class="rl">${p.roles.map(r=>ROLE_LABEL[r]).join(' · ')}${typeTxt?' — '+typeTxt:''}${p.tag?' — '+p.tag:''}</span>
+        <span class="rl">${p.roles.map(r=>ROLE_LABEL[r]).join(' · ')}${typeTxt?' — '+typeTxt:''}</span>
         ${(p.br!=null && p.bwr!=null) ? `<span class="bb">BAT ${p.br} · FIELD ${p.fr} · BOWL ${p.bwr}</span>` : ''}
         ${statsTxt ? `<span class="stat-line">${statsTxt}</span>` : ''}
+        ${capMatch ? `<span class="oop-badge" style="color:var(--brass);border-color:var(--brass)">🎖️ ELITE CAPTAIN</span>` : ''}
       </span>
       <span class="rt">${p.r}<small>DECADE RTG</small></span>
     </button>`;
@@ -1467,12 +1490,17 @@ function isOutOfPosition(p, slotNo){ return positionPenalty(p, slotNo) > 0; }
 
 function getBowlingUnit(xi){
   const core = xi.filter(p=>p.roles.includes('bowl')||p.roles.includes('ar'));
-  if(FMTKEY==='test' || core.length>=5) return {unit:core, partTimer:null};
+  if(FMTKEY==='test' || core.length>=5) return {unit:core, partTimers:[]};
+  // White-ball formats cap every individual bowler's overs (4 in T20, 10 in
+  // ODI) -- 5 bowlers at that cap exactly covers a full innings (5*4=20,
+  // 5*10=50), so an XI with fewer than 5 recognised bowl/all-rounder
+  // options needs enough part-time batters pulled in to reach 5 total, or
+  // there's no legal way to bowl out the innings without someone going
+  // over their cap.
   const candidates = xi.filter(p=>p.roles.includes('bat') && !p.roles.includes('bowl') && !p.roles.includes('ar') && !p.roles.includes('wk'))
                         .sort((a,b)=>a.r-b.r);
-  const partTimer = candidates[0];
-  if(!partTimer) return {unit:core, partTimer:null};
-  return {unit:[...core, partTimer], partTimer};
+  const partTimers = candidates.slice(0, 5-core.length);
+  return {unit:[...core, ...partTimers], partTimers};
 }
 
 function teamStrengths(){
@@ -1504,12 +1532,12 @@ function teamStrengths(){
 
   /* Bowling: anyone who can bowl, wherever he bats in the order.
      Same +0.1 in-position lift applies here too, on his own rating. */
-  const {unit:bowlUnit, partTimer} = getBowlingUnit(xi);
+  const {unit:bowlUnit, partTimers} = getBowlingUnit(xi);
   const top5 = bowlUnit.map(p=>{
     const idx = xi.indexOf(p);
     const posLift = idx>=0 && positionPenalty(p, idx+1)===0 ? 0.1 : 0;
     const base = p.r + posLift;
-    return partTimer && p.n===partTimer.n ? base*0.82 : base;
+    return partTimers.some(pt=>pt.n===p.n) ? base*0.82 : base;
   }).sort((a,b)=>b-a).slice(0,5);
   const bowl = top5.reduce((a,b)=>a+b,0)/Math.max(top5.length,1);
 
@@ -1524,7 +1552,8 @@ function teamStrengths(){
      before; only the wording shown to the user has changed. */
   if(arDeep) notes.push('An all-rounder gives the lower order extra batting depth.');
   if(arTop) notes.push('An all-rounder in the top five adds a bowling option up front.');
-  if(partTimer) notes.push(`${partTimer.n} rounds out the bowling as a part-timer.`);
+  if(partTimers.length===1) notes.push(`${partTimers[0].n} rounds out the bowling as a part-timer.`);
+  else if(partTimers.length>1) notes.push(`${partTimers.map(p=>p.n).join(', ')} round out the bowling as part-timers.`);
   else notes.push(`${bowlUnit.length} bowling option${bowlUnit.length===1?'':'s'} in the XI.`);
   if(misplaced>0) notes.push(`${misplaced} player${misplaced===1?' is':'s are'} batting out of their natural position.`);
   if(decadesUsed>=4){bonus+=3; notes.push(`Time-travelling XI: ${decadesUsed} decades represented.`);}
@@ -1535,7 +1564,7 @@ function teamStrengths(){
      picking a real historically great leader. Both this and the
      position lift are back, now layered on top of a tighter win-
      probability curve so wins still can't stack up too easily. */
-  const capMatch = isEliteCaptain(xi[captainIdx], FMTKEY);
+  const capMatch = isEliteCaptain(xi[captainIdx]);
   if(capMatch){ bonus += 0.25; notes.push(`🎖️ ${capMatch.n} captains, with a genuine ${DECADE_LABEL[capMatch.d]} ${FMT.label} leadership record.`); }
   const inPositionCount = xi.filter((p,i)=>positionPenalty(p, i+1)===0).length;
   if(inPositionCount>0) notes.push(`${inPositionCount} player${inPositionCount===1?'':'s'} in ${inPositionCount===1?'its':'their'} natural position.`);
@@ -1581,7 +1610,7 @@ function renderCaptainList(){
       const posBadge = pen===0
         ? `<span class="oop-badge" style="color:#5FC97A;border-color:#4A9D5F">IN POSITION</span>`
         : `<span class="oop-badge">OUT OF POSITION</span>`;
-      const capMatch = isEliteCaptain(p, FMTKEY);
+      const capMatch = isEliteCaptain(p);
       const capBadge = capMatch ? `<span class="oop-badge" style="color:var(--brass);border-color:var(--brass)">🎖️ ELITE CAPTAIN</span>` : '';
       return `<div class="lineup-row ${isCap?'is-cap':''}" data-idx="${i}">
         <button class="lu-move" onclick="startMoveCap(${i})" ontouchstart="captainDragTouchStart(event,${i})" ontouchmove="captainDragTouchMove(event)" ontouchend="captainDragTouchEnd(event)" title="Move or drag to swap">⇅</button>
@@ -2404,7 +2433,7 @@ function buildInningsPair(battingXi, bowlingXi, total, wkts, finishBalls){
   }
   const creditableIdx = outIdx.filter(i=>types[i]!=='run out');
 
-  const {unit:bowlUnit, partTimer} = getBowlingUnit(bowlingXi);
+  const {unit:bowlUnit, partTimers} = getBowlingUnit(bowlingXi);
   // Computed here, before bowlWeights, so anyone who ends up bowling zero
   // overs (bowlUnit can run to 6-7 names for some historical/all-rounder-
   // heavy XIs, beyond what the innings' overs can actually cover) is
@@ -2499,7 +2528,7 @@ function buildInningsPair(battingXi, bowlingXi, total, wkts, finishBalls){
   const oversDist = oversDistBalls.map(ballsToOversNum);
   const bowlWeights = bowlUnit.map((p,i)=>{
     const isAR = p.roles.includes('ar') && !p.roles.includes('bowl');
-    const partTime = !!(partTimer && p.n===partTimer.n);
+    const partTime = partTimers.some(pt=>pt.n===p.n);
     const base = Math.max(0.1, (p.r-70)/30) * (isAR?0.6:1) * (partTime?0.3:1);
     const w = base * (0.5+Math.random());
     return oversDist[i]===0 ? 0 : w;
@@ -2932,7 +2961,7 @@ function computeSquadStats(){
             ave: agg.runs/(Math.max(1,agg.inns-agg.no)), h:agg.h, f:agg.f, sr};
   }).sort((a,b)=>b.runs-a.runs);
 
-  const {unit:bowlUnit, partTimer} = getBowlingUnit(xi);
+  const {unit:bowlUnit, partTimers} = getBowlingUnit(xi);
   const bowlAgg = bowlUnit.map(p=>({n:p.n, wkts:0, runs:0, overs:0, bbw:0, bbr:0, five:0}));
   scorecards.forEach(sc=>{
     sc.innings.filter(inn=>inn.bowlingTeam==='you').forEach(inn=>{
@@ -2946,7 +2975,7 @@ function computeSquadStats(){
   });
   const bowling = bowlUnit.map((p,i)=>{
     const agg = bowlAgg[i];
-    const partTime = !!(partTimer && p.n===partTimer.n);
+    const partTime = partTimers.some(pt=>pt.n===p.n);
     const ave = agg.wkts>0 ? agg.runs/agg.wkts : 0;
     const econ = (test) ? null : (agg.overs>0 ? agg.runs/agg.overs : 0);
     return {n:p.n+(partTime?' (pt)':''), wkts:agg.wkts, ave, bb:`${agg.bbw}-${agg.bbr}`, five:agg.five, econ, overs:agg.overs};
