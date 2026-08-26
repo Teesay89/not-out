@@ -4670,10 +4670,11 @@ async function bytRedeemDuplicates(){
     });
     const data = await res.json();
     if(!res.ok || !data.ok) throw new Error(data.error || ('HTTP '+res.status));
-    for(const c of data.newCards){
-      const prev = bytCollection.cards[c.key];
-      bytCollection.cards[c.key] = { count: (prev?prev.count:0) + 1 };
-    }
+    // Redeeming spares doesn't just add the 6 new cards -- it also spends
+    // the spare copies themselves back out of whichever cards had them, so
+    // the server's returned `cards` map (not a local merge of newCards
+    // alone) is the only correct post-redemption state to adopt.
+    bytCollection.cards = data.cards;
     bytCollection.spareCount = data.spareCount;
     bytOwnedPlayers = bytOwnedList();
     const revealed = data.newCards.map(c=>bytHydrate(c.key)).filter(Boolean);
