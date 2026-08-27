@@ -4658,10 +4658,11 @@ function showBYTCollection(){
   bytRenderCollectionGrid();
 }
 async function bytRedeemDuplicates(){
-  if(bytCollection.spareCount < 5){
-    await showConfirm('Not enough spares', `You have ${bytCollection.spareCount} of the 5 spare cards needed.`, 'OK');
-    return;
-  }
+  // Always calls the server, even short of 5 spares -- redeeming also
+  // reconciles any duplicate cards left stale by redemptions from before
+  // that was tracked per-card, and that cleanup should show up in "My
+  // Duplicates" immediately rather than only once there's enough for a
+  // whole new pack too.
   const idToken = await getAuthIdToken();
   try{
     const res = await fetch(BYT_REDEEM_URL, {
@@ -4669,14 +4670,23 @@ async function bytRedeemDuplicates(){
       body: JSON.stringify({idToken})
     });
     const data = await res.json();
-    if(!res.ok || !data.ok) throw new Error(data.error || ('HTTP '+res.status));
+    if(data.cards){
+      bytCollection.cards = data.cards;
+      bytOwnedPlayers = bytOwnedList();
+      bytRenderCollectionGrid();
+    }
+    if(!res.ok || !data.ok){
+      if(data.error === 'Need at least 5 spares to redeem'){
+        await showConfirm('Not enough spares', `You have ${bytCollection.spareCount} of the 5 spare cards needed.`, 'OK');
+        return;
+      }
+      throw new Error(data.error || ('HTTP '+res.status));
+    }
     // Redeeming spares doesn't just add the 6 new cards -- it also spends
     // the spare copies themselves back out of whichever cards had them, so
     // the server's returned `cards` map (not a local merge of newCards
     // alone) is the only correct post-redemption state to adopt.
-    bytCollection.cards = data.cards;
     bytCollection.spareCount = data.spareCount;
-    bytOwnedPlayers = bytOwnedList();
     const revealed = data.newCards.map(c=>bytHydrate(c.key)).filter(Boolean);
     showBYTPackReveal(revealed, 'New Pack — 6 Cards', showBYTCollection);
   }catch(e){
@@ -4692,10 +4702,10 @@ async function bytClaimWinMilestone(){
     });
     const data = await res.json();
     if(!res.ok || !data.ok) throw new Error(data.error || ('HTTP '+res.status));
-    for(const c of data.newCards){
-      const prev = bytCollection.cards[c.key];
-      bytCollection.cards[c.key] = { count: (prev?prev.count:0) + 1 };
-    }
+    // Adopt the server's authoritative cards map rather than merging just
+    // newCards in locally -- it may also have quietly trimmed unrelated
+    // stale duplicates left over from before per-card counts were fixed.
+    bytCollection.cards = data.cards;
     bytCollection.spareCount = data.spareCount;
     bytCollection.milestonesClaimed = data.milestonesClaimed;
     bytOwnedPlayers = bytOwnedList();
@@ -4714,10 +4724,10 @@ async function bytClaimDailyPack(){
     });
     const data = await res.json();
     if(!res.ok || !data.ok) throw new Error(data.error || ('HTTP '+res.status));
-    for(const c of data.newCards){
-      const prev = bytCollection.cards[c.key];
-      bytCollection.cards[c.key] = { count: (prev?prev.count:0) + 1 };
-    }
+    // Adopt the server's authoritative cards map rather than merging just
+    // newCards in locally -- it may also have quietly trimmed unrelated
+    // stale duplicates left over from before per-card counts were fixed.
+    bytCollection.cards = data.cards;
     bytCollection.spareCount = data.spareCount;
     bytCollection.lastDailyClaim = data.lastDailyClaim;
     bytOwnedPlayers = bytOwnedList();
