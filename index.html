@@ -4571,6 +4571,16 @@ async function bytFinalizeSeries(){
       document.querySelector('#scr-byt-result .btn').setAttribute('onclick', 'bytBackToCheckpoint()');
     }
   }catch(e){
+    // The server may have self-healed the campaign's state as part of this
+    // very failure (e.g. a stale opponent rotation after a past format
+    // change) -- refetch so the checkpoint shown next reflects whatever it
+    // actually wrote, not whatever this client still has cached locally.
+    const uid = bytCurrentUid();
+    const fresh = uid ? await bytRefetchCollection(uid) : null;
+    if(fresh){
+      bytCollection = fresh;
+      bytOwnedPlayers = bytOwnedList();
+    }
     await showConfirm('Could not verify series', e.message, 'OK');
     showBYTCampaignCheckpoint();
   }finally{
@@ -4747,6 +4757,12 @@ async function bytChangeFormat(fmt){
     const data = await res.json();
     if(!res.ok || !data.ok) throw new Error(data.error || ('HTTP '+res.status));
     bytCollection.campaign.fmt = data.fmt;
+    // Changing format also reshuffles the opponent rotation server-side
+    // (old-format-only opponents, like a World All-Star tier that isn't
+    // fieldable in the new format, can't stay in it) -- adopt the fresh
+    // order/index rather than carrying the stale one forward.
+    bytCollection.campaign.order = data.order;
+    bytCollection.campaign.index = data.index;
     FMTKEY = data.fmt; FMT = FORMATS[FMTKEY]; DECADES = FMT.decades;
     await ensureFormatLoaded(FMTKEY);
     showBYTCampaignCheckpoint();
