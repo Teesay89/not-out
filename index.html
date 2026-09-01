@@ -641,7 +641,7 @@ body.sim-active .masthead{
     <p class="foot-note" id="bytDailyAllowance" style="text-align:center;margin-bottom:4px"></p>
     <button class="btn secondary" onclick="bytRevisesLineup()">Revise lineup</button>
     <button class="btn" id="bytPlaySeriesBtn" style="margin-top:10px" onclick="bytPlaySeries()">Play the series</button>
-    <p class="foot-note" id="bytDailyCapNote" style="display:none;margin-top:6px;text-align:center">You've reached today's limit of 20 series — come back tomorrow.</p>
+    <p class="foot-note" id="bytDailyCapNote" style="display:none;margin-top:6px;text-align:center">You've reached today's limit of 10 series — come back tomorrow.</p>
     <button class="btn secondary" style="margin-top:10px" onclick="showBYTCollection()">My collection</button>
     <button class="btn secondary" style="margin-top:10px" onclick="openLeaderboard()">🏆 Honours Board</button>
     <a href="javascript:void(0)" class="back-link" style="margin-top:10px" onclick="returnToIntro()">← Back to menu</a>
@@ -3813,6 +3813,7 @@ const BYT_DAILY_URL = 'https://us-central1-not-out-186a9.cloudfunctions.net/clai
 const BYT_FORMAT_CHANGE_URL = 'https://us-central1-not-out-186a9.cloudfunctions.net/changeBYTFormat';
 const BYT_SAVE_LINEUP_URL = 'https://us-central1-not-out-186a9.cloudfunctions.net/saveBYTLineup';
 const BYT_FMT_LABEL = {test:'Test', odi:'ODI', t20:'T20'};
+const BYT_DAILY_SERIES_CAP = 10;
 function bytSeriesTodayByFmt(){
   const today = new Date().toISOString().slice(0,10);
   return bytCollection.seriesTodayDate === today && bytCollection.seriesTodayByFmt
@@ -4262,14 +4263,14 @@ function showBYTCampaignCheckpoint(){
   // claimSeriesReward -- checked here too so the button is disabled and the
   // reason shown BEFORE a player sinks time into a whole 5-match series,
   // rather than only finding out it's rejected after finishing it. Each
-  // format (Test/ODI/T20) gets its own 20-a-day allowance, so switching
-  // format at a 10-series milestone gives a fresh cap, not a shared one.
+  // format (Test/ODI/T20) gets its own daily allowance, so switching format
+  // at a 10-series milestone gives a fresh cap, not a shared one.
   const seriesTodayByFmt = bytSeriesTodayByFmt();
   document.getElementById('bytDailyAllowance').textContent =
-    `Today: Test ${seriesTodayByFmt.test||0}/20 · ODI ${seriesTodayByFmt.odi||0}/20 · T20 ${seriesTodayByFmt.t20||0}/20`;
-  const dailyCapReached = (seriesTodayByFmt[c.fmt]||0) >= 20;
+    `Today: Test ${seriesTodayByFmt.test||0}/${BYT_DAILY_SERIES_CAP} · ODI ${seriesTodayByFmt.odi||0}/${BYT_DAILY_SERIES_CAP} · T20 ${seriesTodayByFmt.t20||0}/${BYT_DAILY_SERIES_CAP}`;
+  const dailyCapReached = (seriesTodayByFmt[c.fmt]||0) >= BYT_DAILY_SERIES_CAP;
   document.getElementById('bytPlaySeriesBtn').disabled = dailyCapReached;
-  document.getElementById('bytDailyCapNote').textContent = `You've reached today's limit of 20 ${BYT_FMT_LABEL[c.fmt]} series — come back tomorrow.`;
+  document.getElementById('bytDailyCapNote').textContent = `You've reached today's limit of ${BYT_DAILY_SERIES_CAP} ${BYT_FMT_LABEL[c.fmt]} series — come back tomorrow.`;
   document.getElementById('bytDailyCapNote').style.display = dailyCapReached ? '' : 'none';
   const oppId = c.order[c.index];
   const nat = bytOpponentObj(oppId);
@@ -4295,8 +4296,8 @@ function bytPlaySeries(){
   // already covers -- guards against stale state (e.g. this screen was
   // left open in a background tab since before the cap was hit).
   const seriesTodayByFmt = bytSeriesTodayByFmt();
-  if((seriesTodayByFmt[c.fmt]||0) >= 20){
-    showConfirm('Daily limit reached', `You've reached today's limit of 20 ${BYT_FMT_LABEL[c.fmt]} series — come back tomorrow.`, 'OK');
+  if((seriesTodayByFmt[c.fmt]||0) >= BYT_DAILY_SERIES_CAP){
+    showConfirm('Daily limit reached', `You've reached today's limit of ${BYT_DAILY_SERIES_CAP} ${BYT_FMT_LABEL[c.fmt]} series — come back tomorrow.`, 'OK');
     showBYTCampaignCheckpoint();
     return;
   }
