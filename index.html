@@ -629,9 +629,9 @@ body.sim-active .masthead{
       <p class="foot-note" id="bytCheckpointHint" style="margin-top:8px"></p>
     </div>
     <button class="btn reward" id="bytDailyPackBtn" style="display:none;margin-bottom:10px" onclick="bytClaimDailyPack()">🎁 Daily pack ready — tap to claim</button>
-    <button class="btn reward" id="bytMilestonePackBtn" style="display:none;margin-bottom:10px" onclick="bytClaimWinMilestone()">🏆 20-series reward ready — tap to claim</button>
+    <button class="btn reward" id="bytMilestonePackBtn" style="display:none;margin-bottom:10px" onclick="bytClaimWinMilestone()">🏆 15-series reward ready — tap to claim</button>
     <div id="bytFormatChangeBox" style="display:none">
-      <p class="foot-note">Every 10 series you can pick a new format going forward — each has its own 20-a-day allowance:</p>
+      <p class="foot-note">Every 10 series you can pick a new format going forward — each has its own 10-a-day allowance:</p>
       <div class="fmt-row" id="bytFormatChangeRow">
         <button class="fmt-btn" data-fmt="test" onclick="bytChangeFormat('test')">Test</button>
         <button class="fmt-btn" data-fmt="odi" onclick="bytChangeFormat('odi')">ODI</button>
@@ -3814,6 +3814,7 @@ const BYT_FORMAT_CHANGE_URL = 'https://us-central1-not-out-186a9.cloudfunctions.
 const BYT_SAVE_LINEUP_URL = 'https://us-central1-not-out-186a9.cloudfunctions.net/saveBYTLineup';
 const BYT_FMT_LABEL = {test:'Test', odi:'ODI', t20:'T20'};
 const BYT_DAILY_SERIES_CAP = 10;
+const BYT_MILESTONE_SERIES_INTERVAL = 15;
 function bytSeriesTodayByFmt(){
   const today = new Date().toISOString().slice(0,10);
   return bytCollection.seriesTodayDate === today && bytCollection.seriesTodayByFmt
@@ -4252,7 +4253,7 @@ function showBYTCampaignCheckpoint(){
   document.getElementById('bytCheckpointRecord').textContent = `${c.matchWins||0} won · ${c.matchDraws||0} drawn · ${c.matchLosses||0} lost`;
   const dailyHoursSince = bytCollection.lastDailyClaim ? (Date.now() - new Date(bytCollection.lastDailyClaim).getTime()) / 3600000 : Infinity;
   document.getElementById('bytDailyPackBtn').style.display = dailyHoursSince >= 20 ? '' : 'none';
-  const milestonesEligible = Math.floor((c.seriesPlayed||0) / 20) > (bytCollection.milestonesClaimed||0);
+  const milestonesEligible = Math.floor((c.seriesPlayed||0) / BYT_MILESTONE_SERIES_INTERVAL) > (bytCollection.milestonesClaimed||0);
   document.getElementById('bytMilestonePackBtn').style.display = milestonesEligible ? '' : 'none';
   const formatChangeAvailable = (c.seriesPlayed||0) > 0 && (c.seriesPlayed||0) % 10 === 0;
   document.getElementById('bytFormatChangeBox').style.display = formatChangeAvailable ? '' : 'none';
@@ -4721,7 +4722,7 @@ async function bytClaimWinMilestone(){
     bytCollection.milestonesClaimed = data.milestonesClaimed;
     bytOwnedPlayers = bytOwnedList();
     const revealed = data.newCards.map(c=>bytHydrate(c.key)).filter(Boolean);
-    showBYTPackReveal(revealed, '20-Series Reward — 6 Cards', showBYTCampaignCheckpoint);
+    showBYTPackReveal(revealed, `${BYT_MILESTONE_SERIES_INTERVAL}-Series Reward — 6 Cards`, showBYTCampaignCheckpoint);
   }catch(e){
     await showConfirm('Could not claim reward', e.message, 'OK');
   }
